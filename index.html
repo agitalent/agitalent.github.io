@@ -3,33 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fast-Track | Top AI Talent</title>
+    <title>AGI Talent | Recruitment Systems</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    
     <style>
+        /* BASE CSS RESET */
+        html { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; font-family: sans-serif; scroll-behavior: smooth; height: 100%; }
+        body { margin: 0; min-height: 100%; font-family: 'Untitled Sans', Arial, sans-serif; font-size: 14px; line-height: 20px; background: #050810; color: #f0f4ff; -webkit-font-smoothing: antialiased; }
+        
+        /* FONTS */
+        @font-face {
+            font-family: 'Untitled Sans';
+            src: url('https://cdn.prod.website-files.com/6668a687e71e2722fccb8357/66cca78e3903aa59967c21d1_UntitledSansWeb-Regular.woff2') format('woff2');
+            font-weight: 400; font-style: normal; font-display: swap;
+        }
+        @font-face {
+            font-family: 'Untitled Serif';
+            src: url('https://cdn.prod.website-files.com/6668a687e71e2722fccb8357/66cca7a4d1972b21455d9e20_UntitledSerifWeb-Regular.woff2') format('woff2');
+            font-weight: 400; font-style: normal; font-display: swap;
+        }
+
         :root {
             --bg-deep: #050810;
-            --bg-surface: #0a0f1a;
-            --bg-elevated: #111827;
             --coral-bright: #ff4d4d;
             --cyan-bright: #00e5cc;
-            --cyan-glow: rgba(0, 229, 204, .4);
-            --text-primary: #f0f4ff;
-            --text-secondary: #8892b0;
-            --border-subtle: rgba(136, 146, 176, .15);
             --hero-title-start: #f0f4ff;
             --hero-title-end: #00e5cc;
             --font-mono: "SF Mono", "Fira Code", monospace;
         }
-
-        body {
-            background-color: var(--bg-deep);
-            color: var(--text-primary);
-            font-family: system-ui, -apple-system, sans-serif;
-            overflow-x: hidden;
-        }
-
-        .mono { font-family: var(--font-mono); }
 
         /* WAVE FLOW ANIMATION */
         @keyframes wave-flow {
@@ -39,110 +41,91 @@
         }
 
         .wave-text {
-            background: linear-gradient(
-                90deg, 
-                var(--hero-title-start), 
-                var(--hero-title-end), 
-                var(--hero-title-start)
-            );
+            background: linear-gradient(90deg, var(--hero-title-start), var(--hero-title-end), var(--hero-title-start));
             background-size: 200% auto;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            animation: wave-flow 4s linear infinite;
+            animation: wave-flow 5s linear infinite;
+            font-weight: 900;
         }
 
-        /* Ambient Glows using your palette */
-        .ambient-glow {
-            position: fixed;
-            width: 50vw;
-            height: 50vh;
-            filter: blur(120px);
-            z-index: -1;
-            opacity: 0.15;
-        }
-
+        .serif-italic { font-family: 'Untitled Serif', serif; font-style: italic; }
+        .mono { font-family: var(--font-mono); }
+        
         .card-glass {
-            background: var(--bg-surface);
-            border: 1px solid var(--border-subtle);
-            transition: all 0.3s ease;
+            background: rgba(10, 15, 26, 0.65);
+            border: 1px solid rgba(136, 146, 176, 0.15);
+            transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
         }
 
         .card-glass:hover {
             border-color: var(--cyan-bright);
-            box-shadow: 0 0 20px var(--cyan-glow);
-            transform: translateY(-4px);
+            transform: translateY(-5px);
         }
+
+        ::selection { background: var(--coral-bright); color: #fff; }
     </style>
 </head>
-<body class="selection:bg-coral-bright selection:text-white">
+<body>
 
-    <div class="ambient-glow top-0 left-0 bg-cyan-bright"></div>
-    <div class="ambient-glow bottom-0 right-0 bg-coral-bright"></div>
-
-    <nav class="flex justify-between items-center px-8 py-10 max-w-7xl mx-auto">
-        <div class="flex items-center gap-3">
-            <div class="w-8 h-8 bg-white flex items-center justify-center rounded-sm">
-                <div class="w-4 h-4 bg-black rotate-45"></div>
-            </div>
-            <span class="mono font-bold tracking-tighter text-lg">AGI-TALENT</span>
+    <nav class="w-full py-8 px-10 flex justify-between items-center max-w-[1400px] mx-auto">
+        <div class="flex items-center gap-2">
+            <div class="w-6 h-6 bg-white rotate-45"></div>
+            <span class="mono text-sm font-bold tracking-tighter uppercase">AGI Talent</span>
         </div>
-        <div class="hidden md:flex gap-8 mono text-[10px] uppercase tracking-[0.2em] text-slate-500">
-            <a href="#" class="hover:text-white transition-colors">Sourcing</a>
-            <a href="talent.html" class="hover:text-white transition-colors">Talent_Pool</a>
-            <a href="#" class="hover:text-white transition-colors">Contact</a>
+        <div class="flex gap-10 mono text-[10px] uppercase tracking-widest text-[#8892b0]">
+            <a href="openings.html" class="hover:text-white transition-colors">AI_Openings</a>
+            <a href="hiring.html" class="hover:text-white transition-colors">Hiring_Managers</a>
+            <a href="contact.html" class="hover:text-white transition-colors">Contact</a>
         </div>
     </nav>
 
-    <section class="max-w-7xl mx-auto px-8 py-24">
-        <div class="mono text-[10px] text-coral-bright mb-6 tracking-[0.4em] uppercase">
-            // [STATUS: ACTIVE_PIPELINE]
+    <main class="max-w-[1400px] mx-auto px-10 pt-32 pb-40">
+        <div class="mono text-[10px] text-coral-bright mb-6 tracking-[0.5em] uppercase">
+            // [LATENCY: 14MS] // [SYSTEM: ONLINE]
         </div>
 
-        <h1 class="text-[clamp(2.5rem,10vw,7rem)] font-black leading-[0.9] tracking-tighter mb-10">
-            <span class="block text-slate-400 opacity-50">FAST-TRACK TO</span>
+        <h1 class="text-[clamp(3rem,10vw,8rem)] leading-[0.85] tracking-tighter mb-12">
+            <span class="block text-[#8892b0] opacity-40 uppercase">Fast-Track To</span>
             <span class="wave-text block">TOP AI TALENT</span>
         </h1>
 
         <div class="max-w-2xl">
-            <p class="text-slate-400 text-lg md:text-xl leading-relaxed mb-12">
-                Deploying high-impact researchers from labs like Cambridge and HKU to the world's most ambitious AI startups. 
-                Automated. Technical. Discreet.
+            <p class="text-[18px] text-[#8892b0] leading-relaxed mb-10">
+                Precision headhunting for <span class="serif-italic text-white">AI Research</span> and <span class="serif-italic text-white">Engineering</span> roles. Supporting high-growth startups like MiniMax and Kimi with automated sourcing pipelines.
             </p>
 
-            <div class="flex flex-wrap gap-5">
-                <button class="mono bg-white text-black px-10 py-4 text-xs font-bold uppercase hover:bg-cyan-bright transition-all">
+            <div class="flex gap-6">
+                <button class="mono bg-white text-black text-[11px] font-bold uppercase px-12 py-5 hover:bg-cyan-bright transition-colors">
                     Initialize_Sourcing
-                </button>
-                <button class="mono border border-white/10 px-10 py-4 text-xs font-bold uppercase hover:bg-white/5 transition-all">
-                    System_Specs
                 </button>
             </div>
         </div>
+    </main>
+
+    <section class="max-w-[1400px] mx-auto px-10 py-20 grid grid-cols-1 md:grid-cols-3 gap-1">
+        <div class="card-glass p-12">
+            <div class="mono text-[10px] text-cyan-bright mb-10 uppercase tracking-[0.2em]">01_Pipeline</div>
+            <h3 class="text-2xl font-medium mb-4">AI Sourcing</h3>
+            <p class="text-[#8892b0] text-sm leading-6">Automated tracking of global researchers across top-tier universities and research labs.</p>
+        </div>
+        <div class="card-glass p-12">
+            <div class="mono text-[10px] text-coral-bright mb-10 uppercase tracking-[0.2em]">02_Target</div>
+            <h3 class="text-2xl font-medium mb-4">Technical Vetting</h3>
+            <p class="text-[#8892b0] text-sm leading-6">Deep expertise in LLMs, VLA Models, and World Models to ensure technical alignment.</p>
+        </div>
+        <div class="card-glass p-12">
+            <div class="mono text-[10px] text-white mb-10 uppercase tracking-[0.2em]">03_Network</div>
+            <h3 class="text-2xl font-medium mb-4">Elite Access</h3>
+            <p class="text-[#8892b0] text-sm leading-6">Direct connections to the AI research community at Cambridge, HKU, and beyond.</p>
+        </div>
     </section>
 
-    <section class="max-w-7xl mx-auto px-8 py-20 grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="card-glass p-12 rounded-sm">
-            <div class="mono text-cyan-bright text-[10px] mb-8 tracking-widest">01 // AUTOMATION</div>
-            <h3 class="text-xl font-bold mb-4">Sourcing Pipeline</h3>
-            <p class="text-slate-500 text-sm leading-relaxed">Proprietary Python agents monitoring ArXiv and GitHub to identify talent before the market does.</p>
-        </div>
-        <div class="card-glass p-12 rounded-sm">
-            <div class="mono text-coral-bright text-[10px] mb-8 tracking-widest">02 // VETTING</div>
-            <h3 class="text-xl font-bold mb-4">Deep Tech Analysis</h3>
-            <p class="text-slate-500 text-sm leading-relaxed">Specialized placement for VLA Models and LLM Infrastructure at companies like MiniMax.</p>
-        </div>
-        <div class="card-glass p-12 rounded-sm">
-            <div class="mono text-slate-400 text-[10px] mb-8 tracking-widest">03 // NETWORK</div>
-            <h3 class="text-xl font-bold mb-4">Elite Placement</h3>
-            <p class="text-slate-500 text-sm leading-relaxed">Direct links to top PhD circles globally. We handle the technical friction of hiring.</p>
-        </div>
-    </section>
-
-    <footer class="max-w-7xl mx-auto px-8 py-20 border-t border-white/5 flex justify-between items-center mono text-[9px] text-slate-600 tracking-[0.3em] uppercase">
-        <div>AGI_TALENT_SYSTEMS_v2.06</div>
-        <div class="flex gap-6">
-            <a href="#" class="hover:text-white">Twitter</a>
-            <a href="#" class="hover:text-white">GitHub</a>
+    <footer class="max-w-[1400px] mx-auto px-10 py-20 border-t border-white/5 flex justify-between mono text-[9px] text-[#5a6480] uppercase tracking-[0.3em]">
+        <div>© 2026 AGI Talent Systems</div>
+        <div class="flex gap-8">
+            <a href="#" class="hover:text-white">Github</a>
+            <a href="#" class="hover:text-white">Terminal</a>
         </div>
     </footer>
 
