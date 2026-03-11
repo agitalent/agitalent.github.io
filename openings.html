@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Openings | AGI Talent</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        /* GREENHOUSE BRAND TYPOGRAPHY */
+        @font-face {
+            font-family: 'Untitled Sans';
+            src: url('https://cdn.prod.website-files.com/6668a687e71e2722fccb8357/66cca78e3903aa59967c21d1_UntitledSansWeb-Regular.woff2') format('woff2');
+            font-weight: 400; font-style: normal; font-display: swap;
+        }
+        @font-face {
+            font-family: 'Untitled Serif';
+            src: url('https://cdn.prod.website-files.com/6668a687e71e2722fccb8357/66cca7a4d1972b21455d9e20_UntitledSerifWeb-Regular.woff2') format('woff2');
+            font-weight: 400; font-style: normal; font-display: swap;
+        }
+
+        :root {
+            --greenhouse-green: #24A47F;
+            --evergreen: #15372C;
+            --ground-grey: #EFEFEF;
+            --white: #ffffff;
+            --text-main: #15372C;
+        }
+
+        body { 
+            margin: 0; 
+            background-color: var(--white); 
+            color: var(--text-main);
+            font-family: 'Untitled Sans', sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        h1 { 
+            font-family: 'Untitled Serif', serif; 
+            font-weight: 400;
+        }
+
+        .container-custom {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 40px;
+            width: 100%;
+        }
+
+        .nav-link {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--evergreen);
+            transition: color 0.2s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--greenhouse-green);
+        }
+
+        /* Form Container Styles */
+        .form-wrapper {
+            flex-grow: 1;
+            background-color: var(--ground-grey);
+            padding: 40px 0;
+        }
+
+        .form-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(21, 55, 44, 0.08);
+            overflow: hidden;
+            height: 800px; /* Adjust height as needed */
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="w-full py-6 border-b border-gray-100 bg-white">
+        <div class="container-custom flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-[#24A47F] rounded-sm"></div>
+                <span class="text-xl font-bold tracking-tight">AGI Talent</span>
+            </div>
+            <div class="hidden md:flex gap-10 items-center">
+                <a href="openings.html" class="nav-link font-bold text-[#24A47F]">AI Openings</a>
+                <a href="hiring.html" class="nav-link">Hiring Managers</a>
+                <a href="contact.html" class="nav-link">Contact</a>
+                <button class="border border-[#24A47F] text-[#24A47F] px-5 py-2 rounded font-semibold text-sm hover:bg-[#24A47F] hover:text-white transition-all">
+                    Sign In
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="form-wrapper">
+        <div class="container-custom">
+            <h1 class="text-4xl md:text-5xl mb-8">AI Openings</h1>
+            <div class="form-container">
+                <iframe src="https://script.google.com/macros/s/AKfycbx2Ju7HwyWgEG_L58DOHmJRu49drL9hdoPTrS0Vd_woNOOlK7AMuwWc6e-QenNz6gu1/exec">
+                    Loading form...
+                </iframe>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-[#15372C] text-white py-12">
+        <div class="container-custom">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-8">
+                <div class="text-lg font-bold">AGI Talent Systems</div>
+                <div class="flex gap-8 text-sm opacity-80">
+                    <a href="#" class="hover:opacity-100">Privacy Policy</a>
+                    <a href="#" class="hover:opacity-100">Terms of Service</a>
+                    <a href="#" class="hover:opacity-100">GitHub</a>
+                </div>
+                <div class="text-sm opacity-60">© 2026 AGI Talent. All rights reserved.</div>
+            </div>
+        </div>
+    </footer>
+
+    <script>lucide.createIcons();</script>
+</body>
+</html>
