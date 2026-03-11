@@ -6,107 +6,109 @@
     <title>Fast-Track | Top AI Talent</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&family=Inter:wght@400;900&display=swap" rel="stylesheet">
+    
     <style>
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-12px); }
-            100% { transform: translateY(0px); }
-        }
-        .animate-float { animation: float 4s ease-in-out infinite; }
+        body { font-family: 'Inter', sans-serif; }
+        .mono { font-family: 'Geist Mono', monospace; }
         
-        .glass {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.3s ease;
-        }
-        .glass:hover {
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+        /* Subtle dot grid background like OpenClaw */
+        .bg-grid {
+            background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 0);
+            background-size: 24px 24px;
         }
 
-        /* Custom scrollbar for a sleek look */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #000; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #444; }
+        .glass {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .glass:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        /* The Glow Effect */
+        .glow-hover:hover {
+            text-shadow: 0 0 20px rgba(34, 211, 238, 0.6);
+            filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.3));
+        }
     </style>
 </head>
-<body class="bg-black text-slate-200 overflow-x-hidden selection:bg-cyan-500/30">
+<body class="bg-[#050505] text-white selection:bg-cyan-500/40 bg-grid min-h-screen">
 
-    <div class="fixed top-0 left-0 w-full h-full -z-10 overflow-hidden">
-        <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 rounded-full blur-[120px] animate-pulse"></div>
-        <div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-600/10 rounded-full blur-[120px] animate-pulse" style="animation-delay: 2s;"></div>
-    </div>
-
-    <nav class="flex justify-between items-center px-8 py-8 max-w-7xl mx-auto">
-        <div class="text-2xl font-black tracking-tighter bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-            AGI-TALENT
+    <nav class="flex justify-between items-center px-8 py-10 max-w-7xl mx-auto">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-white rounded-sm flex items-center justify-center">
+                <div class="w-4 h-4 bg-black rotate-45"></div>
+            </div>
+            <span class="mono text-lg font-bold tracking-tighter">AGI-TALENT</span>
         </div>
-        <div class="hidden md:flex gap-10 text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
-            <a href="#" class="hover:text-cyan-400 transition-colors">Sourcing</a>
-            <a href="#" class="hover:text-cyan-400 transition-colors">VLA Models</a>
-            <a href="#" class="hover:text-cyan-400 transition-colors">Research</a>
-            <a href="#" class="hover:text-cyan-400 transition-colors text-white border-b border-cyan-500 pb-1">Contact</a>
+        <div class="hidden md:flex gap-10 mono text-[11px] uppercase tracking-widest text-slate-500">
+            <a href="#" class="hover:text-white transition-colors underline decoration-slate-800 underline-offset-8">Sourcing</a>
+            <a href="#" class="hover:text-white transition-colors">VLA_Models</a>
+            <a href="#" class="hover:text-white transition-colors">Contact</a>
         </div>
     </nav>
 
-    <section class="max-w-7xl mx-auto px-8 pt-24 pb-32 text-center">
-        <h1 class="group cursor-default">
-            <span class="block text-5xl md:text-7xl font-light tracking-tight text-slate-500 mb-2">
-                Fast-track to
-            </span>
-            <span class="block text-6xl md:text-9xl font-black tracking-tighter leading-none transition-all duration-500 
-                         bg-gradient-to-r from-cyan-300 via-blue-500 to-purple-600 bg-clip-text text-transparent
-                         group-hover:drop-shadow-[0_0_30px_rgba(34,211,238,0.8)] group-hover:scale-[1.02]">
-                Top AI Talent
+    <section class="max-w-7xl mx-auto px-8 pt-20 pb-40">
+        <div class="mono text-cyan-500 text-xs mb-6 tracking-[0.3em] uppercase opacity-80">
+            // Intelligence Recruitment Protocol 2.0
+        </div>
+        
+        <h1 class="text-[clamp(3rem,8vw,6rem)] font-[900] leading-[0.9] tracking-tighter mb-8 group">
+            <span class="block text-slate-500 group-hover:text-slate-400 transition-colors">FAST-TRACK TO</span>
+            <span class="block glow-hover transition-all duration-500 cursor-default">
+                TOP AI TALENT
             </span>
         </h1>
-        
-        <p class="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mt-12 mb-12 leading-relaxed font-light">
-            Connecting Elite AI Researchers with high-growth startups. <br class="hidden md:block"/>
-            Proprietary VLA sourcing pipeline for the next generation of Intelligence.
-        </p>
 
-        <div class="flex flex-col md:flex-row justify-center gap-6">
-            <button class="px-10 py-4 bg-white text-black font-black rounded-full hover:bg-cyan-400 transition-all active:scale-95">
-                HIRE RESEARCHERS
-            </button>
-            <button class="px-10 py-4 glass text-white font-bold rounded-full hover:bg-white/10 transition-all active:scale-95">
-                JOIN TALENT POOL
-            </button>
+        <div class="max-w-xl">
+            <p class="text-slate-400 text-lg md:text-xl leading-relaxed mb-12">
+                Deploying high-impact researchers to the world's most ambitious labs. 
+                Focusing on <span class="mono text-white text-sm bg-white/5 px-2 py-0.5 rounded">Embodied_AI</span> and 
+                <span class="mono text-white text-sm bg-white/5 px-2 py-0.5 rounded">VLA_Architecture</span>.
+            </p>
+
+            <div class="flex flex-wrap gap-4">
+                <button class="mono bg-white text-black px-8 py-4 text-xs font-bold uppercase hover:bg-cyan-400 transition-all">
+                    Initialize Sourcing
+                </button>
+                <button class="mono border border-white/10 px-8 py-4 text-xs font-bold uppercase hover:bg-white/5 transition-all">
+                    Read_Docs.md
+                </button>
+            </div>
         </div>
     </section>
 
-    <section class="max-w-7xl mx-auto px-8 py-20 grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div class="glass p-10 rounded-[2rem] animate-float relative overflow-hidden group">
-            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <i data-lucide="zap" class="text-cyan-400 mb-6 w-12 h-12"></i>
-            <h3 class="text-2xl font-bold mb-4">Automated Sourcing</h3>
-            <p class="text-slate-400 leading-relaxed">Real-time identification of PhDs and Lead Engineers across ArXiv, GitHub, and private research labs.</p>
+    <section class="max-w-7xl mx-auto px-8 py-20 border-t border-white/5 grid grid-cols-1 md:grid-cols-3 gap-0">
+        <div class="glass p-12 border-l-0">
+            <span class="mono text-[10px] text-cyan-500 mb-8 block uppercase tracking-widest">01 // Automation</span>
+            <h3 class="text-xl font-bold mb-4 italic">Automated Pipelines</h3>
+            <p class="text-slate-500 text-sm leading-relaxed">Leveraging Python-based terminal agents to scan GitHub, ArXiv, and private communities 24/7.</p>
         </div>
-
-        <div class="glass p-10 rounded-[2rem] animate-float relative overflow-hidden group" style="animation-delay: 0.6s;">
-            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <i data-lucide="brain-circuit" class="text-purple-400 mb-6 w-12 h-12"></i>
-            <h3 class="text-2xl font-bold mb-4">VLA Expertise</h3>
-            <p class="text-slate-400 leading-relaxed">Deep focus on Vision-Language-Action, Embodied AI, and World Model researchers for AI leaders.</p>
+        <div class="glass p-12 md:border-x-0">
+            <span class="mono text-[10px] text-purple-500 mb-8 block uppercase tracking-widest">02 // Technical</span>
+            <h3 class="text-xl font-bold mb-4 italic">Deep Vetting</h3>
+            <p class="text-slate-500 text-sm leading-relaxed">Specialized evaluation for startups like MiniMax and Kimi, focusing on LLM inference and system scaling.</p>
         </div>
-
-        <div class="glass p-10 rounded-[2rem] animate-float relative overflow-hidden group" style="animation-delay: 1.2s;">
-            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <i data-lucide="shield-check" class="text-blue-400 mb-6 w-12 h-12"></i>
-            <h3 class="text-2xl font-bold mb-4">Verified Placement</h3>
-            <p class="text-slate-400 leading-relaxed">Trusted by top-tier startups like MiniMax and Kimi for high-impact technical engineering roles.</p>
+        <div class="glass p-12 border-r-0">
+            <span class="mono text-[10px] text-blue-500 mb-8 block uppercase tracking-widest">03 // Network</span>
+            <h3 class="text-xl font-bold mb-4 italic">Elite Pipeline</h3>
+            <p class="text-slate-500 text-sm leading-relaxed">Direct access to Cambridge and HKU research circles. We speak the language of engineering.</p>
         </div>
     </section>
 
-    <footer class="max-w-7xl mx-auto px-8 py-20 border-t border-white/5 text-center">
-        <p class="text-slate-500 text-sm tracking-widest uppercase">© 2026 AGI-TALENT | SHANGHAI TECHNOLOGY CO., LTD</p>
+    <footer class="max-w-7xl mx-auto px-8 py-20 border-t border-white/5 flex justify-between items-center mono text-[10px] text-slate-600 uppercase tracking-widest">
+        <div>© 2026 AGI-TALENT_SYSTEMS</div>
+        <div class="flex gap-6">
+            <a href="#" class="hover:text-white">GitHub</a>
+            <a href="#" class="hover:text-white">Twitter</a>
+        </div>
     </footer>
 
-    <script>
-        lucide.createIcons();
-    </script>
+    <script>lucide.createIcons();</script>
 </body>
 </html>
