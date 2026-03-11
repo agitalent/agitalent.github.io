@@ -3,16 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AGI Talent | Recruitment Systems</title>
+    <title>AGI Talent | Greenhouse Inspired</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     
     <style>
-        /* BASE CSS RESET */
-        html { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; font-family: sans-serif; scroll-behavior: smooth; height: 100%; }
-        body { margin: 0; min-height: 100%; font-family: 'Untitled Sans', Arial, sans-serif; font-size: 14px; line-height: 20px; background: #050810; color: #f0f4ff; -webkit-font-smoothing: antialiased; }
-        
-        /* FONTS */
+        /* GREENHOUSE BRAND TYPOGRAPHY */
         @font-face {
             font-family: 'Untitled Sans';
             src: url('https://cdn.prod.website-files.com/6668a687e71e2722fccb8357/66cca78e3903aa59967c21d1_UntitledSansWeb-Regular.woff2') format('woff2');
@@ -25,107 +21,141 @@
         }
 
         :root {
-            --bg-deep: #050810;
-            --coral-bright: #ff4d4d;
-            --cyan-bright: #00e5cc;
-            --hero-title-start: #f0f4ff;
-            --hero-title-end: #00e5cc;
-            --font-mono: "SF Mono", "Fira Code", monospace;
+            /* Greenhouse Primary Palette */
+            --greenhouse-green: #24A47F;
+            --evergreen: #15372C;
+            --ground-grey: #EFEFEF;
+            --white: #ffffff;
+            --text-main: #15372C;
         }
 
-        /* WAVE FLOW ANIMATION */
-        @keyframes wave-flow {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
+        body { 
+            margin: 0; 
+            background-color: var(--white); 
+            color: var(--text-main);
+            font-family: 'Untitled Sans', sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
         }
 
-        .wave-text {
-            background: linear-gradient(90deg, var(--hero-title-start), var(--hero-title-end), var(--hero-title-start));
-            background-size: 200% auto;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: wave-flow 5s linear infinite;
-            font-weight: 900;
+        h1, h2, h3 { 
+            font-family: 'Untitled Serif', serif; 
+            font-weight: 400;
         }
 
-        .serif-italic { font-family: 'Untitled Serif', serif; font-style: italic; }
-        .mono { font-family: var(--font-mono); }
-        
-        .card-glass {
-            background: rgba(10, 15, 26, 0.65);
-            border: 1px solid rgba(136, 146, 176, 0.15);
-            transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+        /* Arrangement & Spacing */
+        .container-custom {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 40px;
         }
 
-        .card-glass:hover {
-            border-color: var(--cyan-bright);
-            transform: translateY(-5px);
+        .hero-section {
+            padding: 120px 0;
+            background-color: var(--ground-grey);
+            text-align: left;
+            border-radius: 0 0 100px 0; /* Greenhouse inspired curve */
         }
 
-        ::selection { background: var(--coral-bright); color: #fff; }
+        .btn-primary {
+            background-color: var(--greenhouse-green);
+            color: white;
+            padding: 16px 32px;
+            border-radius: 4px;
+            font-weight: 600;
+            transition: background 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--evergreen);
+        }
+
+        .nav-link {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--evergreen);
+            transition: color 0.2s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--greenhouse-green);
+        }
+
+        .card-feature {
+            background: white;
+            padding: 40px;
+            border-top: 4px solid var(--greenhouse-green);
+            box-shadow: 0 10px 30px rgba(21, 55, 44, 0.05);
+        }
     </style>
 </head>
 <body>
 
-    <nav class="w-full py-8 px-10 flex justify-between items-center max-w-[1400px] mx-auto">
-        <div class="flex items-center gap-2">
-            <div class="w-6 h-6 bg-white rotate-45"></div>
-            <span class="mono text-sm font-bold tracking-tighter uppercase">AGI Talent</span>
-        </div>
-        <div class="flex gap-10 mono text-[10px] uppercase tracking-widest text-[#8892b0]">
-            <a href="openings.html" class="hover:text-white transition-colors">AI_Openings</a>
-            <a href="hiring.html" class="hover:text-white transition-colors">Hiring_Managers</a>
-            <a href="contact.html" class="hover:text-white transition-colors">Contact</a>
+    <nav class="w-full py-6 border-b border-gray-100">
+        <div class="container-custom flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-[#24A47F] rounded-sm"></div>
+                <span class="text-xl font-bold tracking-tight">AGI Talent</span>
+            </div>
+            <div class="hidden md:flex gap-10 items-center">
+                <a href="openings.html" class="nav-link">AI Openings</a>
+                <a href="hiring.html" class="nav-link">Hiring Managers</a>
+                <a href="contact.html" class="nav-link">Contact</a>
+                <button class="border border-[#24A47F] text-[#24A47F] px-5 py-2 rounded font-semibold text-sm hover:bg-[#24A47F] hover:text-white transition-all">
+                    Sign In
+                </button>
+            </div>
         </div>
     </nav>
 
-    <main class="max-w-[1400px] mx-auto px-10 pt-32 pb-40">
-        <div class="mono text-[10px] text-coral-bright mb-6 tracking-[0.5em] uppercase">
-            // [LATENCY: 14MS] // [SYSTEM: ONLINE]
+    <section class="hero-section">
+        <div class="container-custom">
+            <div class="max-w-3xl">
+                <h1 class="text-6xl md:text-7xl leading-[1.1] mb-8">
+                    Hire for what's <span class="italic text-[#24A47F]">next</span> in AI.
+                </h1>
+                <p class="text-xl text-gray-600 mb-10 leading-relaxed">
+                    The world’s leading AI research and engineering startups use AGI Talent to automate their sourcing pipelines and identify elite technical contributors.
+                </p>
+                <div class="flex gap-4">
+                    <button class="btn-primary">Get Started</button>
+                    <button class="px-8 py-4 font-semibold text-[#15372C] hover:underline">See how it works →</button>
+                </div>
+            </div>
         </div>
+    </section>
 
-        <h1 class="text-[clamp(3rem,10vw,8rem)] leading-[0.85] tracking-tighter mb-12">
-            <span class="block text-[#8892b0] opacity-40 uppercase">Fast-Track To</span>
-            <span class="wave-text block">TOP AI TALENT</span>
-        </h1>
-
-        <div class="max-w-2xl">
-            <p class="text-[18px] text-[#8892b0] leading-relaxed mb-10">
-                Precision headhunting for <span class="serif-italic text-white">AI Research</span> and <span class="serif-italic text-white">Engineering</span> roles. Supporting high-growth startups like MiniMax and Kimi with automated sourcing pipelines.
-            </p>
-
-            <div class="flex gap-6">
-                <button class="mono bg-white text-black text-[11px] font-bold uppercase px-12 py-5 hover:bg-cyan-bright transition-colors">
-                    Initialize_Sourcing
-                </button>
+    <main class="py-24">
+        <div class="container-custom">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="card-feature">
+                    <h3 class="text-2xl mb-4">AI Sourcing</h3>
+                    <p class="text-gray-600 text-sm leading-6">Automated tracking of global researchers across top-tier universities and research labs like Cambridge and HKU.</p>
+                </div>
+                <div class="card-feature">
+                    <h3 class="text-2xl mb-4">Technical Vetting</h3>
+                    <p class="text-gray-600 text-sm leading-6">Deep expertise in LLMs, VLA Models, and World Models to ensure your hires align with your research goals.</p>
+                </div>
+                <div class="card-feature">
+                    <h3 class="text-2xl mb-4">Elite Access</h3>
+                    <p class="text-gray-600 text-sm leading-6">Direct connections to the AI research community, specialized in the Shanghai and global tech ecosystems.</p>
+                </div>
             </div>
         </div>
     </main>
 
-    <section class="max-w-[1400px] mx-auto px-10 py-20 grid grid-cols-1 md:grid-cols-3 gap-1">
-        <div class="card-glass p-12">
-            <div class="mono text-[10px] text-cyan-bright mb-10 uppercase tracking-[0.2em]">01_Pipeline</div>
-            <h3 class="text-2xl font-medium mb-4">AI Sourcing</h3>
-            <p class="text-[#8892b0] text-sm leading-6">Automated tracking of global researchers across top-tier universities and research labs.</p>
-        </div>
-        <div class="card-glass p-12">
-            <div class="mono text-[10px] text-coral-bright mb-10 uppercase tracking-[0.2em]">02_Target</div>
-            <h3 class="text-2xl font-medium mb-4">Technical Vetting</h3>
-            <p class="text-[#8892b0] text-sm leading-6">Deep expertise in LLMs, VLA Models, and World Models to ensure technical alignment.</p>
-        </div>
-        <div class="card-glass p-12">
-            <div class="mono text-[10px] text-white mb-10 uppercase tracking-[0.2em]">03_Network</div>
-            <h3 class="text-2xl font-medium mb-4">Elite Access</h3>
-            <p class="text-[#8892b0] text-sm leading-6">Direct connections to the AI research community at Cambridge, HKU, and beyond.</p>
-        </div>
-    </section>
-
-    <footer class="max-w-[1400px] mx-auto px-10 py-20 border-t border-white/5 flex justify-between mono text-[9px] text-[#5a6480] uppercase tracking-[0.3em]">
-        <div>© 2026 AGI Talent Systems</div>
-        <div class="flex gap-8">
-            <a href="#" class="hover:text-white">Github</a>
-            <a href="#" class="hover:text-white">Terminal</a>
+    <footer class="bg-[#15372C] text-white py-20">
+        <div class="container-custom">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-8">
+                <div class="text-lg font-bold">AGI Talent Systems</div>
+                <div class="flex gap-8 text-sm opacity-80">
+                    <a href="#" class="hover:opacity-100">Privacy Policy</a>
+                    <a href="#" class="hover:opacity-100">Terms of Service</a>
+                    <a href="#" class="hover:opacity-100">GitHub</a>
+                </div>
+                <div class="text-sm opacity-60">© 2026 AGI Talent. All rights reserved.</div>
+            </div>
         </div>
     </footer>
 
