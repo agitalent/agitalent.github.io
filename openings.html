@@ -115,7 +115,10 @@
         }
 
         .form-container {
-            background: white;
+            position: relative;
+            background:
+                radial-gradient(circle at top left, rgba(36, 164, 127, 0.08), transparent 34%),
+                linear-gradient(180deg, #fbfcfb 0%, #f4f7f5 100%);
             border-radius: 18px;
             box-shadow: 0 20px 45px rgba(21, 55, 44, 0.08);
             overflow: hidden;
@@ -123,10 +126,141 @@
             border: 1px solid rgba(21, 55, 44, 0.06);
         }
 
+        .form-shell {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .form-shell::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(21, 55, 44, 0.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(21, 55, 44, 0.035) 1px, transparent 1px);
+            background-size: 28px 28px;
+            opacity: 0.35;
+            pointer-events: none;
+        }
+
+        .form-topbar {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 18px 22px;
+            border-bottom: 1px solid rgba(21, 55, 44, 0.06);
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: blur(10px);
+        }
+
+        .form-topbar-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: rgba(21, 55, 44, 0.7);
+        }
+
+        .form-topbar-label::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: var(--greenhouse-green);
+            box-shadow: 0 0 0 5px rgba(36, 164, 127, 0.12);
+        }
+
+        .form-status {
+            font-size: 13px;
+            color: rgba(21, 55, 44, 0.55);
+        }
+
+        .form-stage {
+            position: relative;
+            z-index: 1;
+            height: calc(100% - 61px);
+        }
+
+        .form-loading {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            padding: 28px;
+            transition: opacity 0.35s ease, visibility 0.35s ease;
+        }
+
+        .form-loading-panel {
+            width: min(520px, 100%);
+            background: rgba(255, 255, 255, 0.78);
+            border: 1px solid rgba(21, 55, 44, 0.08);
+            border-radius: 18px;
+            box-shadow: 0 18px 40px rgba(21, 55, 44, 0.08);
+            padding: 28px;
+            backdrop-filter: blur(10px);
+        }
+
+        .loading-title {
+            font-family: 'Untitled Serif', serif;
+            font-size: 1.55rem;
+            line-height: 1.15;
+            margin: 0 0 8px;
+        }
+
+        .loading-copy {
+            margin: 0 0 24px;
+            color: rgba(21, 55, 44, 0.68);
+            line-height: 1.7;
+        }
+
+        .loading-lines {
+            display: grid;
+            gap: 12px;
+        }
+
+        .loading-line {
+            height: 14px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, rgba(21, 55, 44, 0.08), rgba(36, 164, 127, 0.12), rgba(21, 55, 44, 0.08));
+            background-size: 200% 100%;
+            animation: shimmer 1.6s ease-in-out infinite;
+        }
+
+        .loading-line.short { width: 62%; }
+        .loading-line.medium { width: 82%; }
+        .loading-line.long { width: 100%; }
+
+        @keyframes shimmer {
+            0% { background-position: 0% 0; }
+            100% { background-position: 200% 0; }
+        }
+
         iframe {
+            position: relative;
+            z-index: 2;
             width: 100%;
             height: 100%;
             border: none;
+            opacity: 0;
+            transition: opacity 0.35s ease;
+            background: transparent;
+        }
+
+        .form-container.is-loaded .form-loading {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .form-container.is-loaded iframe {
+            opacity: 1;
         }
     </style>
 </head>
@@ -159,10 +293,33 @@
                     A curated view of roles across applied research, model training, systems, and infrastructure.
                 </p>
             </div>
-            <div class="form-container">
-                <iframe src="https://script.google.com/macros/s/AKfycbx2Ju7HwyWgEG_L58DOHmJRu49drL9hdoPTrS0Vd_woNOOlK7AMuwWc6e-QenNz6gu1/exec">
+            <div class="form-container" id="openings-form">
+                <div class="form-shell">
+                    <div class="form-topbar">
+                        <div class="form-topbar-label">Live Openings Feed</div>
+                        <div class="form-status">Updated from the hiring pipeline</div>
+                    </div>
+                    <div class="form-stage">
+                        <div class="form-loading">
+                            <div class="form-loading-panel">
+                                <h2 class="loading-title">Preparing the latest listings</h2>
+                                <p class="loading-copy">We’re loading the current set of research and infra opportunities from the source sheet.</p>
+                                <div class="loading-lines">
+                                    <div class="loading-line long"></div>
+                                    <div class="loading-line medium"></div>
+                                    <div class="loading-line short"></div>
+                                    <div class="loading-line long"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <iframe
+                            src="https://script.google.com/macros/s/AKfycbx2Ju7HwyWgEG_L58DOHmJRu49drL9hdoPTrS0Vd_woNOOlK7AMuwWc6e-QenNz6gu1/exec"
+                            onload="document.getElementById('openings-form').classList.add('is-loaded')"
+                        >
                     Loading form...
-                </iframe>
+                        </iframe>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
