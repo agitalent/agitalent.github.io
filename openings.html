@@ -68,15 +68,59 @@
         .form-wrapper {
             flex-grow: 1;
             background-color: var(--ground-grey);
-            padding: 40px 0;
+            padding: 56px 0 64px;
+        }
+
+        .page-header {
+            max-width: 760px;
+            margin-bottom: 28px;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--greenhouse-green);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+        }
+
+        .eyebrow::before {
+            content: "";
+            width: 32px;
+            height: 1px;
+            background: var(--greenhouse-green);
+            opacity: 0.55;
+        }
+
+        .page-title {
+            font-family: 'Untitled Serif', serif;
+            font-weight: 400;
+            font-size: clamp(2.5rem, 4vw, 4rem);
+            line-height: 1.05;
+            letter-spacing: -0.03em;
+            margin: 0 0 16px;
+            max-width: 14ch;
+        }
+
+        .page-copy {
+            max-width: 620px;
+            font-size: 1.05rem;
+            line-height: 1.75;
+            color: rgba(21, 55, 44, 0.78);
+            margin: 0;
         }
 
         .form-container {
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(21, 55, 44, 0.08);
+            border-radius: 18px;
+            box-shadow: 0 20px 45px rgba(21, 55, 44, 0.08);
             overflow: hidden;
             height: 800px; /* Adjust height as needed */
+            border: 1px solid rgba(21, 55, 44, 0.06);
         }
 
         iframe {
@@ -108,7 +152,13 @@
 
     <div class="form-wrapper">
         <div class="container-custom">
-            <h1 class="text-4xl md:text-5xl mb-8">Rearch & Infra Openings From Leading AI Labs</h1>
+            <div class="page-header">
+                <div class="eyebrow">AI Openings</div>
+                <h1 class="page-title">Research and infrastructure openings from leading AI labs</h1>
+                <p class="page-copy">
+                    A curated view of roles across applied research, model training, systems, and infrastructure.
+                </p>
+            </div>
             <div class="form-container">
                 <iframe src="https://script.google.com/macros/s/AKfycbx2Ju7HwyWgEG_L58DOHmJRu49drL9hdoPTrS0Vd_woNOOlK7AMuwWc6e-QenNz6gu1/exec">
                     Loading form...
