@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Openings | AGI Talent</title>
+    <title>AGI Talent | Home</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     
@@ -36,12 +36,9 @@
             font-size: 16px;
             line-height: 1.5;
             -webkit-font-smoothing: antialiased;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
         }
 
-        h1 { 
+        h1, h2, h3 { 
             font-family: 'Untitled Serif', serif; 
             font-weight: 400;
         }
@@ -50,7 +47,26 @@
             max-width: 1200px;
             margin: 0 auto;
             padding: 0 40px;
-            width: 100%;
+        }
+
+        .hero-section {
+            padding: 120px 0;
+            background-color: var(--ground-grey);
+            text-align: left;
+            border-radius: 0 0 100px 0;
+        }
+
+        .btn-primary {
+            background-color: var(--greenhouse-green);
+            color: white;
+            padding: 16px 32px;
+            border-radius: 4px;
+            font-weight: 600;
+            transition: background 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--evergreen);
         }
 
         .nav-link {
@@ -64,39 +80,25 @@
             color: var(--greenhouse-green);
         }
 
-        /* Form Container Styles */
-        .form-wrapper {
-            flex-grow: 1;
-            background-color: var(--ground-grey);
-            padding: 40px 0;
-        }
-
-        .form-container {
+        .card-feature {
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(21, 55, 44, 0.08);
-            overflow: hidden;
-            height: 800px; /* Adjust height as needed */
-        }
-
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
+            padding: 40px;
+            border-top: 4px solid var(--greenhouse-green);
+            box-shadow: 0 10px 30px rgba(21, 55, 44, 0.05);
         }
     </style>
 </head>
 <body>
 
-    <nav class="w-full py-6 border-b border-gray-100 bg-white">
+    <nav class="w-full py-6 border-b border-gray-100">
         <div class="container-custom flex justify-between items-center">
             <div class="flex items-center gap-2">
                 <div class="w-8 h-8 bg-[#24A47F] rounded-sm"></div>
                 <span class="text-xl font-bold tracking-tight">AGI Talent</span>
             </div>
             <div class="hidden md:flex gap-10 items-center">
-                <a href="home.html" class="nav-link">Home</a>
-                <a href="openings.html" class="nav-link font-bold text-[#24A47F]">AI Openings</a>
+                <a href="home.html" class="nav-link font-bold text-[#24A47F]">Home</a>
+                <a href="openings.html" class="nav-link">AI Openings</a>
                 <a href="hiring.html" class="nav-link">Hiring Managers</a>
                 <a href="contact.html" class="nav-link">Contact</a>
                 <button class="border border-[#24A47F] text-[#24A47F] px-5 py-2 rounded font-semibold text-sm hover:bg-[#24A47F] hover:text-white transition-all">
@@ -106,18 +108,43 @@
         </div>
     </nav>
 
-    <div class="form-wrapper">
+    <section class="hero-section">
         <div class="container-custom">
-            <h1 class="text-4xl md:text-5xl mb-8">Rearch & Infra Openings From Leading AI Labs</h1>
-            <div class="form-container">
-                <iframe src="https://script.google.com/macros/s/AKfycbx2Ju7HwyWgEG_L58DOHmJRu49drL9hdoPTrS0Vd_woNOOlK7AMuwWc6e-QenNz6gu1/exec">
-                    Loading form...
-                </iframe>
+            <div class="max-w-3xl">
+                <h1 class="text-6xl md:text-7xl leading-[1.1] mb-8">
+                    Hire for what's <span class="italic text-[#24A47F]">next</span> in AI.
+                </h1>
+                <p class="text-xl text-gray-600 mb-10 leading-relaxed">
+                    The world’s leading AI research and engineering startups use AGI Talent to automate their sourcing pipelines and identify elite technical contributors.
+                </p>
+                <div class="flex gap-4">
+                    <button class="btn-primary">Get Started</button>
+                    <button class="px-8 py-4 font-semibold text-[#15372C] hover:underline">See how it works →</button>
+                </div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <footer class="bg-[#15372C] text-white py-12">
+    <main class="py-24">
+        <div class="container-custom">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="card-feature">
+                    <h3 class="text-2xl mb-4">AI Sourcing</h3>
+                    <p class="text-gray-600 text-sm leading-6">Automated tracking of global researchers across top-tier universities and research labs like Cambridge and HKU.</p>
+                </div>
+                <div class="card-feature">
+                    <h3 class="text-2xl mb-4">Technical Vetting</h3>
+                    <p class="text-gray-600 text-sm leading-6">Deep expertise in LLMs, VLA Models, and World Models to ensure your hires align with your research goals.</p>
+                </div>
+                <div class="card-feature">
+                    <h3 class="text-2xl mb-4">Elite Access</h3>
+                    <p class="text-gray-600 text-sm leading-6">Direct connections to the AI research community, specialized in the Shanghai and global tech ecosystems.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-[#15372C] text-white py-20">
         <div class="container-custom">
             <div class="flex flex-col md:flex-row justify-between items-center gap-8">
                 <div class="text-lg font-bold">AGI Talent</div>
