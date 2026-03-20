@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact | AGI Talent</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        @font-face {
+            font-family: 'Untitled Sans';
+            src: url('https://cdn.prod.website-files.com/6668a687e71e2722fccb8357/66cca78e3903aa59967c21d1_UntitledSansWeb-Regular.woff2') format('woff2');
+            font-weight: 400; font-style: normal; font-display: swap;
+        }
+        @font-face {
+            font-family: 'Untitled Serif';
+            src: url('https://cdn.prod.website-files.com/6668a687e71e2722fccb8357/66cca7a4d1972b21455d9e20_UntitledSerifWeb-Regular.woff2') format('woff2');
+            font-weight: 400; font-style: normal; font-display: swap;
+        }
+
+        :root {
+            --greenhouse-green: #24A47F;
+            --evergreen: #15372C;
+            --ground-grey: #EFEFEF;
+            --white: #ffffff;
+            --text-main: #15372C;
+        }
+
+        body { 
+            margin: 0; 
+            background-color: var(--white); 
+            color: var(--text-main);
+            font-family: 'Untitled Sans', sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        h1, h2, h3 { 
+            font-family: 'Untitled Serif', serif; 
+            font-weight: 400;
+        }
+
+        .container-custom {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 40px;
+        }
+
+        .nav-link {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--evergreen);
+            transition: color 0.2s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--greenhouse-green);
+        }
+
+        .mobile-nav-toggle {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border: 1px solid rgba(21, 55, 44, 0.14);
+            border-radius: 10px;
+            color: var(--evergreen);
+        }
+
+        .mobile-nav-icon {
+            width: 22px;
+            height: 22px;
+            display: block;
+        }
+
+        .mobile-nav-icon-close {
+            display: none;
+        }
+
+        .mobile-nav-toggle.is-open .mobile-nav-icon-menu {
+            display: none;
+        }
+
+        .mobile-nav-toggle.is-open .mobile-nav-icon-close {
+            display: block;
+        }
+
+        .mobile-nav-panel {
+            display: none;
+            border-bottom: 1px solid rgba(21, 55, 44, 0.08);
+            background: rgba(255, 255, 255, 0.98);
+        }
+
+        .mobile-nav-panel.is-open {
+            display: block;
+        }
+
+        .mobile-nav-link {
+            display: block;
+            padding: 14px 0;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--evergreen);
+        }
+
+        .mobile-nav-link.active {
+            color: var(--greenhouse-green);
+            font-weight: 700;
+        }
+
+        .contact-shell {
+            flex: 1;
+            background:
+                radial-gradient(circle at top right, rgba(36, 164, 127, 0.10), transparent 26%),
+                linear-gradient(180deg, var(--ground-grey) 0%, #f7faf8 100%);
+            padding: 64px 0 72px;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--greenhouse-green);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+        }
+
+        .eyebrow::before {
+            content: "";
+            width: 32px;
+            height: 1px;
+            background: var(--greenhouse-green);
+            opacity: 0.55;
+        }
+
+        .page-title {
+            font-family: 'Untitled Serif', serif;
+            font-size: clamp(2.8rem, 4vw, 4.5rem);
+            line-height: 1.02;
+            letter-spacing: -0.03em;
+            margin: 0 0 16px;
+            max-width: 12ch;
+        }
+
+        .page-copy {
+            max-width: 650px;
+            font-size: 1.08rem;
+            line-height: 1.75;
+            color: rgba(21, 55, 44, 0.78);
+            margin: 0;
+        }
+
+        .contact-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 0.95fr) minmax(340px, 0.78fr);
+            gap: 28px;
+            margin-top: 34px;
+        }
+
+        .contact-card,
+        .contact-aside {
+            border-radius: 24px;
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid rgba(21, 55, 44, 0.08);
+            box-shadow: 0 18px 45px rgba(21, 55, 44, 0.08);
+            backdrop-filter: blur(10px);
+        }
+
+        .contact-card {
+            padding: 30px;
+        }
+
+        .contact-aside {
+            padding: 26px;
+        }
+
+        .contact-person {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding-bottom: 22px;
+            margin-bottom: 22px;
+            border-bottom: 1px solid rgba(21, 55, 44, 0.08);
+        }
+
+        .contact-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 999px;
+            display: grid;
+            place-items: center;
+            color: white;
+            font-size: 18px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--greenhouse-green), #0f7a61);
+            box-shadow: 0 12px 28px rgba(36, 164, 127, 0.22);
+        }
+
+        .contact-person h2 {
+            margin: 0 0 6px;
+            font-size: 1.8rem;
+        }
+
+        .contact-person p {
+            margin: 0;
+            color: rgba(21, 55, 44, 0.7);
+        }
+
+        .contact-label {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: rgba(21, 55, 44, 0.56);
+            margin-bottom: 10px;
+        }
+
+        .contact-email {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 18px;
+            border-radius: 14px;
+            background: rgba(36, 164, 127, 0.10);
+            color: var(--evergreen);
+            font-size: 1.05rem;
+            font-weight: 700;
+            border: 1px solid rgba(36, 164, 127, 0.16);
+            word-break: break-word;
+        }
+
+        .contact-email:hover {
+            border-color: rgba(36, 164, 127, 0.28);
+        }
+
+        .contact-list {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            display: grid;
+            gap: 14px;
+        }
+
+        .contact-list li {
+            display: flex;
+            gap: 12px;
+            color: rgba(21, 55, 44, 0.76);
+            line-height: 1.7;
+        }
+
+        .contact-list li::before {
+            content: "•";
+            color: var(--greenhouse-green);
+            font-weight: 700;
+        }
+
+        .contact-note {
+            margin-top: 20px;
+            padding: 16px 18px;
+            border-radius: 16px;
+            background: rgba(21, 55, 44, 0.04);
+            color: rgba(21, 55, 44, 0.72);
+        }
+
+        .contact-cta {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 18px;
+            padding: 14px 18px;
+            border-radius: 12px;
+            background: var(--evergreen);
+            color: white;
+            font-weight: 700;
+            transition: background 0.2s ease;
+        }
+
+        .contact-cta:hover {
+            background: #0f2b23;
+        }
+
+        .aside-block + .aside-block {
+            margin-top: 22px;
+            padding-top: 22px;
+            border-top: 1px solid rgba(21, 55, 44, 0.08);
+        }
+
+        .aside-block h3 {
+            margin: 0 0 8px;
+            font-size: 1.35rem;
+        }
+
+        .aside-block p {
+            margin: 0;
+            color: rgba(21, 55, 44, 0.72);
+            line-height: 1.75;
+        }
+
+        .pill-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .pill {
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(21, 55, 44, 0.08);
+            color: rgba(21, 55, 44, 0.72);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        @media (max-width: 767px) {
+            .mobile-nav-toggle {
+                display: inline-flex;
+            }
+
+            .container-custom {
+                padding: 0 20px;
+            }
+
+            .contact-shell {
+                padding: 42px 0 56px;
+            }
+
+            .contact-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .contact-card,
+            .contact-aside {
+                padding: 22px;
+            }
+
+            .contact-person {
+                align-items: flex-start;
+            }
+
+            .contact-email {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="w-full py-6 border-b border-gray-100 bg-white">
+        <div class="container-custom flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-[#24A47F] rounded-sm"></div>
+                <span class="text-xl font-bold tracking-tight">AGI Talent</span>
+            </div>
+            <div class="hidden md:flex gap-10 items-center">
+                <a href="home.html" class="nav-link">Home</a>
+                <a href="openings.html" class="nav-link">AI Openings</a>
+                <a href="hiring.html" class="nav-link">Hiring Managers</a>
+                <a href="contact.html" class="nav-link font-bold text-[#24A47F]">Contact</a>
+                <button class="border border-[#24A47F] text-[#24A47F] px-5 py-2 rounded font-semibold text-sm hover:bg-[#24A47F] hover:text-white transition-all">
+                    Sign In
+                </button>
+            </div>
+            <button class="mobile-nav-toggle md:hidden" type="button" aria-controls="mobile-nav-panel" aria-expanded="false" id="mobile-nav-button">
+                <svg class="mobile-nav-icon mobile-nav-icon-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M4 6h16"></path>
+                    <path d="M4 12h16"></path>
+                    <path d="M4 18h16"></path>
+                </svg>
+                <svg class="mobile-nav-icon mobile-nav-icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M18 6 6 18"></path>
+                    <path d="M6 6 18 18"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="mobile-nav-panel md:hidden" id="mobile-nav-panel">
+            <div class="container-custom py-4">
+                <a href="home.html" class="mobile-nav-link">Home</a>
+                <a href="openings.html" class="mobile-nav-link">AI Openings</a>
+                <a href="hiring.html" class="mobile-nav-link">Hiring Managers</a>
+                <a href="contact.html" class="mobile-nav-link active">Contact</a>
+                <a href="#" class="mobile-nav-link">Sign In</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="contact-shell">
+        <div class="container-custom">
+            <div class="max-w-3xl">
+                <div class="eyebrow">Contact</div>
+                <h1 class="page-title">Reach AGI Talent directly.</h1>
+                <p class="page-copy">
+                    For hiring, partnerships, or general inquiries, contact Owen Zu. He handles the AGI Talent inbox and can route your message to the right person.
+                </p>
+            </div>
+
+            <div class="contact-grid">
+                <section class="contact-card">
+                    <div class="contact-person">
+                        <div class="contact-avatar">OZ</div>
+                        <div>
+                            <h2>Owen Zu</h2>
+                            <p>Contact person at AGI Talent</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="contact-label">Email</div>
+                        <a class="contact-email" href="mailto:owen@agitalent.tech">
+                            <span>owen@agitalent.tech</span>
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M7 7h10v10"></path>
+                                <path d="M7 17 17 7"></path>
+                            </svg>
+                        </a>
+                    </div>
+
+                    <div class="contact-note">
+                        Best for role intake, hiring requests, partnership questions, and follow-ups on active openings.
+                    </div>
+
+                    <a class="contact-cta" href="mailto:owen@agitalent.tech?subject=AGI%20Talent%20Inquiry">
+                        Email Owen
+                    </a>
+                </section>
+
+                <aside class="contact-aside">
+                    <div class="aside-block">
+                        <h3>What to include</h3>
+                        <p>Send the role name, team focus, location, and any timing constraints so the reply can be specific and useful.</p>
+                        <div class="pill-row">
+                            <span class="pill">Hiring request</span>
+                            <span class="pill">Partnership</span>
+                            <span class="pill">General inquiry</span>
+                        </div>
+                    </div>
+
+                    <div class="aside-block">
+                        <h3>Typical response</h3>
+                        <p>Most messages are answered within one business day. If it is urgent, include that in the subject line.</p>
+                    </div>
+
+                    <div class="aside-block">
+                        <h3>Where this leads</h3>
+                        <p>Owen can connect you with the openings feed or the hiring manager intake path depending on what you need.</p>
+                    </div>
+                </aside>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-[#15372C] text-white py-20">
+        <div class="container-custom">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-8">
+                <div class="text-lg font-bold">AGI Talent</div>
+                <div class="flex gap-8 text-sm opacity-80">
+                    <a href="#" class="hover:opacity-100">Privacy Policy</a>
+                    <a href="#" class="hover:opacity-100">Terms of Service</a>
+                    <a href="#" class="hover:opacity-100">GitHub</a>
+                </div>
+                <div class="text-sm opacity-60">© 2026 AGI Talent. All rights reserved.</div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+        const mobileNavButton = document.getElementById('mobile-nav-button');
+        const mobileNavPanel = document.getElementById('mobile-nav-panel');
+
+        if (mobileNavButton && mobileNavPanel) {
+            mobileNavButton.addEventListener('click', () => {
+                const isOpen = mobileNavPanel.classList.toggle('is-open');
+                mobileNavButton.classList.toggle('is-open', isOpen);
+                mobileNavButton.setAttribute('aria-expanded', String(isOpen));
+            });
+
+            mobileNavPanel.querySelectorAll('a').forEach((link) => {
+                link.addEventListener('click', () => {
+                    mobileNavPanel.classList.remove('is-open');
+                    mobileNavButton.classList.remove('is-open');
+                    mobileNavButton.setAttribute('aria-expanded', 'false');
+                });
+            });
+        }
+    </script>
+</body>
+</html>
