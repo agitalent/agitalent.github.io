@@ -75,16 +75,22 @@
             color: var(--evergreen);
         }
 
-        .mobile-nav-toggle span {
+        .mobile-nav-icon {
+            width: 22px;
+            height: 22px;
             display: block;
-            width: 18px;
-            height: 2px;
-            background: currentColor;
-            border-radius: 999px;
         }
 
-        .mobile-nav-toggle span + span {
-            margin-top: 4px;
+        .mobile-nav-icon-close {
+            display: none;
+        }
+
+        .mobile-nav-toggle.is-open .mobile-nav-icon-menu {
+            display: none;
+        }
+
+        .mobile-nav-toggle.is-open .mobile-nav-icon-close {
+            display: block;
         }
 
         .mobile-nav-panel {
@@ -346,9 +352,15 @@
                 </button>
             </div>
             <button class="mobile-nav-toggle md:hidden" type="button" aria-controls="mobile-nav-panel" aria-expanded="false" id="mobile-nav-button">
-                <span></span>
-                <span></span>
-                <span></span>
+                <svg class="mobile-nav-icon mobile-nav-icon-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M4 6h16"></path>
+                    <path d="M4 12h16"></path>
+                    <path d="M4 18h16"></path>
+                </svg>
+                <svg class="mobile-nav-icon mobile-nav-icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M18 6 6 18"></path>
+                    <path d="M6 6 18 18"></path>
+                </svg>
             </button>
         </div>
         <div class="mobile-nav-panel md:hidden" id="mobile-nav-panel">
@@ -424,12 +436,14 @@
         if (mobileNavButton && mobileNavPanel) {
             mobileNavButton.addEventListener('click', () => {
                 const isOpen = mobileNavPanel.classList.toggle('is-open');
+                mobileNavButton.classList.toggle('is-open', isOpen);
                 mobileNavButton.setAttribute('aria-expanded', String(isOpen));
             });
 
             mobileNavPanel.querySelectorAll('a').forEach((link) => {
                 link.addEventListener('click', () => {
                     mobileNavPanel.classList.remove('is-open');
+                    mobileNavButton.classList.remove('is-open');
                     mobileNavButton.setAttribute('aria-expanded', 'false');
                 });
             });
