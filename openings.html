@@ -64,6 +64,70 @@
             color: var(--greenhouse-green);
         }
 
+        .mobile-nav-toggle {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border: 1px solid rgba(21, 55, 44, 0.14);
+            border-radius: 10px;
+            color: var(--evergreen);
+        }
+
+        .mobile-nav-toggle span {
+            display: block;
+            width: 18px;
+            height: 2px;
+            background: currentColor;
+            border-radius: 999px;
+        }
+
+        .mobile-nav-toggle span + span {
+            margin-top: 4px;
+        }
+
+        .mobile-nav-panel {
+            display: none;
+            border-bottom: 1px solid rgba(21, 55, 44, 0.08);
+            background: rgba(255, 255, 255, 0.98);
+        }
+
+        .mobile-nav-panel.is-open {
+            display: block;
+        }
+
+        .mobile-nav-link {
+            display: block;
+            padding: 14px 0;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--evergreen);
+        }
+
+        .mobile-nav-link.active {
+            color: var(--greenhouse-green);
+            font-weight: 700;
+        }
+
+        @media (max-width: 767px) {
+            .mobile-nav-toggle {
+                display: inline-flex;
+            }
+
+            .container-custom {
+                padding: 0 20px;
+            }
+
+            .form-wrapper {
+                padding: 40px 0 52px;
+            }
+
+            .page-title {
+                max-width: none;
+            }
+        }
+
         /* Form Container Styles */
         .form-wrapper {
             flex-grow: 1;
@@ -281,6 +345,20 @@
                     Sign In
                 </button>
             </div>
+            <button class="mobile-nav-toggle md:hidden" type="button" aria-controls="mobile-nav-panel" aria-expanded="false" id="mobile-nav-button">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+        <div class="mobile-nav-panel md:hidden" id="mobile-nav-panel">
+            <div class="container-custom py-4">
+                <a href="home.html" class="mobile-nav-link">Home</a>
+                <a href="openings.html" class="mobile-nav-link active">AI Openings</a>
+                <a href="hiring.html" class="mobile-nav-link">Hiring Managers</a>
+                <a href="contact.html" class="mobile-nav-link">Contact</a>
+                <a href="#" class="mobile-nav-link">Sign In</a>
+            </div>
         </div>
     </nav>
 
@@ -338,6 +416,24 @@
         </div>
     </footer>
 
-    <script>lucide.createIcons();</script>
+    <script>
+        lucide.createIcons();
+        const mobileNavButton = document.getElementById('mobile-nav-button');
+        const mobileNavPanel = document.getElementById('mobile-nav-panel');
+
+        if (mobileNavButton && mobileNavPanel) {
+            mobileNavButton.addEventListener('click', () => {
+                const isOpen = mobileNavPanel.classList.toggle('is-open');
+                mobileNavButton.setAttribute('aria-expanded', String(isOpen));
+            });
+
+            mobileNavPanel.querySelectorAll('a').forEach((link) => {
+                link.addEventListener('click', () => {
+                    mobileNavPanel.classList.remove('is-open');
+                    mobileNavButton.setAttribute('aria-expanded', 'false');
+                });
+            });
+        }
+    </script>
 </body>
 </html>
