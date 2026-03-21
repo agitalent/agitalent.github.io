@@ -120,9 +120,9 @@
             overflow: hidden;
             min-height: 520px;
             background:
-                radial-gradient(circle at 18% 18%, rgba(36, 164, 127, 0.26), transparent 26%),
-                radial-gradient(circle at 78% 14%, rgba(21, 55, 44, 0.18), transparent 24%),
-                linear-gradient(160deg, #f8fbf9 0%, #e4eee8 100%);
+                radial-gradient(circle at 20% 20%, rgba(36, 164, 127, 0.24), transparent 28%),
+                radial-gradient(circle at 80% 15%, rgba(21, 55, 44, 0.16), transparent 24%),
+                linear-gradient(160deg, #f8fbf9 0%, #e5efe9 100%);
             border: 1px solid rgba(21, 55, 44, 0.08);
             box-shadow: 0 28px 60px rgba(21, 55, 44, 0.12);
         }
@@ -137,144 +137,6 @@
                 linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.62)),
                 linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0));
             backdrop-filter: blur(8px);
-        }
-
-        .earth-wrap {
-            position: absolute;
-            inset: 26px;
-            border-radius: 24px;
-            overflow: hidden;
-            z-index: 0;
-        }
-
-        .earth-glow {
-            position: absolute;
-            inset: -20%;
-            background:
-                radial-gradient(circle at 50% 50%, rgba(36, 164, 127, 0.2), transparent 34%),
-                radial-gradient(circle at 50% 50%, rgba(21, 55, 44, 0.12), transparent 52%);
-            filter: blur(8px);
-            animation: pulseGlow 6s ease-in-out infinite;
-        }
-
-        .earth-grid {
-            position: absolute;
-            inset: 0;
-            background-image:
-                linear-gradient(rgba(21, 55, 44, 0.04) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(21, 55, 44, 0.04) 1px, transparent 1px);
-            background-size: 42px 42px;
-            opacity: 0.22;
-            mask-image: radial-gradient(circle at center, black 42%, transparent 75%);
-        }
-
-        .earth-map {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0.94;
-            filter: drop-shadow(0 16px 30px rgba(21, 55, 44, 0.16));
-        }
-
-        .earth-orbit {
-            position: absolute;
-            inset: 10% 16%;
-            border-radius: 50%;
-            border: 1px solid rgba(21, 55, 44, 0.12);
-            opacity: 0.7;
-        }
-
-        .earth-orbit::before,
-        .earth-orbit::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            border-radius: 50%;
-            border: 1px solid rgba(21, 55, 44, 0.08);
-        }
-
-        .earth-orbit::before {
-            transform: scale(0.78);
-        }
-
-        .earth-orbit::after {
-            transform: scale(1.18);
-        }
-
-        .talent-node {
-            position: absolute;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 11px;
-            border-radius: 999px;
-            background: rgba(255, 255, 255, 0.92);
-            border: 1px solid rgba(21, 55, 44, 0.08);
-            box-shadow: 0 10px 24px rgba(21, 55, 44, 0.10);
-            color: var(--evergreen);
-            font-size: 12px;
-            font-weight: 700;
-            z-index: 2;
-            white-space: nowrap;
-        }
-
-        .talent-node::before {
-            content: "";
-            width: 8px;
-            height: 8px;
-            border-radius: 999px;
-            background: var(--greenhouse-green);
-            box-shadow: 0 0 0 6px rgba(36, 164, 127, 0.12);
-        }
-
-        .talent-node.san-francisco { top: 17%; left: 10%; }
-        .talent-node.seattle { top: 10%; left: 18%; }
-        .talent-node.newyork { top: 21%; left: 64%; }
-        .talent-node.london { top: 26%; left: 49%; }
-        .talent-node.paris { top: 35%; left: 54%; }
-        .talent-node.beijing { top: 31%; right: 10%; }
-        .talent-node.shanghai { top: 39%; right: 8%; }
-        .talent-node.singapore { bottom: 16%; right: 18%; }
-
-        .route-line {
-            position: absolute;
-            height: 2px;
-            background: linear-gradient(90deg, rgba(36, 164, 127, 0.1), rgba(36, 164, 127, 0.92), rgba(36, 164, 127, 0.1));
-            transform-origin: left center;
-            filter: drop-shadow(0 0 6px rgba(36, 164, 127, 0.4));
-            z-index: 1;
-            opacity: 0.9;
-            animation: routePulse 4s ease-in-out infinite;
-        }
-
-        .route-line.one {
-            top: 31%;
-            left: 22%;
-            width: 42%;
-            transform: rotate(6deg);
-        }
-
-        .route-line.two {
-            top: 38%;
-            left: 38%;
-            width: 28%;
-            transform: rotate(-18deg);
-        }
-
-        .route-line.three {
-            top: 24%;
-            left: 54%;
-            width: 22%;
-            transform: rotate(22deg);
-        }
-
-        .route-line.four {
-            top: 58%;
-            left: 22%;
-            width: 58%;
-            transform: rotate(-12deg);
-            opacity: 0.72;
         }
 
         .hero-visual-card {
@@ -292,8 +154,6 @@
             right: 48px;
             bottom: 52px;
             padding: 28px;
-            z-index: 3;
-            background: rgba(255, 255, 255, 0.8);
         }
 
         .hero-visual-card.top {
@@ -339,19 +199,14 @@
             gap: 14px;
         }
 
-        .talent-flow {
-            display: grid;
-            gap: 10px;
-        }
-
-        .talent-flow-row {
-            display: grid;
-            grid-template-columns: 1fr auto 1fr auto 1fr;
-            gap: 10px;
+        .flow-row {
+            display: flex;
             align-items: center;
+            gap: 12px;
         }
 
         .flow-card {
+            flex: 1;
             padding: 14px;
             border-radius: 16px;
             background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 249, 0.94));
@@ -373,31 +228,6 @@
             color: var(--greenhouse-green);
             font-size: 22px;
             line-height: 1;
-        }
-
-        .hero-stats {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 10px;
-            margin-top: 16px;
-        }
-
-        .hero-stat {
-            padding: 12px 14px;
-            border-radius: 16px;
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid rgba(21, 55, 44, 0.08);
-        }
-
-        .hero-stat strong {
-            display: block;
-            font-size: 20px;
-            letter-spacing: -0.03em;
-        }
-
-        .hero-stat span {
-            font-size: 13px;
-            color: rgba(21, 55, 44, 0.66);
         }
 
         .flow-metric {
@@ -561,16 +391,6 @@
             overflow: hidden;
         }
 
-        @keyframes pulseGlow {
-            0%, 100% { opacity: 0.7; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.02); }
-        }
-
-        @keyframes routePulse {
-            0%, 100% { opacity: 0.55; }
-            50% { opacity: 1; }
-        }
-
         .btn-primary {
             background-color: var(--greenhouse-green);
             color: white;
@@ -681,29 +501,6 @@
                 min-height: 420px;
             }
 
-            .earth-wrap {
-                inset: 18px;
-            }
-
-            .talent-node {
-                padding: 7px 10px;
-                font-size: 11px;
-            }
-
-            .talent-node.san-francisco { top: 12%; left: 6%; }
-            .talent-node.seattle { top: 7%; left: 10%; }
-            .talent-node.newyork { top: 18%; left: 60%; }
-            .talent-node.london { top: 26%; left: 46%; }
-            .talent-node.paris { top: 34%; left: 52%; }
-            .talent-node.beijing { top: 31%; right: 6%; }
-            .talent-node.shanghai { top: 39%; right: 4%; }
-            .talent-node.singapore { bottom: 12%; right: 14%; }
-
-            .route-line.one { width: 36%; left: 18%; }
-            .route-line.two { width: 22%; left: 34%; }
-            .route-line.three { width: 18%; left: 48%; }
-            .route-line.four { width: 48%; left: 20%; }
-
             .hero-visual-card.main {
                 top: 52px;
                 left: 20px;
@@ -722,15 +519,6 @@
 
             .hero-modal-panel {
                 padding: 20px;
-            }
-
-            .talent-flow-row {
-                grid-template-columns: 1fr;
-            }
-
-            .flow-arrow {
-                transform: rotate(90deg);
-                justify-self: center;
             }
         }
     </style>
@@ -792,40 +580,6 @@
                 </div>
                 <div class="hero-visual" aria-hidden="true">
                     <div class="hero-visual-frame">
-                        <div class="earth-wrap">
-                            <div class="earth-glow"></div>
-                            <div class="earth-grid"></div>
-                            <svg class="earth-map" viewBox="0 0 1000 620" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-                                <defs>
-                                    <linearGradient id="landFill" x1="0%" y1="0%" x2="100%" y2="100%">
-                                        <stop offset="0%" stop-color="#244b3d" stop-opacity="0.22"></stop>
-                                        <stop offset="100%" stop-color="#15372C" stop-opacity="0.52"></stop>
-                                    </linearGradient>
-                                    <radialGradient id="oceanGlow" cx="50%" cy="45%" r="55%">
-                                        <stop offset="0%" stop-color="#ffffff" stop-opacity="0.85"></stop>
-                                        <stop offset="100%" stop-color="#dce9e1" stop-opacity="0.18"></stop>
-                                    </radialGradient>
-                                </defs>
-                                <circle cx="500" cy="310" r="248" fill="url(#oceanGlow)" fill-opacity="0.75"></circle>
-                                <path d="M166,208 C206,174 272,150 318,172 C365,194 370,248 342,278 C315,307 291,322 273,356 C255,390 229,415 192,412 C162,410 136,379 126,345 C115,309 127,241 166,208 Z" fill="url(#landFill)"></path>
-                                <path d="M331,170 C384,118 455,112 484,139 C514,166 526,208 517,247 C508,285 486,313 480,351 C472,401 437,444 391,455 C342,467 309,436 302,397 C295,357 306,320 318,286 C331,250 307,209 331,170 Z" fill="url(#landFill)"></path>
-                                <path d="M527,182 C575,150 645,144 698,172 C744,196 760,240 745,277 C732,309 702,332 688,362 C669,401 683,443 652,470 C622,497 571,501 528,488 C486,475 464,444 462,405 C459,359 485,332 503,294 C520,260 494,220 527,182 Z" fill="url(#landFill)"></path>
-                                <path d="M724,208 C782,177 849,176 883,210 C917,243 925,292 904,330 C881,371 839,393 806,422 C776,448 748,478 709,478 C679,478 658,451 652,417 C646,379 659,351 673,323 C691,290 695,228 724,208 Z" fill="url(#landFill)"></path>
-                            </svg>
-                            <div class="route-line one"></div>
-                            <div class="route-line two"></div>
-                            <div class="route-line three"></div>
-                            <div class="route-line four"></div>
-                            <div class="earth-orbit"></div>
-                            <div class="talent-node san-francisco">San Francisco</div>
-                            <div class="talent-node seattle">Seattle</div>
-                            <div class="talent-node newyork">New York</div>
-                            <div class="talent-node london">London</div>
-                            <div class="talent-node paris">Paris</div>
-                            <div class="talent-node beijing">Beijing</div>
-                            <div class="talent-node shanghai">Shanghai</div>
-                            <div class="talent-node singapore">Singapore</div>
-                        </div>
                         <div class="hero-visual-card top">
                             <div class="visual-label">Shortlist</div>
                             <div style="margin-top:12px;font-size:28px;font-family:'Untitled Serif',serif;line-height:1;">12</div>
@@ -841,52 +595,36 @@
                         </div>
                         <div class="hero-visual-card main">
                             <div class="visual-heading">
-                                <div class="visual-label">AI talent distribution</div>
+                                <div class="visual-label">AI talent flow</div>
                                 <div class="visual-pill">Live</div>
                             </div>
-                            <div class="talent-flow">
-                                <div class="talent-flow-row">
+                            <div class="visual-flow">
+                                <div class="flow-row">
                                     <div class="flow-card">
-                                        <strong>San Francisco</strong>
-                                        <span>Product + applied AI leadership</span>
+                                        <strong>Research signal</strong>
+                                        <span>Papers, repos, and lab history</span>
                                     </div>
                                     <div class="flow-arrow">→</div>
                                     <div class="flow-card">
-                                        <strong>London / Paris</strong>
-                                        <span>Research, strategy, and labs</span>
-                                    </div>
-                                    <div class="flow-arrow">→</div>
-                                    <div class="flow-card">
-                                        <strong>New York</strong>
-                                        <span>Partnerships and scaling teams</span>
+                                        <strong>Technical fit</strong>
+                                        <span>LLMs, infra, systems, evaluation</span>
                                     </div>
                                 </div>
-                                <div class="talent-flow-row">
+                                <div class="flow-row">
                                     <div class="flow-card">
-                                        <strong>Seattle</strong>
-                                        <span>Systems, infra, and tooling</span>
+                                        <strong>Interview-ready</strong>
+                                        <span>Shortlist and outreach</span>
                                     </div>
                                     <div class="flow-arrow">→</div>
                                     <div class="flow-card">
-                                        <strong>Singapore</strong>
-                                        <span>APAC growth and hiring</span>
-                                    </div>
-                                    <div class="flow-arrow">→</div>
-                                    <div class="flow-card">
-                                        <strong>Beijing / Shanghai</strong>
-                                        <span>Research and model talent</span>
+                                        <strong>Team placement</strong>
+                                        <span>Aligned to hiring goals</span>
                                     </div>
                                 </div>
                             </div>
-                            <div class="hero-stats">
-                                <div class="hero-stat">
-                                    <strong>48h</strong>
-                                    <span>from intake to shortlist</span>
-                                </div>
-                                <div class="hero-stat">
-                                    <strong>8 hubs</strong>
-                                    <span>active AI talent markets</span>
-                                </div>
+                            <div class="flow-metric">
+                                <strong>48h</strong>
+                                <span>average time from intake to first shortlist</span>
                             </div>
                         </div>
                     </div>
