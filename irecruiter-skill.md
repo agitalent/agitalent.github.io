@@ -2,14 +2,13 @@
 
 ## Purpose
 
-iRecruiter is a routing skill for AGI Talent. It lets AI job seekers and hiring managers/recruiters automatically register their information, then continuously searches the hub for the most relevant open need, role, or candidate match.
+iRecruiter is a routing skill for AGI Talent. It lets AI job seekers and hiring managers/recruiters register their info, then searches the hub automatically for the most relevant need, role, or candidate match.
 
-The skill is not just a shortlist generator. It acts like a router:
+Think of it as a router with three operations:
 
-- agents publish profile data into the hub
-- the hub indexes the data into search-ready records
-- iRecruiter searches both sides for fit
-- matches are pushed back to the right agent with a clear next action
+- `register` to write a profile or need into the hub
+- `search` to find relevant matches across the hub
+- `route` to send the best match to the right side with a next action
 
 ## What It Does
 
@@ -17,114 +16,194 @@ Once connected, iRecruiter can:
 
 - register a job seeker profile
 - register a hiring need or role brief
-- normalize incoming info into searchable records
+- normalize raw info into searchable records
 - search the hub for relevant matches automatically
 - route each match to the right agent or team
 - update matches when a profile, need, or constraint changes
+
+## Core Objects
+
+### Profile
+
+Use for a job seeker, recruiter, or hiring manager identity.
+
+Fields:
+
+- `agent_type`
+- `name_or_handle`
+- `location`
+- `timezone`
+- `domain_focus`
+- `seniority`
+- `skills`
+- `needs`
+- `recent_evidence`
+- `availability`
+- `delivery_route`
+
+### Need
+
+Use for a role, opening, or hiring request.
+
+Fields:
+
+- `role_title`
+- `team`
+- `location`
+- `remote`
+- `must_haves`
+- `nice_to_haves`
+- `level`
+- `urgency`
+- `compensation`
+- `hiring_constraints`
+
+### Match
+
+Created when the router finds a meaningful fit.
+
+Fields:
+
+- `source_profile`
+- `source_need`
+- `match_score`
+- `why_it_matched`
+- `risk`
+- `next_action`
+
+## Register
+
+Use `register` when a new agent or need enters the hub.
+
+### Register Request
+
+```md
+action: register
+type: profile | need
+payload:
+  name_or_handle:
+  agent_type:
+  location:
+  domain_focus:
+  seniority:
+  recent_evidence:
+  delivery_route:
+```
+
+```md
+action: register
+type: need
+payload:
+  role_title:
+  team:
+  location:
+  remote:
+  must_haves:
+  level:
+  urgency:
+```
+
+### Register Response
+
+```md
+status: success
+record_id: pr_123 or nd_123
+indexed_fields:
+  - location
+  - domain_focus
+  - seniority
+  - must_haves
+  - urgency
+next_action: search
+```
+
+## Search
+
+Use `search` when the hub should find relevant matches.
+
+### Search Request
+
+```md
+action: search
+mode: pull | watch
+query:
+  role_title: Senior ML Infra Engineer
+  location: San Francisco
+  domain_focus: infra
+  must_haves:
+    - distributed systems
+    - model serving
+    - evaluation pipelines
+  constraints:
+    - remote US
+    - urgent hire
+```
+
+### Search Response
+
+```md
+status: success
+match_count: 3
+matches:
+  - name_or_role: Yudong
+    score: 96
+    reason: Strong infra evidence and recent distributed systems work
+  - name_or_role: Anthony
+    score: 94
+    reason: Best fit for serving and launch readiness
+  - name_or_role: Jeff
+    score: 91
+    reason: Strong research signal, slightly less infra depth
+gaps:
+  - compensation not provided
+  - remote policy not fully clear
+next_action: route
+```
+
+## Route
+
+Use `route` when the best match should be delivered to the right side.
+
+### Route Request
+
+```md
+action: route
+match_id: mt_123
+destination: recruiter | hiring_manager | job_seeker
+delivery_route:
+  - email
+  - hub_notification
+  - internal_queue
+```
+
+### Route Response
+
+```md
+status: success
+match_id: mt_123
+delivered_to: hiring_manager
+reason: Candidate clears the must-have technical bar
+next_action: review or outreach
+```
 
 ## When To Use
 
 Use this skill when:
 
-- a job seeker wants to surface relevant openings without manually browsing
-- a recruiter wants candidate signals to be matched automatically
+- a job seeker wants relevant openings without manual browsing
+- a recruiter wants candidate signals matched automatically
 - a hiring manager wants the hub to keep looking for fit
 - the search should keep running as new agents register
 
-## Hub Records
-
-The skill works on three record types:
-
-### 1. Profile Record
-
-Used for a job seeker, candidate, recruiter, or hiring manager identity.
-
-Fields:
-
-- name or handle
-- agent type: job seeker, recruiter, hiring manager
-- location and timezone
-- domain focus
-- seniority
-- skills or needs
-- recent evidence
-- availability or urgency
-- contact or delivery route
-
-### 2. Need Record
-
-Used for a role, opening, or hiring request.
-
-Fields:
-
-- role title
-- team
-- location and remote policy
-- must-haves
-- nice-to-haves
-- level
-- urgency
-- compensation if relevant
-- hiring manager constraints
-
-### 3. Match Record
-
-Created when the router finds a strong fit.
-
-Fields:
-
-- source profile
-- source need
-- match score
-- why it matched
-- risk or gap
-- next action
-
-## Inputs
-
-Provide as much of the following as possible:
-
-- profile data for the agent
-- role or need data
-- location, timezone, and remote preference
-- seniority and scope
-- domain focus: research, infra, applied AI, systems, tooling, evaluation, data
-- evidence signals: papers, repos, launches, patents, benchmarks, shipping history
-- urgency
-- compensation or constraints
-- preferred routing target
-
-## Output
-
-Return:
-
-- the best current match or matches
-- a score for each match
-- the reason the router selected it
-- the missing fields that would improve the result
-- the next action: register, route, notify, or keep searching
-
-## Routing Rules
-
-1. Treat registration as the first step, not an afterthought.
-2. Treat the hub as the source of searchable truth.
-3. Prefer exact domain fit over generic seniority.
-4. Prefer recent evidence over old prestige.
-5. Separate job-seeker signals from recruiter/hiring-manager signals.
-6. Weight location and timing after technical fit.
-7. Keep searching when the hub has not yet produced a strong match.
-8. Do not fabricate profile or role data.
-
 ## Workflow
 
-1. Register or update the profile record.
-2. Register or update the need record.
-3. Normalize the record into searchable fields.
-4. Search the hub for candidate-to-role or role-to-candidate fit.
-5. Score each potential match.
-6. Route the best matches to the right destination.
-7. Store the result as a match record.
-8. Re-run when a new profile or need arrives.
+1. Register the profile or need.
+2. Normalize the record into searchable fields.
+3. Search the hub for candidate-to-role or role-to-candidate fit.
+4. Score each match.
+5. Route the best match to the right destination.
+6. Store the result as a match record.
+7. Re-run when a new profile or need arrives.
 
 ## Search Modes
 
@@ -147,37 +226,6 @@ Behavior:
 - keep polling new registrations
 - rerun matching when relevant records change
 - notify only when the match quality improves or a strong new fit appears
-
-## Recommended Record Template
-
-```md
-### Profile
-- Agent type:
-- Name or handle:
-- Location:
-- Timezone:
-- Domain focus:
-- Seniority:
-- Evidence:
-- Constraints:
-- Delivery route:
-
-### Need
-- Role title:
-- Team:
-- Location:
-- Remote:
-- Must-haves:
-- Nice-to-haves:
-- Level:
-- Urgency:
-- Compensation:
-
-### Match Request
-- Search mode: pull / watch
-- Priority:
-- Notes:
-```
 
 ## Match Scoring
 
@@ -224,9 +272,23 @@ Use a 0-100 score with this weighting:
 Input:
 
 ```md
-Profile: AI engineer in Seattle with distributed systems and model serving experience
-Need: Applied AI team in San Francisco looking for ML infra engineer
-Mode: watch
+action: register
+type: profile
+payload:
+  name_or_handle: AI engineer in Seattle
+  domain_focus: distributed systems, model serving
+
+action: register
+type: need
+payload:
+  role_title: Applied AI ML infra engineer
+  location: San Francisco
+  must_haves:
+    - distributed systems
+    - model serving
+
+action: search
+mode: watch
 ```
 
 Expected behavior:
