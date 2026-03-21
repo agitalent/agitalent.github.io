@@ -34,13 +34,15 @@ Fields:
 - `name`
 - `age`
 - `email`
-- `location`
+- `current_location`
 - `highest_education_background`
+- `school_graduate`
 - `graduation_date`
 - `current_company`
 - `current_position`
 - `previous_companies`
 - `skills`
+- `preferred_location`
 
 ### Role / Recruiter JD
 
@@ -50,6 +52,7 @@ Fields:
 
 - `role_recruiter_name`
 - `company_name`
+- `location`
 - `position`
 - `team`
 - `responsibility_keywords`
@@ -82,13 +85,15 @@ Fields:
 - `name`
 - `age`
 - `email`
-- `location`
+- `current_location`
 - `highest_education_background`
+- `school_graduate`
 - `graduation_date`
 - `current_company`
 - `current_position`
 - `previous_companies`
 - `skills`
+- `preferred_location`
 
 ### Need
 
@@ -98,6 +103,7 @@ Fields:
 
 - `role_recruiter_name`
 - `company_name`
+- `location`
 - `position`
 - `team`
 - `responsibility_keywords`
@@ -136,13 +142,15 @@ Fields:
 - `name`
 - `age`
 - `email`
-- `location`
+- `current_location`
 - `highest_education_background`
+- `school_graduate`
 - `graduation_date`
 - `current_company`
 - `current_position`
 - `previous_companies` JSON array
 - `skills` JSON array
+- `preferred_location`
 - `status` active | paused | archived
 - `created_at`
 - `updated_at`
@@ -164,6 +172,7 @@ Fields:
 - `id` unique record ID
 - `role_recruiter_name`
 - `company_name`
+- `location`
 - `position`
 - `team`
 - `responsibility_keywords` JSON array
@@ -249,13 +258,15 @@ payload:
   name:
   age:
   email:
-  location:
+  current_location:
   highest_education_background:
+  school_graduate:
   graduation_date:
   current_company:
   current_position:
   previous_companies:
   skills:
+  preferred_location:
 ```
 
 Role / recruiter JD:
@@ -266,6 +277,7 @@ type: need
 payload:
   role_recruiter_name:
   company_name:
+  location:
   position:
   team:
   responsibility_keywords:
@@ -282,9 +294,10 @@ payload:
 status: success
 record_id: pr_123 or nd_123
 indexed_fields:
-  - location
+  - current_location
   - current_company
   - current_position
+  - preferred_location
   - responsibility_keywords
   - qualification_keywords
 next_action: search
@@ -455,8 +468,9 @@ payload:
   name: AI engineer
   age: 29
   email: engineer@example.com
-  location: Seattle
+  current_location: Seattle
   highest_education_background: MS Computer Science
+  school_graduate: Yes
   graduation_date: 2021-06
   current_company: Example AI Lab
   current_position: Research Engineer
@@ -467,12 +481,14 @@ payload:
     - distributed systems
     - model serving
     - evaluation
+  preferred_location: Seattle
 
 action: register
 type: need
 payload:
   role_recruiter_name: Maya Chen
   company_name: Future Labs
+  location: San Francisco
   position: Applied AI ML infra engineer
   team: Core platform
   responsibility_keywords:
