@@ -637,6 +637,15 @@
             font-weight: 700;
         }
 
+        .detail-share-download {
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(194, 255, 231, 0.16);
+            background: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+            font-weight: 700;
+        }
+
         .detail-share-note {
             color: rgba(255, 255, 255, 0.66);
             font-size: 12px;
@@ -1360,6 +1369,7 @@
                     <input class="detail-share-input" id="detail-share-url" type="text" readonly>
                     <button class="detail-share-copy" type="button" id="detail-share-copy">Copy link</button>
                     <button class="detail-share-json" type="button" id="detail-share-json">Copy JSON</button>
+                    <button class="detail-share-download" type="button" id="detail-share-download">Download JSON</button>
                 </div>
                 <div class="detail-share-note" id="detail-share-note">This URL opens the same drawer state for anyone with the page link.</div>
             </div>
@@ -1381,6 +1391,7 @@
         const detailShareUrl = document.getElementById('detail-share-url');
         const detailShareCopy = document.getElementById('detail-share-copy');
         const detailShareJson = document.getElementById('detail-share-json');
+        const detailShareDownload = document.getElementById('detail-share-download');
         const detailShareNote = document.getElementById('detail-share-note');
         const detailGrid = document.getElementById('detail-grid');
         const detailClose = document.getElementById('detail-close');
@@ -1620,6 +1631,35 @@
                 if (detailShareNote) {
                     detailShareNote.textContent = 'Record JSON selected. Copy it manually if clipboard access is blocked.';
                 }
+            }
+        };
+
+        const downloadDetailJson = () => {
+            if (!currentDetailRequest) return;
+            const { kind, index } = currentDetailRequest;
+            const list = kind === 'match' ? matchEntries : recentEntries;
+            const item = list[index];
+            if (!item) return;
+
+            const safeTitle = String(item.title || kind)
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '')
+                .slice(0, 48) || kind;
+            const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const filename = `irecruiter-${kind}-${safeTitle}-${stamp}.json`;
+            const blob = new Blob([JSON.stringify(item, null, 2)], { type: 'application/json;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            anchor.download = filename;
+            document.body.appendChild(anchor);
+            anchor.click();
+            document.body.removeChild(anchor);
+            URL.revokeObjectURL(url);
+
+            if (detailShareNote) {
+                detailShareNote.textContent = `Downloaded ${filename}.`;
             }
         };
 
@@ -1931,6 +1971,10 @@
 
         if (detailShareJson) {
             detailShareJson.addEventListener('click', copyDetailJson);
+        }
+
+        if (detailShareDownload) {
+            detailShareDownload.addEventListener('click', downloadDetailJson);
         }
 
         document.addEventListener('click', (event) => {
