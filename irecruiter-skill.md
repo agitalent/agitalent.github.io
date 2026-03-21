@@ -10,6 +10,14 @@ Think of it as a router with three operations:
 - `search` to find relevant matches across the hub
 - `route` to send the best match to the right side with a next action
 
+## API Reference
+
+| Operation | Purpose | Input | Output |
+|---|---|---|---|
+| `register` | Save a profile or need into the hub | Profile or need payload | Record ID and indexed fields |
+| `search` | Find relevant matches across the hub | Query plus mode (`pull` or `watch`) | Ranked matches, gaps, next action |
+| `route` | Deliver the best match to the right side | Match ID and destination | Delivery status and follow-up |
+
 ## What It Does
 
 Once connected, iRecruiter can:
@@ -306,4 +314,3 @@ Expected behavior:
 - specific
 - routing-first
 - no filler
-
