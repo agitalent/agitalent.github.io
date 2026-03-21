@@ -661,6 +661,33 @@
             line-height: 1.5;
         }
 
+        .detail-sql-preview {
+            margin-top: 14px;
+            padding: 16px;
+            border-radius: 18px;
+            border: 1px solid rgba(194, 255, 231, 0.12);
+            background: rgba(5, 12, 10, 0.88);
+        }
+
+        .detail-sql-preview h5 {
+            margin: 0 0 10px;
+            color: #ffffff;
+            font-size: 0.95rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .detail-sql-preview pre {
+            margin: 0;
+            overflow: auto;
+            color: #d9f8ea;
+            font-size: 12px;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, monospace;
+        }
+
         .detail-close {
             width: 40px;
             height: 40px;
@@ -1383,6 +1410,10 @@
                 </div>
                 <div class="detail-share-note" id="detail-share-note">This URL opens the same drawer state for anyone with the page link.</div>
             </div>
+            <div class="detail-sql-preview">
+                <h5>SQL preview</h5>
+                <pre id="detail-sql-preview">Open a record to generate an INSERT statement.</pre>
+            </div>
             <div class="detail-grid" id="detail-grid"></div>
         </div>
     </div>
@@ -1404,6 +1435,7 @@
         const detailShareDownload = document.getElementById('detail-share-download');
         const detailShareSql = document.getElementById('detail-share-sql');
         const detailShareNote = document.getElementById('detail-share-note');
+        const detailSqlPreview = document.getElementById('detail-sql-preview');
         const detailGrid = document.getElementById('detail-grid');
         const detailClose = document.getElementById('detail-close');
         const registerForm = document.getElementById('irecruiter-register-form');
@@ -1557,6 +1589,10 @@
                     <span>${escapeHtml(row.value || '—')}</span>
                 </div>
             `).join('');
+
+            if (detailSqlPreview) {
+                detailSqlPreview.textContent = buildInsertSql(kind, item);
+            }
 
             detailDrawer.classList.add('is-open');
             detailDrawer.setAttribute('aria-hidden', 'false');
