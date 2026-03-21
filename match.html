@@ -464,6 +464,64 @@
             gap: 12px;
         }
 
+        .recent-feed {
+            display: grid;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .recent-feed h4 {
+            margin: 0;
+            color: #ffffff;
+            font-size: 1rem;
+            letter-spacing: 0.04em;
+        }
+
+        .recent-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .recent-item {
+            display: grid;
+            gap: 6px;
+            padding: 14px 16px;
+            border-radius: 18px;
+            border: 1px solid rgba(194, 255, 231, 0.1);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .recent-item-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .recent-item-top strong {
+            color: #ffffff;
+            font-size: 0.98rem;
+        }
+
+        .recent-item-meta {
+            color: rgba(255, 255, 255, 0.68);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .recent-kind {
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(71, 229, 165, 0.16);
+            background: rgba(71, 229, 165, 0.08);
+            color: var(--accent);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
         .hub-empty {
             padding: 16px;
             border-radius: 18px;
@@ -1100,6 +1158,12 @@
                                 <div class="hub-results" id="hub-results">
                                     <div class="hub-empty">Matches will appear here after the first Supabase write.</div>
                                 </div>
+                                <div class="recent-feed">
+                                    <h4>Recent registrations</h4>
+                                    <div class="recent-list" id="recent-feed">
+                                        <div class="hub-empty">Loading recent records from Supabase...</div>
+                                    </div>
+                                </div>
                             </aside>
                         </div>
                     </div>
@@ -1114,6 +1178,7 @@
         const mobileNavPanel = document.getElementById('mobile-nav-panel');
         const hubStatus = document.getElementById('hub-status');
         const hubResults = document.getElementById('hub-results');
+        const recentFeed = document.getElementById('recent-feed');
         const registerForm = document.getElementById('irecruiter-register-form');
         const recordKind = document.getElementById('record-kind');
         const profileOnlyFields = document.querySelectorAll('.profile-only');
@@ -1156,6 +1221,76 @@
         const setStatus = (message) => {
             if (hubStatus) {
                 hubStatus.textContent = message;
+            }
+        };
+
+        const formatDate = (value) => {
+            if (!value) return '';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return '';
+            return date.toLocaleString(undefined, {
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit'
+            });
+        };
+
+        const renderRecentFeed = (items) => {
+            if (!recentFeed) return;
+
+            if (!items.length) {
+                recentFeed.innerHTML = '<div class="hub-empty">No recent records yet.</div>';
+                return;
+            }
+
+            recentFeed.innerHTML = items.map((item) => `
+                <div class="recent-item">
+                    <div class="recent-item-top">
+                        <strong>${escapeHtml(item.title)}</strong>
+                        <span class="recent-kind">${escapeHtml(item.kind)}</span>
+                    </div>
+                    <div class="recent-item-meta">${escapeHtml(item.meta)}</div>
+                    <div class="recent-item-meta">${escapeHtml(item.time)}</div>
+                </div>
+            `).join('');
+        };
+
+        const refreshRecentFeed = async () => {
+            if (!supabaseClient || !recentFeed) return;
+
+            try {
+                const [{ data: profiles, error: profilesError }, { data: needs, error: needsError }] = await Promise.all([
+                    supabaseClient.from('profiles').select('id, agent_type, name_or_handle, location, domain_focus, created_at').order('created_at', { ascending: false }).limit(5),
+                    supabaseClient.from('needs').select('id, role_title, contact_name, location, level, created_at').order('created_at', { ascending: false }).limit(5)
+                ]);
+
+                if (profilesError) throw profilesError;
+                if (needsError) throw needsError;
+
+                const recent = [
+                    ...(profiles || []).map((row) => ({
+                        kind: 'Profile',
+                        title: row.name_or_handle || 'Profile',
+                        meta: [row.agent_type, row.location, row.domain_focus].filter(Boolean).join(' • '),
+                        time: formatDate(row.created_at),
+                        created_at: row.created_at
+                    })),
+                    ...(needs || []).map((row) => ({
+                        kind: 'Need',
+                        title: row.role_title || row.contact_name || 'Need',
+                        meta: [row.contact_name, row.location, row.level].filter(Boolean).join(' • '),
+                        time: formatDate(row.created_at),
+                        created_at: row.created_at
+                    }))
+                ]
+                    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                    .slice(0, 6);
+
+                renderRecentFeed(recent);
+            } catch (error) {
+                console.error(error);
+                recentFeed.innerHTML = '<div class="hub-empty">Recent feed failed to load. Check Supabase read access and table names.</div>';
             }
         };
 
@@ -1334,6 +1469,8 @@
             toggleFields();
         }
 
+        refreshRecentFeed();
+
         if (registerForm && supabaseClient) {
             registerForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
@@ -1383,6 +1520,7 @@
                     }
 
                     setStatus(`Stored ${recordLabel} in Supabase. ${bestMatch ? `Top match score: ${bestMatch.score}%` : 'No direct match yet.'}`);
+                    refreshRecentFeed();
                 } catch (error) {
                     console.error(error);
                     setStatus(`Supabase write failed: ${error.message}`);
