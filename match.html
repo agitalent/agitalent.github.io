@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenClaw Match | AGI Talent</title>
+    <title>OpenClaw Skill | AGI Talent</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
 
@@ -156,6 +156,24 @@
             padding: 70px 0 34px;
         }
 
+        .skill-line {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 18px;
+            color: rgba(239, 248, 244, 0.7);
+            font-size: 13px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .skill-line::before {
+            content: "";
+            width: 34px;
+            height: 1px;
+            background: rgba(71, 229, 165, 0.54);
+        }
+
         .hero-grid {
             display: grid;
             grid-template-columns: minmax(0, 1fr) minmax(340px, 0.92fr);
@@ -210,7 +228,7 @@
             line-height: 0.95;
             letter-spacing: -0.05em;
             margin: 0;
-            max-width: 11ch;
+            max-width: 12ch;
         }
 
         .hero-title span {
@@ -223,6 +241,23 @@
             color: var(--muted);
             font-size: 1.08rem;
             line-height: 1.8;
+        }
+
+        .hero-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .hero-badge-pill {
+            padding: 9px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(71, 229, 165, 0.16);
+            background: rgba(71, 229, 165, 0.08);
+            color: rgba(239, 248, 244, 0.82);
+            font-size: 12px;
+            font-weight: 700;
         }
 
         .hero-actions {
@@ -260,6 +295,32 @@
         .match-shell {
             display: grid;
             gap: 16px;
+        }
+
+        .skill-banner {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            margin-top: 16px;
+        }
+
+        .skill-card {
+            padding: 16px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(194, 255, 231, 0.1);
+        }
+
+        .skill-card strong {
+            display: block;
+            font-size: 1.05rem;
+            margin-bottom: 6px;
+        }
+
+        .skill-card span {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.65;
         }
 
         .glass {
@@ -511,7 +572,8 @@
             .hero-grid,
             .board-row,
             .map-strip,
-            .feature-grid {
+            .feature-grid,
+            .skill-banner {
                 grid-template-columns: 1fr;
             }
 
@@ -568,6 +630,11 @@
             .hero-meta {
                 grid-template-columns: 1fr;
             }
+
+            .hero-badges {
+                flex-direction: column;
+                align-items: flex-start;
+            }
         }
 
         @keyframes scan-x {
@@ -578,17 +645,17 @@
 </head>
 <body>
     <nav class="topbar">
-        <div class="container-custom py-5 flex justify-between items-center gap-4">
+            <div class="container-custom py-5 flex justify-between items-center gap-4">
             <div class="flex items-center gap-3">
                 <div class="w-8 h-8 rounded-sm bg-[#47e5a5]"></div>
-                <span class="text-lg md:text-xl font-bold tracking-tight">OpenClaw Match</span>
+                <span class="text-lg md:text-xl font-bold tracking-tight">OpenClaw Skill</span>
             </div>
             <div class="hidden md:flex items-center gap-8">
                 <a href="home.html" class="nav-link">Home</a>
                 <a href="openings.html" class="nav-link">AI Openings</a>
                 <a href="hiring.html" class="nav-link">Hiring Managers</a>
                 <a href="contact.html" class="nav-link">Contact</a>
-                <a href="match.html" class="nav-link active">Match</a>
+                <a href="match.html" class="nav-link active">Skill</a>
             </div>
             <button class="mobile-nav-toggle md:hidden" type="button" aria-controls="mobile-nav-panel" aria-expanded="false" id="mobile-nav-button">
                 <svg class="mobile-nav-icon mobile-nav-icon-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -602,13 +669,13 @@
                 </svg>
             </button>
         </div>
-        <div class="mobile-nav-panel md:hidden" id="mobile-nav-panel">
+            <div class="mobile-nav-panel md:hidden" id="mobile-nav-panel">
             <div class="container-custom py-4">
                 <a href="home.html" class="mobile-nav-link">Home</a>
                 <a href="openings.html" class="mobile-nav-link">AI Openings</a>
                 <a href="hiring.html" class="mobile-nav-link">Hiring Managers</a>
                 <a href="contact.html" class="mobile-nav-link">Contact</a>
-                <a href="match.html" class="mobile-nav-link active">Match</a>
+                <a href="match.html" class="mobile-nav-link active">Skill</a>
             </div>
         </div>
     </nav>
@@ -618,11 +685,16 @@
             <div class="hero-grid">
                 <section class="hero-panel">
                     <div class="hero-copy">
-                        <div class="eyebrow">OpenClaw Agent</div>
+                        <div class="skill-line">OpenClaw skill</div>
                         <h1 class="hero-title">Match hiring needs with the right AI talent.</h1>
                         <p class="hero-text">
-                            OpenClaw connects recruiter and hiring-manager intent with AI researchers and engineers. It turns role requirements into live matches, reduces noise, and surfaces candidates who fit the work, the team, and the timing.
+                            OpenClaw is the matching skill and bot layer that connects recruiters, hiring managers, AI researchers, and engineers. It turns role requirements into live matches, reduces noise, and surfaces candidates who fit the work, the team, and the timing.
                         </p>
+                        <div class="hero-badges">
+                            <span class="hero-badge-pill">Recruiter skill input</span>
+                            <span class="hero-badge-pill">Hiring manager intent</span>
+                            <span class="hero-badge-pill">Researcher / engineer fit</span>
+                        </div>
                         <div class="hero-actions">
                             <a class="cta" href="openings.html">Find talent</a>
                             <a class="cta" href="hiring.html">Post a need</a>
@@ -729,18 +801,33 @@
             <div class="feature-grid">
                 <div class="feature">
                     <div class="icon-dot"></div>
-                    <h3>For recruiters</h3>
+                    <h3>Recruiter skill</h3>
                     <p>Turn a role brief into a ranked talent pool with filters for location, seniority, and specialization.</p>
                 </div>
                 <div class="feature">
                     <div class="icon-dot"></div>
-                    <h3>For hiring managers</h3>
+                    <h3>Hiring-manager skill</h3>
                     <p>Keep the search aligned to team needs, urgency, and technical depth so outreach stays relevant.</p>
                 </div>
                 <div class="feature">
                     <div class="icon-dot"></div>
-                    <h3>For candidates</h3>
+                    <h3>Candidate skill</h3>
                     <p>See roles that match your work history, research signals, and engineering focus without generic noise.</p>
+                </div>
+            </div>
+
+            <div class="skill-banner">
+                <div class="skill-card">
+                    <strong>OpenClaw bot</strong>
+                    <span>Runs the matching loop between the need and the supply side.</span>
+                </div>
+                <div class="skill-card">
+                    <strong>Skill signals</strong>
+                    <span>Reads the role, the team, the location, and the technical depth.</span>
+                </div>
+                <div class="skill-card">
+                    <strong>Direct routing</strong>
+                    <span>Routes recruiter and hiring-manager needs to the right AI researchers and engineers.</span>
                 </div>
             </div>
         </div>
