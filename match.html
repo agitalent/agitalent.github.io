@@ -522,6 +522,12 @@
             white-space: nowrap;
         }
 
+        .match-feed {
+            display: grid;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
         .hub-empty {
             padding: 16px;
             border-radius: 18px;
@@ -1164,6 +1170,12 @@
                                         <div class="hub-empty">Loading recent records from Supabase...</div>
                                     </div>
                                 </div>
+                                <div class="match-feed">
+                                    <h4>Recent matches</h4>
+                                    <div class="recent-list" id="match-feed">
+                                        <div class="hub-empty">Loading routed matches from Supabase...</div>
+                                    </div>
+                                </div>
                             </aside>
                         </div>
                     </div>
@@ -1179,6 +1191,7 @@
         const hubStatus = document.getElementById('hub-status');
         const hubResults = document.getElementById('hub-results');
         const recentFeed = document.getElementById('recent-feed');
+        const matchFeed = document.getElementById('match-feed');
         const registerForm = document.getElementById('irecruiter-register-form');
         const recordKind = document.getElementById('record-kind');
         const profileOnlyFields = document.querySelectorAll('.profile-only');
@@ -1256,6 +1269,26 @@
             `).join('');
         };
 
+        const renderMatchFeed = (items) => {
+            if (!matchFeed) return;
+
+            if (!items.length) {
+                matchFeed.innerHTML = '<div class="hub-empty">No routed matches yet.</div>';
+                return;
+            }
+
+            matchFeed.innerHTML = items.map((item) => `
+                <div class="recent-item">
+                    <div class="recent-item-top">
+                        <strong>${escapeHtml(item.title)}</strong>
+                        <span class="recent-kind">${escapeHtml(item.score)}%</span>
+                    </div>
+                    <div class="recent-item-meta">${escapeHtml(item.meta)}</div>
+                    <div class="recent-item-meta">${escapeHtml(item.time)}</div>
+                </div>
+            `).join('');
+        };
+
         const refreshRecentFeed = async () => {
             if (!supabaseClient || !recentFeed) return;
 
@@ -1291,6 +1324,44 @@
             } catch (error) {
                 console.error(error);
                 recentFeed.innerHTML = '<div class="hub-empty">Recent feed failed to load. Check Supabase read access and table names.</div>';
+            }
+        };
+
+        const refreshMatchFeed = async () => {
+            if (!supabaseClient || !matchFeed) return;
+
+            try {
+                const [{ data: matches, error: matchesError }, { data: profiles, error: profilesError }, { data: needs, error: needsError }] = await Promise.all([
+                    supabaseClient.from('matches').select('id, source_profile_id, source_need_id, match_score, why_it_matched, route_target, status, created_at').order('created_at', { ascending: false }).limit(6),
+                    supabaseClient.from('profiles').select('id, name_or_handle, location, domain_focus').limit(100),
+                    supabaseClient.from('needs').select('id, role_title, contact_name, location, level').limit(100)
+                ]);
+
+                if (matchesError) throw matchesError;
+                if (profilesError) throw profilesError;
+                if (needsError) throw needsError;
+
+                const profileById = new Map((profiles || []).map((row) => [row.id, row]));
+                const needById = new Map((needs || []).map((row) => [row.id, row]));
+
+                const routed = (matches || []).map((row) => {
+                    const profile = profileById.get(row.source_profile_id);
+                    const need = needById.get(row.source_need_id);
+                    const left = profile ? `Profile: ${profile.name_or_handle || 'unknown'}` : `Profile ${row.source_profile_id?.slice(0, 8) || 'unknown'}`;
+                    const right = need ? `Need: ${need.role_title || need.contact_name || 'unknown'}` : `Need ${row.source_need_id?.slice(0, 8) || 'unknown'}`;
+                    return {
+                        title: `${left} -> ${right}`,
+                        score: `${Number(row.match_score || 0).toFixed(0)}`,
+                        meta: [row.route_target, row.status, row.why_it_matched].filter(Boolean).join(' • '),
+                        time: formatDate(row.created_at),
+                        created_at: row.created_at
+                    };
+                });
+
+                renderMatchFeed(routed);
+            } catch (error) {
+                console.error(error);
+                matchFeed.innerHTML = '<div class="hub-empty">Recent matches failed to load. Check the matches table and read access.</div>';
             }
         };
 
@@ -1470,6 +1541,7 @@
         }
 
         refreshRecentFeed();
+        refreshMatchFeed();
 
         if (registerForm && supabaseClient) {
             registerForm.addEventListener('submit', async (event) => {
@@ -1521,6 +1593,7 @@
 
                     setStatus(`Stored ${recordLabel} in Supabase. ${bestMatch ? `Top match score: ${bestMatch.score}%` : 'No direct match yet.'}`);
                     refreshRecentFeed();
+                    refreshMatchFeed();
                 } catch (error) {
                     console.error(error);
                     setStatus(`Supabase write failed: ${error.message}`);
