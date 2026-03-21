@@ -1,15 +1,3 @@
----
-name: irecruiter
-layout: null
-permalink: /irecruiter-skill.md
-description: |
-  iRecruiter is a practical matching skill for recruiting AI researchers and engineers. It turns a role brief into a ranked shortlist, explains why each person fits, and returns the next action needed to move a hire forward.
-compatibility: Works from pasted role briefs, candidate summaries, resumes, LinkedIn snippets, and internal talent notes.
-metadata:
-  author: "AGI Talent"
-  version: "1.0.0"
----
-
 # iRecruiter
 
 ## What You Get
