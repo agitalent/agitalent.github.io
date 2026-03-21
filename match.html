@@ -267,6 +267,13 @@
             margin-top: 26px;
         }
 
+        .hero-actions-secondary {
+            margin-top: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
         .hero-meta {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -321,6 +328,25 @@
             color: var(--muted);
             font-size: 13px;
             line-height: 1.65;
+        }
+
+        .skill-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(71, 229, 165, 0.18);
+            background: rgba(71, 229, 165, 0.08);
+            color: var(--text);
+            font-size: 13px;
+            font-weight: 700;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .skill-link:hover {
+            transform: translateY(-1px);
+            border-color: rgba(71, 229, 165, 0.38);
         }
 
         .glass {
@@ -699,6 +725,23 @@
                             <a class="cta" href="openings.html">Find talent</a>
                             <a class="cta" href="hiring.html">Post a need</a>
                         </div>
+                        <div class="hero-actions-secondary">
+                            <a class="skill-link" href="openclaw-skill.md" target="_blank" rel="noopener noreferrer">
+                                Open skill markdown
+                                <svg class="w-4 h-4 text-[#47e5a5]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M7 17 17 7"></path>
+                                    <path d="M7 7h10v10"></path>
+                                </svg>
+                            </a>
+                            <a class="skill-link" href="openclaw-skill.md" download>
+                                Download skill file
+                                <svg class="w-4 h-4 text-[#47e5a5]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <path d="M7 10l5 5 5-5"></path>
+                                    <path d="M12 15V3"></path>
+                                </svg>
+                            </a>
+                        </div>
                         <div class="hero-meta">
                             <div class="meta-card">
                                 <strong>1.8x</strong>
@@ -819,11 +862,11 @@
             <div class="skill-banner">
                 <div class="skill-card">
                     <strong>OpenClaw bot</strong>
-                    <span>Runs the matching loop between the need and the supply side.</span>
+                    <span>Runs the matching loop between the hiring need and the talent supply side.</span>
                 </div>
                 <div class="skill-card">
                     <strong>Skill signals</strong>
-                    <span>Reads the role, the team, the location, and the technical depth.</span>
+                    <span>Reads the role, the team, the location, and the technical depth from both sides.</span>
                 </div>
                 <div class="skill-card">
                     <strong>Direct routing</strong>
