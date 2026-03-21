@@ -646,6 +646,15 @@
             font-weight: 700;
         }
 
+        .detail-share-sql {
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(194, 255, 231, 0.16);
+            background: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+            font-weight: 700;
+        }
+
         .detail-share-note {
             color: rgba(255, 255, 255, 0.66);
             font-size: 12px;
@@ -1370,6 +1379,7 @@
                     <button class="detail-share-copy" type="button" id="detail-share-copy">Copy link</button>
                     <button class="detail-share-json" type="button" id="detail-share-json">Copy JSON</button>
                     <button class="detail-share-download" type="button" id="detail-share-download">Download JSON</button>
+                    <button class="detail-share-sql" type="button" id="detail-share-sql">Copy SQL</button>
                 </div>
                 <div class="detail-share-note" id="detail-share-note">This URL opens the same drawer state for anyone with the page link.</div>
             </div>
@@ -1392,6 +1402,7 @@
         const detailShareCopy = document.getElementById('detail-share-copy');
         const detailShareJson = document.getElementById('detail-share-json');
         const detailShareDownload = document.getElementById('detail-share-download');
+        const detailShareSql = document.getElementById('detail-share-sql');
         const detailShareNote = document.getElementById('detail-share-note');
         const detailGrid = document.getElementById('detail-grid');
         const detailClose = document.getElementById('detail-close');
@@ -1660,6 +1671,112 @@
 
             if (detailShareNote) {
                 detailShareNote.textContent = `Downloaded ${filename}.`;
+            }
+        };
+
+        const sqlValue = (value) => {
+            if (value === null || value === undefined || value === '') return 'NULL';
+            if (typeof value === 'number') return Number.isFinite(value) ? String(value) : 'NULL';
+            if (typeof value === 'boolean') return value ? 'TRUE' : 'FALSE';
+            if (Array.isArray(value) || typeof value === 'object') {
+                return `'${JSON.stringify(value).replaceAll("'", "''")}'::jsonb`;
+            }
+            return `'${String(value).replaceAll("'", "''")}'`;
+        };
+
+        const buildInsertSql = (kind, item) => {
+            if (kind === 'recent') {
+                if (item.kind === 'Profile') {
+                    const columns = [
+                        'agent_type', 'name_or_handle', 'email', 'location', 'timezone',
+                        'domain_focus', 'seniority', 'skills', 'needs', 'recent_evidence',
+                        'availability', 'delivery_route', 'status'
+                    ];
+                    const values = [
+                        sqlValue('job_seeker'),
+                        sqlValue(item.title),
+                        sqlValue(item.email || null),
+                        sqlValue(item.location || null),
+                        sqlValue(item.timezone || null),
+                        sqlValue(item.domain_focus || null),
+                        sqlValue(item.seniority || null),
+                        sqlValue(item.skills || []),
+                        sqlValue(item.needs || []),
+                        sqlValue(item.recent_evidence || []),
+                        sqlValue(item.availability || null),
+                        sqlValue(item.delivery_route || null),
+                        sqlValue('active')
+                    ];
+                    return `insert into profiles (${columns.join(', ')}) values (${values.join(', ')});`;
+                }
+
+                const columns = [
+                    'contact_name', 'role_title', 'team', 'location', 'remote',
+                    'must_haves', 'nice_to_haves', 'level', 'urgency', 'compensation',
+                    'delivery_route', 'hiring_constraints', 'status'
+                ];
+                const values = [
+                    sqlValue(item.contact_name || null),
+                    sqlValue(item.title || null),
+                    sqlValue(item.team || null),
+                    sqlValue(item.location || null),
+                    sqlValue(item.remote || false),
+                    sqlValue(item.must_haves || []),
+                    sqlValue(item.nice_to_haves || []),
+                    sqlValue(item.level || null),
+                    sqlValue(item.urgency || null),
+                    sqlValue(item.compensation || null),
+                    sqlValue(item.delivery_route || null),
+                    sqlValue(item.hiring_constraints || []),
+                    sqlValue('open')
+                ];
+                return `insert into needs (${columns.join(', ')}) values (${values.join(', ')});`;
+            }
+
+            const columns = [
+                'source_profile_id', 'source_need_id', 'match_score', 'why_it_matched',
+                'risk', 'next_action', 'route_target', 'status'
+            ];
+            const values = [
+                sqlValue(item.source_profile_id || null),
+                sqlValue(item.source_need_id || null),
+                sqlValue(Number(item.score || 0)),
+                sqlValue(item.why_it_matched || null),
+                sqlValue(item.risk || null),
+                sqlValue(item.next_action || null),
+                sqlValue(item.route_target || null),
+                sqlValue(item.status || 'proposed')
+            ];
+            return `insert into matches (${columns.join(', ')}) values (${values.join(', ')});`;
+        };
+
+        const copyDetailSql = async () => {
+            if (!currentDetailRequest) return;
+            const { kind, index } = currentDetailRequest;
+            const list = kind === 'match' ? matchEntries : recentEntries;
+            const item = list[index];
+            if (!item) return;
+
+            const sql = buildInsertSql(kind, item);
+
+            try {
+                await navigator.clipboard.writeText(sql);
+                if (detailShareNote) {
+                    detailShareNote.textContent = 'SQL insert copied to clipboard.';
+                }
+            } catch (error) {
+                const temp = document.createElement('textarea');
+                temp.value = sql;
+                temp.setAttribute('readonly', 'true');
+                temp.style.position = 'fixed';
+                temp.style.left = '-9999px';
+                document.body.appendChild(temp);
+                temp.select();
+                document.execCommand('copy');
+                document.body.removeChild(temp);
+                if (detailShareNote) {
+                    detailShareNote.textContent = 'SQL insert selected. Copy it manually if clipboard access is blocked.';
+                }
             }
         };
 
@@ -1975,6 +2092,10 @@
 
         if (detailShareDownload) {
             detailShareDownload.addEventListener('click', downloadDetailJson);
+        }
+
+        if (detailShareSql) {
+            detailShareSql.addEventListener('click', copyDetailSql);
         }
 
         document.addEventListener('click', (event) => {
