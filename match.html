@@ -698,42 +698,20 @@
             font-weight: 600;
         }
 
-        .detail-share-note {
-            color: rgba(255, 255, 255, 0.66);
-            font-size: 12px;
-            line-height: 1.5;
+        .detail-export-sql {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(194, 255, 231, 0.08);
         }
 
-        .detail-share-toggle {
-            padding: 8px 12px;
-            border-radius: 999px;
-            border: 1px solid rgba(194, 255, 231, 0.14);
-            background: rgba(255, 255, 255, 0.04);
-            color: #ffffff;
-            font-size: 12px;
-            font-weight: 700;
-        }
-
-        .detail-share.is-collapsed .detail-share-body {
-            display: none;
-        }
-
-        .detail-sql-preview {
-            margin-top: 14px;
-            padding: 16px;
-            border-radius: 18px;
-            border: 1px solid rgba(194, 255, 231, 0.12);
-            background: rgba(5, 12, 10, 0.88);
-        }
-
-        .detail-sql-preview-header {
+        .detail-export-sql-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 12px;
         }
 
-        .detail-sql-preview h5 {
+        .detail-export-sql h5 {
             margin: 0;
             color: #ffffff;
             font-size: 0.95rem;
@@ -741,7 +719,7 @@
             text-transform: uppercase;
         }
 
-        .detail-sql-toggle {
+        .detail-export-sql-toggle {
             padding: 8px 12px;
             border-radius: 999px;
             border: 1px solid rgba(194, 255, 231, 0.14);
@@ -751,15 +729,15 @@
             font-weight: 700;
         }
 
-        .detail-sql-preview.is-collapsed .detail-sql-preview-body {
+        .detail-export-sql.is-collapsed .detail-export-sql-body {
             display: none;
         }
 
-        .detail-sql-preview-body {
+        .detail-export-sql-body {
             margin-top: 10px;
         }
 
-        .detail-sql-preview pre {
+        .detail-export-sql pre {
             margin: 0;
             overflow: auto;
             color: #d9f8ea;
@@ -809,6 +787,26 @@
             font-size: 14px;
             white-space: pre-wrap;
             word-break: break-word;
+        }
+
+        .detail-share-note {
+            color: rgba(255, 255, 255, 0.66);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .detail-share-toggle {
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(194, 255, 231, 0.14);
+            background: rgba(255, 255, 255, 0.04);
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .detail-share.is-collapsed .detail-share-body {
+            display: none;
         }
 
         .hub-empty {
@@ -1496,19 +1494,19 @@
                                 <button type="button" id="detail-share-json">Copy JSON</button>
                                 <button type="button" id="detail-share-download">Download JSON</button>
                                 <button type="button" id="detail-share-sql">Copy SQL</button>
+                                <div class="detail-export-sql is-collapsed" id="detail-export-sql">
+                                    <div class="detail-export-sql-header">
+                                        <h5>SQL preview</h5>
+                                        <button class="detail-export-sql-toggle" type="button" id="detail-export-sql-toggle">Show</button>
+                                    </div>
+                                    <div class="detail-export-sql-body">
+                                        <pre id="detail-sql-preview">Open a record to generate an INSERT statement.</pre>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                     <div class="detail-share-note" id="detail-share-note">This URL opens the same drawer state for anyone with the page link.</div>
-                </div>
-            </div>
-            <div class="detail-sql-preview" id="detail-sql-preview-panel">
-                <div class="detail-sql-preview-header">
-                    <h5>SQL preview</h5>
-                    <button class="detail-sql-toggle" type="button" id="detail-sql-toggle">Show</button>
-                </div>
-                <div class="detail-sql-preview-body">
-                    <pre id="detail-sql-preview">Open a record to generate an INSERT statement.</pre>
                 </div>
             </div>
             <div class="detail-grid" id="detail-grid"></div>
@@ -1537,9 +1535,9 @@
         const detailExportToggle = document.getElementById('detail-export-toggle');
         const detailExportMenu = document.getElementById('detail-export-menu');
         const detailShareNote = document.getElementById('detail-share-note');
-        const detailSqlPreviewPanel = document.getElementById('detail-sql-preview-panel');
+        const detailExportSql = document.getElementById('detail-export-sql');
+        const detailExportSqlToggle = document.getElementById('detail-export-sql-toggle');
         const detailSqlPreview = document.getElementById('detail-sql-preview');
-        const detailSqlToggle = document.getElementById('detail-sql-toggle');
         const detailGrid = document.getElementById('detail-grid');
         const detailClose = document.getElementById('detail-close');
         const registerForm = document.getElementById('irecruiter-register-form');
@@ -1584,9 +1582,9 @@
         pendingDetailRequest = parseDetailRequest(new URLSearchParams(window.location.search).get('detail'));
 
         const renderSqlPreviewState = () => {
-            if (!detailSqlPreviewPanel || !detailSqlToggle) return;
-            detailSqlPreviewPanel.classList.toggle('is-collapsed', !sqlPreviewExpanded);
-            detailSqlToggle.textContent = sqlPreviewExpanded ? 'Hide' : 'Show';
+            if (!detailExportSql || !detailExportSqlToggle) return;
+            detailExportSql.classList.toggle('is-collapsed', !sqlPreviewExpanded);
+            detailExportSqlToggle.textContent = sqlPreviewExpanded ? 'Hide' : 'Show';
         };
 
         const renderShareState = () => {
@@ -2289,8 +2287,11 @@
             });
         }
 
-        if (detailSqlToggle) {
-            detailSqlToggle.addEventListener('click', toggleSqlPreview);
+        if (detailExportSqlToggle) {
+            detailExportSqlToggle.addEventListener('click', (event) => {
+                event.stopPropagation();
+                toggleSqlPreview();
+            });
             renderSqlPreviewState();
         }
 
