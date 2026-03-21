@@ -489,6 +489,13 @@
             border-radius: 18px;
             border: 1px solid rgba(194, 255, 231, 0.1);
             background: rgba(255, 255, 255, 0.04);
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            color: inherit;
+            font: inherit;
         }
 
         .recent-item-top {
@@ -526,6 +533,95 @@
             display: grid;
             gap: 12px;
             margin-top: 12px;
+        }
+
+        .detail-drawer {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: flex-end;
+            justify-content: flex-end;
+            background: rgba(3, 9, 7, 0.58);
+            z-index: 60;
+            padding: 24px;
+        }
+
+        .detail-drawer.is-open {
+            display: flex;
+        }
+
+        .detail-panel {
+            width: min(640px, 100%);
+            max-height: min(86vh, 920px);
+            overflow: auto;
+            border-radius: 26px;
+            border: 1px solid rgba(194, 255, 231, 0.12);
+            background: rgba(8, 19, 15, 0.96);
+            box-shadow: 0 30px 90px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(18px);
+            padding: 22px;
+        }
+
+        .detail-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+
+        .detail-top h4 {
+            margin: 0;
+            color: #ffffff;
+            font-size: 1.4rem;
+        }
+
+        .detail-top p {
+            margin: 8px 0 0;
+            color: rgba(255, 255, 255, 0.72);
+            line-height: 1.7;
+            font-size: 14px;
+        }
+
+        .detail-close {
+            width: 40px;
+            height: 40px;
+            border-radius: 999px;
+            border: 1px solid rgba(194, 255, 231, 0.16);
+            background: rgba(255, 255, 255, 0.04);
+            color: #ffffff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .detail-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .detail-row {
+            display: grid;
+            gap: 4px;
+            padding: 14px 16px;
+            border-radius: 18px;
+            border: 1px solid rgba(194, 255, 231, 0.1);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .detail-row strong {
+            color: #ffffff;
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .detail-row span {
+            color: rgba(255, 255, 255, 0.82);
+            line-height: 1.7;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-break: break-word;
         }
 
         .hub-empty {
@@ -1184,6 +1280,24 @@
         </div>
     </main>
 
+    <div class="detail-drawer" id="detail-drawer" aria-hidden="true">
+        <div class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="detail-title">
+            <div class="detail-top">
+                <div>
+                    <h4 id="detail-title">Record detail</h4>
+                    <p id="detail-subtitle">Select a registration or routed match to inspect the full payload.</p>
+                </div>
+                <button class="detail-close" type="button" id="detail-close" aria-label="Close details">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M18 6 6 18"></path>
+                        <path d="M6 6 18 18"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="detail-grid" id="detail-grid"></div>
+        </div>
+    </div>
+
     <script>
         lucide.createIcons();
         const mobileNavButton = document.getElementById('mobile-nav-button');
@@ -1192,6 +1306,11 @@
         const hubResults = document.getElementById('hub-results');
         const recentFeed = document.getElementById('recent-feed');
         const matchFeed = document.getElementById('match-feed');
+        const detailDrawer = document.getElementById('detail-drawer');
+        const detailTitle = document.getElementById('detail-title');
+        const detailSubtitle = document.getElementById('detail-subtitle');
+        const detailGrid = document.getElementById('detail-grid');
+        const detailClose = document.getElementById('detail-close');
         const registerForm = document.getElementById('irecruiter-register-form');
         const recordKind = document.getElementById('record-kind');
         const profileOnlyFields = document.querySelectorAll('.profile-only');
@@ -1213,6 +1332,9 @@
             .replaceAll('>', '&gt;')
             .replaceAll('"', '&quot;')
             .replaceAll("'", '&#39;');
+
+        let recentEntries = [];
+        let matchEntries = [];
 
         const renderResultCards = (items) => {
             if (!items.length) {
@@ -1251,42 +1373,71 @@
 
         const renderRecentFeed = (items) => {
             if (!recentFeed) return;
+            recentEntries = items;
 
             if (!items.length) {
                 recentFeed.innerHTML = '<div class="hub-empty">No recent records yet.</div>';
                 return;
             }
 
-            recentFeed.innerHTML = items.map((item) => `
-                <div class="recent-item">
+            recentFeed.innerHTML = items.map((item, index) => `
+                <button class="recent-item" type="button" data-detail-kind="recent" data-detail-index="${index}">
                     <div class="recent-item-top">
                         <strong>${escapeHtml(item.title)}</strong>
                         <span class="recent-kind">${escapeHtml(item.kind)}</span>
                     </div>
                     <div class="recent-item-meta">${escapeHtml(item.meta)}</div>
                     <div class="recent-item-meta">${escapeHtml(item.time)}</div>
-                </div>
+                </button>
             `).join('');
         };
 
         const renderMatchFeed = (items) => {
             if (!matchFeed) return;
+            matchEntries = items;
 
             if (!items.length) {
                 matchFeed.innerHTML = '<div class="hub-empty">No routed matches yet.</div>';
                 return;
             }
 
-            matchFeed.innerHTML = items.map((item) => `
-                <div class="recent-item">
+            matchFeed.innerHTML = items.map((item, index) => `
+                <button class="recent-item" type="button" data-detail-kind="match" data-detail-index="${index}">
                     <div class="recent-item-top">
                         <strong>${escapeHtml(item.title)}</strong>
                         <span class="recent-kind">${escapeHtml(item.score)}%</span>
                     </div>
                     <div class="recent-item-meta">${escapeHtml(item.meta)}</div>
                     <div class="recent-item-meta">${escapeHtml(item.time)}</div>
+                </button>
+            `).join('');
+        };
+
+        const openDetailDrawer = (kind, index) => {
+            const list = kind === 'match' ? matchEntries : recentEntries;
+            const item = list[index];
+            if (!item || !detailDrawer || !detailTitle || !detailSubtitle || !detailGrid) return;
+
+            detailTitle.textContent = kind === 'match' ? 'Routed match detail' : 'Registration detail';
+            detailSubtitle.textContent = kind === 'match'
+                ? 'The latest router output from the matches table.'
+                : 'The stored registration record from profiles or needs.';
+
+            detailGrid.innerHTML = item.detailRows.map((row) => `
+                <div class="detail-row">
+                    <strong>${escapeHtml(row.label)}</strong>
+                    <span>${escapeHtml(row.value || '—')}</span>
                 </div>
             `).join('');
+
+            detailDrawer.classList.add('is-open');
+            detailDrawer.setAttribute('aria-hidden', 'false');
+        };
+
+        const closeDetailDrawer = () => {
+            if (!detailDrawer) return;
+            detailDrawer.classList.remove('is-open');
+            detailDrawer.setAttribute('aria-hidden', 'true');
         };
 
         const refreshRecentFeed = async () => {
@@ -1294,8 +1445,8 @@
 
             try {
                 const [{ data: profiles, error: profilesError }, { data: needs, error: needsError }] = await Promise.all([
-                    supabaseClient.from('profiles').select('id, agent_type, name_or_handle, location, domain_focus, created_at').order('created_at', { ascending: false }).limit(5),
-                    supabaseClient.from('needs').select('id, role_title, contact_name, location, level, created_at').order('created_at', { ascending: false }).limit(5)
+                    supabaseClient.from('profiles').select('id, agent_type, name_or_handle, email, location, timezone, domain_focus, seniority, skills, availability, delivery_route, created_at').order('created_at', { ascending: false }).limit(5),
+                    supabaseClient.from('needs').select('id, contact_name, role_title, team, location, remote, must_haves, nice_to_haves, level, urgency, compensation, delivery_route, hiring_constraints, created_at').order('created_at', { ascending: false }).limit(5)
                 ]);
 
                 if (profilesError) throw profilesError;
@@ -1307,14 +1458,42 @@
                         title: row.name_or_handle || 'Profile',
                         meta: [row.agent_type, row.location, row.domain_focus].filter(Boolean).join(' • '),
                         time: formatDate(row.created_at),
-                        created_at: row.created_at
+                        created_at: row.created_at,
+                        detailRows: [
+                            { label: 'Kind', value: row.agent_type },
+                            { label: 'Name / handle', value: row.name_or_handle },
+                            { label: 'Email', value: row.email },
+                            { label: 'Location', value: row.location },
+                            { label: 'Timezone', value: row.timezone },
+                            { label: 'Domain focus', value: row.domain_focus },
+                            { label: 'Seniority', value: row.seniority },
+                            { label: 'Skills', value: toList(row.skills).join(', ') },
+                            { label: 'Availability', value: row.availability },
+                            { label: 'Delivery route', value: row.delivery_route },
+                            { label: 'Created', value: formatDate(row.created_at) }
+                        ]
                     })),
                     ...(needs || []).map((row) => ({
                         kind: 'Need',
                         title: row.role_title || row.contact_name || 'Need',
                         meta: [row.contact_name, row.location, row.level].filter(Boolean).join(' • '),
                         time: formatDate(row.created_at),
-                        created_at: row.created_at
+                        created_at: row.created_at,
+                        detailRows: [
+                            { label: 'Contact name', value: row.contact_name },
+                            { label: 'Role title', value: row.role_title },
+                            { label: 'Team', value: row.team },
+                            { label: 'Location', value: row.location },
+                            { label: 'Remote', value: row.remote ? 'Yes' : 'No' },
+                            { label: 'Must haves', value: toList(row.must_haves).join(', ') },
+                            { label: 'Nice to haves', value: toList(row.nice_to_haves).join(', ') },
+                            { label: 'Level', value: row.level },
+                            { label: 'Urgency', value: row.urgency },
+                            { label: 'Compensation', value: row.compensation },
+                            { label: 'Delivery route', value: row.delivery_route },
+                            { label: 'Hiring constraints', value: toList(row.hiring_constraints).join(', ') },
+                            { label: 'Created', value: formatDate(row.created_at) }
+                        ]
                     }))
                 ]
                     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
@@ -1332,9 +1511,9 @@
 
             try {
                 const [{ data: matches, error: matchesError }, { data: profiles, error: profilesError }, { data: needs, error: needsError }] = await Promise.all([
-                    supabaseClient.from('matches').select('id, source_profile_id, source_need_id, match_score, why_it_matched, route_target, status, created_at').order('created_at', { ascending: false }).limit(6),
-                    supabaseClient.from('profiles').select('id, name_or_handle, location, domain_focus').limit(100),
-                    supabaseClient.from('needs').select('id, role_title, contact_name, location, level').limit(100)
+                    supabaseClient.from('matches').select('id, source_profile_id, source_need_id, match_score, why_it_matched, risk, next_action, route_target, status, created_at').order('created_at', { ascending: false }).limit(6),
+                    supabaseClient.from('profiles').select('id, name_or_handle, location, domain_focus, seniority, email').limit(100),
+                    supabaseClient.from('needs').select('id, role_title, contact_name, location, level, urgency').limit(100)
                 ]);
 
                 if (matchesError) throw matchesError;
@@ -1354,7 +1533,18 @@
                         score: `${Number(row.match_score || 0).toFixed(0)}`,
                         meta: [row.route_target, row.status, row.why_it_matched].filter(Boolean).join(' • '),
                         time: formatDate(row.created_at),
-                        created_at: row.created_at
+                        created_at: row.created_at,
+                        detailRows: [
+                            { label: 'Match score', value: `${Number(row.match_score || 0).toFixed(0)}%` },
+                            { label: 'Route target', value: row.route_target },
+                            { label: 'Status', value: row.status },
+                            { label: 'Risk', value: row.risk },
+                            { label: 'Next action', value: row.next_action },
+                            { label: 'Why it matched', value: row.why_it_matched },
+                            { label: 'Profile', value: profile ? `${profile.name_or_handle || 'unknown'} • ${profile.location || 'location open'} • ${profile.domain_focus || 'domain open'} • ${profile.seniority || 'level open'} • ${profile.email || 'no email'}` : row.source_profile_id },
+                            { label: 'Need', value: need ? `${need.role_title || 'unknown'} • ${need.contact_name || 'contact open'} • ${need.location || 'location open'} • ${need.level || 'level open'} • ${need.urgency || 'urgency open'}` : row.source_need_id },
+                            { label: 'Created', value: formatDate(row.created_at) }
+                        ]
                     };
                 });
 
@@ -1539,6 +1729,26 @@
             recordKind.addEventListener('change', toggleFields);
             toggleFields();
         }
+
+        if (detailDrawer) {
+            detailDrawer.addEventListener('click', (event) => {
+                if (event.target === detailDrawer) {
+                    closeDetailDrawer();
+                }
+            });
+        }
+
+        if (detailClose) {
+            detailClose.addEventListener('click', closeDetailDrawer);
+        }
+
+        document.addEventListener('click', (event) => {
+            const trigger = event.target.closest('[data-detail-kind][data-detail-index]');
+            if (!trigger) return;
+            const kind = trigger.getAttribute('data-detail-kind');
+            const index = Number(trigger.getAttribute('data-detail-index'));
+            openDetailDrawer(kind, index);
+        });
 
         refreshRecentFeed();
         refreshMatchFeed();
