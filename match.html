@@ -28,6 +28,11 @@
             --muted: rgba(239, 248, 244, 0.68);
             --accent: #47e5a5;
             --accent-2: #7fffd4;
+            --greenhouse-green: #24A47F;
+            --evergreen: #15372C;
+            --ground-grey: #EFEFEF;
+            --white: #ffffff;
+            --text-main: #15372C;
         }
 
         * { box-sizing: border-box; }
@@ -36,8 +41,11 @@
             margin: 0;
             min-height: 100vh;
             font-family: 'Untitled Sans', sans-serif;
-            color: var(--text-main);
-            background-color: var(--white);
+            color: #ffffff;
+            background:
+                radial-gradient(circle at top left, rgba(71, 229, 165, 0.12), transparent 28%),
+                radial-gradient(circle at 80% 10%, rgba(127, 255, 212, 0.08), transparent 24%),
+                linear-gradient(180deg, #07110f 0%, #091612 52%, #06100d 100%);
             -webkit-font-smoothing: antialiased;
         }
 
@@ -151,7 +159,7 @@
 
         .hero {
             padding: 70px 0 34px;
-            background-color: var(--ground-grey);
+            background: transparent;
         }
 
         .skill-line {
@@ -159,7 +167,7 @@
             align-items: center;
             gap: 10px;
             margin-bottom: 18px;
-            color: rgba(239, 248, 244, 0.7);
+            color: rgba(255, 255, 255, 0.82);
             font-size: 13px;
             letter-spacing: 0.12em;
             text-transform: uppercase;
@@ -236,7 +244,7 @@
         .hero-text {
             max-width: 58ch;
             margin: 18px 0 0;
-            color: var(--muted);
+            color: rgba(255, 255, 255, 0.84);
             font-size: 1.25rem;
             line-height: 1.75;
         }
@@ -253,7 +261,7 @@
             border-radius: 999px;
             border: 1px solid rgba(71, 229, 165, 0.16);
             background: rgba(71, 229, 165, 0.08);
-            color: rgba(239, 248, 244, 0.82);
+            color: rgba(255, 255, 255, 0.92);
             font-size: 12px;
             font-weight: 700;
         }
@@ -290,10 +298,11 @@
             display: block;
             font-size: 1.4rem;
             letter-spacing: -0.03em;
+            color: #ffffff;
         }
 
         .meta-card span {
-            color: var(--muted);
+            color: rgba(255, 255, 255, 0.74);
             font-size: 13px;
         }
 
@@ -310,7 +319,7 @@
             border-radius: 14px;
             border: 1px solid rgba(71, 229, 165, 0.18);
             background: rgba(71, 229, 165, 0.08);
-            color: var(--text);
+            color: #ffffff;
             font-size: 13px;
             font-weight: 700;
             transition: transform 0.2s ease, border-color 0.2s ease;
@@ -384,7 +393,7 @@
             font-weight: 700;
             letter-spacing: 0.14em;
             text-transform: uppercase;
-            color: rgba(239, 248, 244, 0.58);
+            color: rgba(255, 255, 255, 0.72);
         }
 
         .stack {
@@ -402,11 +411,12 @@
         .stack-card h3 {
             margin: 0 0 8px;
             font-size: 1.2rem;
+            color: #ffffff;
         }
 
         .stack-card p {
             margin: 0;
-            color: var(--muted);
+            color: rgba(255, 255, 255, 0.76);
             line-height: 1.7;
             font-size: 14px;
         }
@@ -423,7 +433,7 @@
             border-radius: 999px;
             background: rgba(71, 229, 165, 0.1);
             border: 1px solid rgba(71, 229, 165, 0.16);
-            color: rgba(239, 248, 244, 0.82);
+            color: rgba(255, 255, 255, 0.92);
             font-size: 12px;
             font-weight: 700;
         }
@@ -489,6 +499,7 @@
 
         .result-head strong {
             font-size: 1.1rem;
+            color: #ffffff;
         }
 
         .score {
@@ -499,7 +510,7 @@
 
         .result-card p {
             margin: 0;
-            color: var(--muted);
+            color: rgba(255, 255, 255, 0.76);
             line-height: 1.75;
             font-size: 14px;
         }
@@ -589,7 +600,7 @@
     <nav class="topbar">
             <div class="container-custom py-5 flex justify-between items-center gap-4">
             <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-sm bg-[#47e5a5]"></div>
+                <div class="w-8 h-8 bg-[#24A47F] rounded-sm"></div>
                 <span class="text-lg md:text-xl font-bold tracking-tight">AGI Talent</span>
             </div>
             <div class="hidden md:flex items-center gap-8">
