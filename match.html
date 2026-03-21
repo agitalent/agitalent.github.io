@@ -646,13 +646,49 @@
             font-weight: 700;
         }
 
-        .detail-share-sql {
+        .detail-export {
+            position: relative;
+            display: inline-flex;
+            flex-direction: column;
+        }
+
+        .detail-export-toggle {
             padding: 12px 14px;
             border-radius: 14px;
-            border: 1px solid rgba(194, 255, 231, 0.16);
-            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(71, 229, 165, 0.24);
+            background: rgba(71, 229, 165, 0.1);
             color: #ffffff;
             font-weight: 700;
+        }
+
+        .detail-export-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 10px);
+            left: 0;
+            min-width: 220px;
+            padding: 10px;
+            border-radius: 18px;
+            border: 1px solid rgba(194, 255, 231, 0.12);
+            background: rgba(6, 16, 13, 0.98);
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.34);
+            z-index: 3;
+        }
+
+        .detail-export.is-open .detail-export-menu {
+            display: grid;
+            gap: 8px;
+        }
+
+        .detail-export-menu button {
+            width: 100%;
+            text-align: left;
+            padding: 11px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(194, 255, 231, 0.08);
+            background: rgba(255, 255, 255, 0.04);
+            color: #ffffff;
+            font-weight: 600;
         }
 
         .detail-share-note {
@@ -1429,9 +1465,14 @@
                 <div class="detail-share-row">
                     <input class="detail-share-input" id="detail-share-url" type="text" readonly>
                     <button class="detail-share-copy" type="button" id="detail-share-copy">Copy link</button>
-                    <button class="detail-share-json" type="button" id="detail-share-json">Copy JSON</button>
-                    <button class="detail-share-download" type="button" id="detail-share-download">Download JSON</button>
-                    <button class="detail-share-sql" type="button" id="detail-share-sql">Copy SQL</button>
+                    <div class="detail-export" id="detail-export">
+                        <button class="detail-export-toggle" type="button" id="detail-export-toggle">Export</button>
+                        <div class="detail-export-menu" id="detail-export-menu">
+                            <button type="button" id="detail-share-json">Copy JSON</button>
+                            <button type="button" id="detail-share-download">Download JSON</button>
+                            <button type="button" id="detail-share-sql">Copy SQL</button>
+                        </div>
+                    </div>
                 </div>
                 <div class="detail-share-note" id="detail-share-note">This URL opens the same drawer state for anyone with the page link.</div>
             </div>
@@ -1464,6 +1505,9 @@
         const detailShareJson = document.getElementById('detail-share-json');
         const detailShareDownload = document.getElementById('detail-share-download');
         const detailShareSql = document.getElementById('detail-share-sql');
+        const detailExport = document.getElementById('detail-export');
+        const detailExportToggle = document.getElementById('detail-export-toggle');
+        const detailExportMenu = document.getElementById('detail-export-menu');
         const detailShareNote = document.getElementById('detail-share-note');
         const detailSqlPreviewPanel = document.getElementById('detail-sql-preview-panel');
         const detailSqlPreview = document.getElementById('detail-sql-preview');
@@ -1636,6 +1680,7 @@
             detailDrawer.classList.add('is-open');
             detailDrawer.setAttribute('aria-hidden', 'false');
             currentDetailRequest = { kind, index };
+            closeExportMenu();
             renderSqlPreviewState();
 
             if (detailShareUrl) {
@@ -1658,6 +1703,7 @@
             detailDrawer.classList.remove('is-open');
             detailDrawer.setAttribute('aria-hidden', 'true');
             pendingDetailRequest = null;
+            closeExportMenu();
 
             if (options.updateUrl !== false) {
                 clearDetailUrl();
@@ -1677,6 +1723,16 @@
         const toggleSqlPreview = () => {
             sqlPreviewExpanded = !sqlPreviewExpanded;
             renderSqlPreviewState();
+        };
+
+        const toggleExportMenu = () => {
+            if (!detailExport) return;
+            detailExport.classList.toggle('is-open');
+        };
+
+        const closeExportMenu = () => {
+            if (!detailExport) return;
+            detailExport.classList.remove('is-open');
         };
 
         const copyShareLink = async () => {
@@ -2179,10 +2235,27 @@
             detailShareSql.addEventListener('click', copyDetailSql);
         }
 
+        if (detailExportToggle) {
+            detailExportToggle.addEventListener('click', (event) => {
+                event.stopPropagation();
+                toggleExportMenu();
+            });
+        }
+
+        if (detailExportMenu) {
+            detailExportMenu.addEventListener('click', (event) => {
+                event.stopPropagation();
+            });
+        }
+
         if (detailSqlToggle) {
             detailSqlToggle.addEventListener('click', toggleSqlPreview);
             renderSqlPreviewState();
         }
+
+        document.addEventListener('click', () => {
+            closeExportMenu();
+        });
 
         document.addEventListener('click', (event) => {
             const trigger = event.target.closest('[data-detail-kind][data-detail-index]');
