@@ -1481,7 +1481,7 @@
             </div>
             <div class="detail-share" id="detail-share">
                 <div class="detail-share-header">
-                    <div class="detail-share-label">Share link</div>
+                    <div class="detail-share-label">Actions</div>
                     <button class="detail-share-toggle" type="button" id="detail-share-toggle">Hide</button>
                 </div>
                 <div class="detail-share-body">
@@ -1529,8 +1529,6 @@
         const detailShareJson = document.getElementById('detail-share-json');
         const detailShareDownload = document.getElementById('detail-share-download');
         const detailShareSql = document.getElementById('detail-share-sql');
-        const detailShare = document.getElementById('detail-share');
-        const detailShareToggle = document.getElementById('detail-share-toggle');
         const detailExport = document.getElementById('detail-export');
         const detailExportToggle = document.getElementById('detail-export-toggle');
         const detailExportMenu = document.getElementById('detail-export-menu');
@@ -1566,7 +1564,6 @@
         let matchEntries = [];
         let currentDetailRequest = null;
         let pendingDetailRequest = null;
-        let shareExpanded = !window.matchMedia('(max-width: 767px)').matches;
         let sqlPreviewExpanded = !window.matchMedia('(max-width: 767px)').matches;
 
         const parseDetailRequest = (value) => {
@@ -1585,12 +1582,6 @@
             if (!detailExportSql || !detailExportSqlToggle) return;
             detailExportSql.classList.toggle('is-collapsed', !sqlPreviewExpanded);
             detailExportSqlToggle.textContent = sqlPreviewExpanded ? 'Hide' : 'Show';
-        };
-
-        const renderShareState = () => {
-            if (!detailShare || !detailShareToggle) return;
-            detailShare.classList.toggle('is-collapsed', !shareExpanded);
-            detailShareToggle.textContent = shareExpanded ? 'Hide' : 'Show';
         };
 
         const renderResultCards = (items) => {
@@ -1714,7 +1705,6 @@
             detailDrawer.setAttribute('aria-hidden', 'false');
             currentDetailRequest = { kind, index };
             closeExportMenu();
-            renderShareState();
             renderSqlPreviewState();
 
             if (detailShareUrl) {
@@ -1757,11 +1747,6 @@
         const toggleSqlPreview = () => {
             sqlPreviewExpanded = !sqlPreviewExpanded;
             renderSqlPreviewState();
-        };
-
-        const toggleSharePanel = () => {
-            shareExpanded = !shareExpanded;
-            renderShareState();
         };
 
         const toggleExportMenu = () => {
@@ -2293,11 +2278,6 @@
                 toggleSqlPreview();
             });
             renderSqlPreviewState();
-        }
-
-        if (detailShareToggle) {
-            detailShareToggle.addEventListener('click', toggleSharePanel);
-            renderShareState();
         }
 
         document.addEventListener('click', () => {
