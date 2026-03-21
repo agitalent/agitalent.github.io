@@ -593,6 +593,13 @@
             background: rgba(255, 255, 255, 0.04);
         }
 
+        .detail-share-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
         .detail-share-row {
             display: flex;
             flex-wrap: wrap;
@@ -695,6 +702,20 @@
             color: rgba(255, 255, 255, 0.66);
             font-size: 12px;
             line-height: 1.5;
+        }
+
+        .detail-share-toggle {
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(194, 255, 231, 0.14);
+            background: rgba(255, 255, 255, 0.04);
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .detail-share.is-collapsed .detail-share-body {
+            display: none;
         }
 
         .detail-sql-preview {
@@ -1460,21 +1481,26 @@
                     </svg>
                 </button>
             </div>
-            <div class="detail-share">
-                <div class="detail-share-label">Share link</div>
-                <div class="detail-share-row">
-                    <input class="detail-share-input" id="detail-share-url" type="text" readonly>
-                    <button class="detail-share-copy" type="button" id="detail-share-copy">Copy link</button>
-                    <div class="detail-export" id="detail-export">
-                        <button class="detail-export-toggle" type="button" id="detail-export-toggle">Export</button>
-                        <div class="detail-export-menu" id="detail-export-menu">
-                            <button type="button" id="detail-share-json">Copy JSON</button>
-                            <button type="button" id="detail-share-download">Download JSON</button>
-                            <button type="button" id="detail-share-sql">Copy SQL</button>
+            <div class="detail-share" id="detail-share">
+                <div class="detail-share-header">
+                    <div class="detail-share-label">Share link</div>
+                    <button class="detail-share-toggle" type="button" id="detail-share-toggle">Hide</button>
+                </div>
+                <div class="detail-share-body">
+                    <div class="detail-share-row">
+                        <input class="detail-share-input" id="detail-share-url" type="text" readonly>
+                        <button class="detail-share-copy" type="button" id="detail-share-copy">Copy link</button>
+                        <div class="detail-export" id="detail-export">
+                            <button class="detail-export-toggle" type="button" id="detail-export-toggle">Export</button>
+                            <div class="detail-export-menu" id="detail-export-menu">
+                                <button type="button" id="detail-share-json">Copy JSON</button>
+                                <button type="button" id="detail-share-download">Download JSON</button>
+                                <button type="button" id="detail-share-sql">Copy SQL</button>
+                            </div>
                         </div>
                     </div>
+                    <div class="detail-share-note" id="detail-share-note">This URL opens the same drawer state for anyone with the page link.</div>
                 </div>
-                <div class="detail-share-note" id="detail-share-note">This URL opens the same drawer state for anyone with the page link.</div>
             </div>
             <div class="detail-sql-preview" id="detail-sql-preview-panel">
                 <div class="detail-sql-preview-header">
@@ -1505,6 +1531,8 @@
         const detailShareJson = document.getElementById('detail-share-json');
         const detailShareDownload = document.getElementById('detail-share-download');
         const detailShareSql = document.getElementById('detail-share-sql');
+        const detailShare = document.getElementById('detail-share');
+        const detailShareToggle = document.getElementById('detail-share-toggle');
         const detailExport = document.getElementById('detail-export');
         const detailExportToggle = document.getElementById('detail-export-toggle');
         const detailExportMenu = document.getElementById('detail-export-menu');
@@ -1540,6 +1568,7 @@
         let matchEntries = [];
         let currentDetailRequest = null;
         let pendingDetailRequest = null;
+        let shareExpanded = !window.matchMedia('(max-width: 767px)').matches;
         let sqlPreviewExpanded = !window.matchMedia('(max-width: 767px)').matches;
 
         const parseDetailRequest = (value) => {
@@ -1558,6 +1587,12 @@
             if (!detailSqlPreviewPanel || !detailSqlToggle) return;
             detailSqlPreviewPanel.classList.toggle('is-collapsed', !sqlPreviewExpanded);
             detailSqlToggle.textContent = sqlPreviewExpanded ? 'Hide' : 'Show';
+        };
+
+        const renderShareState = () => {
+            if (!detailShare || !detailShareToggle) return;
+            detailShare.classList.toggle('is-collapsed', !shareExpanded);
+            detailShareToggle.textContent = shareExpanded ? 'Hide' : 'Show';
         };
 
         const renderResultCards = (items) => {
@@ -1681,6 +1716,7 @@
             detailDrawer.setAttribute('aria-hidden', 'false');
             currentDetailRequest = { kind, index };
             closeExportMenu();
+            renderShareState();
             renderSqlPreviewState();
 
             if (detailShareUrl) {
@@ -1723,6 +1759,11 @@
         const toggleSqlPreview = () => {
             sqlPreviewExpanded = !sqlPreviewExpanded;
             renderSqlPreviewState();
+        };
+
+        const toggleSharePanel = () => {
+            shareExpanded = !shareExpanded;
+            renderShareState();
         };
 
         const toggleExportMenu = () => {
@@ -2251,6 +2292,11 @@
         if (detailSqlToggle) {
             detailSqlToggle.addEventListener('click', toggleSqlPreview);
             renderSqlPreviewState();
+        }
+
+        if (detailShareToggle) {
+            detailShareToggle.addEventListener('click', toggleSharePanel);
+            renderShareState();
         }
 
         document.addEventListener('click', () => {
