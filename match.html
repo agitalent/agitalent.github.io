@@ -669,12 +669,37 @@
             background: rgba(5, 12, 10, 0.88);
         }
 
+        .detail-sql-preview-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
         .detail-sql-preview h5 {
-            margin: 0 0 10px;
+            margin: 0;
             color: #ffffff;
             font-size: 0.95rem;
             letter-spacing: 0.08em;
             text-transform: uppercase;
+        }
+
+        .detail-sql-toggle {
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(194, 255, 231, 0.14);
+            background: rgba(255, 255, 255, 0.04);
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .detail-sql-preview.is-collapsed .detail-sql-preview-body {
+            display: none;
+        }
+
+        .detail-sql-preview-body {
+            margin-top: 10px;
         }
 
         .detail-sql-preview pre {
@@ -1410,9 +1435,14 @@
                 </div>
                 <div class="detail-share-note" id="detail-share-note">This URL opens the same drawer state for anyone with the page link.</div>
             </div>
-            <div class="detail-sql-preview">
-                <h5>SQL preview</h5>
-                <pre id="detail-sql-preview">Open a record to generate an INSERT statement.</pre>
+            <div class="detail-sql-preview" id="detail-sql-preview-panel">
+                <div class="detail-sql-preview-header">
+                    <h5>SQL preview</h5>
+                    <button class="detail-sql-toggle" type="button" id="detail-sql-toggle">Show</button>
+                </div>
+                <div class="detail-sql-preview-body">
+                    <pre id="detail-sql-preview">Open a record to generate an INSERT statement.</pre>
+                </div>
             </div>
             <div class="detail-grid" id="detail-grid"></div>
         </div>
@@ -1435,7 +1465,9 @@
         const detailShareDownload = document.getElementById('detail-share-download');
         const detailShareSql = document.getElementById('detail-share-sql');
         const detailShareNote = document.getElementById('detail-share-note');
+        const detailSqlPreviewPanel = document.getElementById('detail-sql-preview-panel');
         const detailSqlPreview = document.getElementById('detail-sql-preview');
+        const detailSqlToggle = document.getElementById('detail-sql-toggle');
         const detailGrid = document.getElementById('detail-grid');
         const detailClose = document.getElementById('detail-close');
         const registerForm = document.getElementById('irecruiter-register-form');
@@ -1464,6 +1496,7 @@
         let matchEntries = [];
         let currentDetailRequest = null;
         let pendingDetailRequest = null;
+        let sqlPreviewExpanded = !window.matchMedia('(max-width: 767px)').matches;
 
         const parseDetailRequest = (value) => {
             if (!value || typeof value !== 'string') return null;
@@ -1476,6 +1509,12 @@
         };
 
         pendingDetailRequest = parseDetailRequest(new URLSearchParams(window.location.search).get('detail'));
+
+        const renderSqlPreviewState = () => {
+            if (!detailSqlPreviewPanel || !detailSqlToggle) return;
+            detailSqlPreviewPanel.classList.toggle('is-collapsed', !sqlPreviewExpanded);
+            detailSqlToggle.textContent = sqlPreviewExpanded ? 'Hide' : 'Show';
+        };
 
         const renderResultCards = (items) => {
             if (!items.length) {
@@ -1597,6 +1636,7 @@
             detailDrawer.classList.add('is-open');
             detailDrawer.setAttribute('aria-hidden', 'false');
             currentDetailRequest = { kind, index };
+            renderSqlPreviewState();
 
             if (detailShareUrl) {
                 const shareUrl = new URL(window.location.href);
@@ -1632,6 +1672,11 @@
             const request = pendingDetailRequest;
             pendingDetailRequest = null;
             openDetailDrawer(request.kind, request.index, { updateUrl: false });
+        };
+
+        const toggleSqlPreview = () => {
+            sqlPreviewExpanded = !sqlPreviewExpanded;
+            renderSqlPreviewState();
         };
 
         const copyShareLink = async () => {
@@ -2132,6 +2177,11 @@
 
         if (detailShareSql) {
             detailShareSql.addEventListener('click', copyDetailSql);
+        }
+
+        if (detailSqlToggle) {
+            detailSqlToggle.addEventListener('click', toggleSqlPreview);
+            renderSqlPreviewState();
         }
 
         document.addEventListener('click', (event) => {
