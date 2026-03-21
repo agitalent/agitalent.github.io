@@ -2,11 +2,16 @@
 
 ## Purpose
 
-iRecruiter is a routing skill for AGI Talent. It lets AI job seekers and hiring managers/recruiters register their info, then searches the hub automatically for the most relevant need, role, or candidate match.
+iRecruiter is a routing skill for AGI Talent. It has one simple flow:
+
+1. Register a candidate profile or a role / recruiter JD.
+2. Search for a fit.
+3. Switch to watch mode automatically.
+4. On later visits, show only new fits since the last checkpoint.
 
 Think of it as a router with three operations:
 
-- `register` to write a profile or need into the hub
+- `register` to write a profile or JD into the hub
 - `search` to find relevant matches across the hub
 - `route` to send the best match to the right side with a next action
 
@@ -14,57 +19,93 @@ Think of it as a router with three operations:
 
 | Operation | Purpose | Input | Output |
 |---|---|---|---|
-| `register` | Save a profile or need into the hub | Profile or need payload | Record ID and indexed fields |
+| `register` | Save a profile or JD into the hub | Structured candidate profile or role / recruiter JD | Record ID and indexed fields |
 | `search` | Find relevant matches across the hub | Query plus mode (`pull` or `watch`) | Ranked matches, gaps, next action |
 | `route` | Deliver the best match to the right side | Match ID and destination | Delivery status and follow-up |
+
+## Simplified Intake
+
+### Candidate Profile
+
+Use this for a job seeker.
+
+Fields:
+
+- `name`
+- `age`
+- `email`
+- `location`
+- `highest_education_background`
+- `graduation_date`
+- `current_company`
+- `current_position`
+- `previous_companies`
+- `skills`
+
+### Role / Recruiter JD
+
+Use this for a role owner, recruiter, or hiring manager.
+
+Fields:
+
+- `role_recruiter_name`
+- `company_name`
+- `position`
+- `team`
+- `responsibility_keywords`
+- `target_companies`
+- `education_degree`
+- `preferred_school`
+- `preferred_major`
+- `qualification_keywords`
 
 ## What It Does
 
 Once connected, iRecruiter can:
 
-- register a job seeker profile
-- register a hiring need or role brief
+- register a candidate profile
+- register a role / recruiter JD
 - normalize raw info into searchable records
 - search the hub for relevant matches automatically
+- keep watching the hub for stronger fits
 - route each match to the right agent or team
-- update matches when a profile, need, or constraint changes
+- show only new fits on later visits
 
 ## Core Objects
 
 ### Profile
 
-Use for a job seeker, recruiter, or hiring manager identity.
+Use for a candidate identity.
 
 Fields:
 
-- `agent_type`
-- `name_or_handle`
+- `name`
+- `age`
+- `email`
 - `location`
-- `timezone`
-- `domain_focus`
-- `seniority`
+- `highest_education_background`
+- `graduation_date`
+- `current_company`
+- `current_position`
+- `previous_companies`
 - `skills`
-- `needs`
-- `recent_evidence`
-- `availability`
-- `delivery_route`
 
 ### Need
 
-Use for a role, opening, or hiring request.
+Use for a role / recruiter JD.
 
 Fields:
 
-- `role_title`
+- `role_recruiter_name`
+- `company_name`
+- `position`
 - `team`
-- `location`
-- `remote`
-- `must_haves`
-- `nice_to_haves`
-- `level`
-- `urgency`
-- `compensation`
-- `hiring_constraints`
+- `responsibility_keywords`
+- `target_companies`
+- `education_degree`
+- `preferred_school`
+- `preferred_major`
+- `qualification_keywords`
 
 ### Match
 
@@ -87,63 +128,60 @@ Store registrations and matches in a hub database. A simple relational schema is
 
 #### `profiles`
 
-Stores job seeker, recruiter, and hiring-manager identities.
+Stores candidate identities.
 
 Fields:
 
 - `id` unique record ID
-- `agent_type` job_seeker | recruiter | hiring_manager
-- `name_or_handle`
+- `name`
+- `age`
+- `email`
 - `location`
-- `timezone`
-- `domain_focus`
-- `seniority`
+- `highest_education_background`
+- `graduation_date`
+- `current_company`
+- `current_position`
+- `previous_companies` JSON array
 - `skills` JSON array
-- `needs` JSON array
-- `recent_evidence` JSON array
-- `availability`
-- `delivery_route`
 - `status` active | paused | archived
 - `created_at`
 - `updated_at`
 
 Indexes:
 
-- `agent_type`
+- `name`
 - `location`
-- `domain_focus`
-- `seniority`
+- `current_company`
+- `current_position`
 - `status`
 
 #### `needs`
 
-Stores roles, openings, and hiring requests.
+Stores roles, recruiter JDs, and hiring requests.
 
 Fields:
 
-- `contact_name`
 - `id` unique record ID
-- `role_title`
+- `role_recruiter_name`
+- `company_name`
+- `position`
 - `team`
-- `location`
-- `remote`
-- `must_haves` JSON array
-- `nice_to_haves` JSON array
-- `level`
-- `urgency`
-- `compensation`
-- `delivery_route`
-- `hiring_constraints` JSON array
+- `responsibility_keywords` JSON array
+- `target_companies` JSON array
+- `education_degree`
+- `preferred_school`
+- `preferred_major`
+- `qualification_keywords` JSON array
 - `status` open | matched | closed
 - `created_at`
 - `updated_at`
 
 Indexes:
 
-- `role_title`
-- `location`
-- `level`
-- `urgency`
+- `role_recruiter_name`
+- `company_name`
+- `position`
+- `team`
 - `status`
 
 #### `matches`
@@ -198,34 +236,44 @@ The live site uses a free Supabase project as the hub backend.
 
 ## Register
 
-Use `register` when a new agent or need enters the hub.
+Use `register` when a new candidate profile or role / recruiter JD enters the hub.
 
 ### Register Request
 
+Candidate profile:
+
 ```md
 action: register
-type: profile | need
+type: profile
 payload:
-  name_or_handle:
-  agent_type:
+  name:
+  age:
+  email:
   location:
-  domain_focus:
-  seniority:
-  recent_evidence:
-  delivery_route:
+  highest_education_background:
+  graduation_date:
+  current_company:
+  current_position:
+  previous_companies:
+  skills:
 ```
+
+Role / recruiter JD:
 
 ```md
 action: register
 type: need
 payload:
-  role_title:
+  role_recruiter_name:
+  company_name:
+  position:
   team:
-  location:
-  remote:
-  must_haves:
-  level:
-  urgency:
+  responsibility_keywords:
+  target_companies:
+  education_degree:
+  preferred_school:
+  preferred_major:
+  qualification_keywords:
 ```
 
 ### Register Response
@@ -235,10 +283,10 @@ status: success
 record_id: pr_123 or nd_123
 indexed_fields:
   - location
-  - domain_focus
-  - seniority
-  - must_haves
-  - urgency
+  - current_company
+  - current_position
+  - responsibility_keywords
+  - qualification_keywords
 next_action: search
 ```
 
@@ -252,16 +300,18 @@ Use `search` when the hub should find relevant matches.
 action: search
 mode: pull | watch
 query:
-  role_title: Senior ML Infra Engineer
   location: San Francisco
-  domain_focus: infra
-  must_haves:
+  current_company: OpenAI
+  current_position: research engineer
+  responsibility_keywords:
     - distributed systems
     - model serving
-    - evaluation pipelines
+  qualification_keywords:
+    - computer science
+    - machine learning
   constraints:
     - remote US
-    - urgent hire
+    - urgent
 ```
 
 ### Search Response
@@ -318,17 +368,17 @@ Use this skill when:
 - a job seeker wants relevant openings without manual browsing
 - a recruiter wants candidate signals matched automatically
 - a hiring manager wants the hub to keep looking for fit
-- the search should keep running as new agents register
+- the user wants the hub to keep watching and only surface new fits later
 
 ## Workflow
 
-1. Register the profile or need.
+1. Register a candidate profile or a role / recruiter JD.
 2. Normalize the record into searchable fields.
-3. Search the hub for candidate-to-role or role-to-candidate fit.
-4. Score each match.
+3. Search the hub for fit.
+4. Switch to watch mode automatically.
 5. Route the best match to the right destination.
 6. Store the result as a match record.
-7. Re-run when a new profile or need arrives.
+7. On later visits, show only new fits since the last checkpoint.
 
 ## Search Modes
 
@@ -350,7 +400,9 @@ Behavior:
 
 - keep polling new registrations
 - rerun matching when relevant records change
-- notify only when the match quality improves or a strong new fit appears
+- remember the last seen checkpoint
+- notify only when a new fit appears
+- on later visits, show only new matches since the last checkpoint
 
 ## Match Scoring
 
@@ -387,7 +439,7 @@ Use a 0-100 score with this weighting:
 
 - Do not invent candidate background.
 - Do not assume availability unless stated.
-- Do not confuse a recruiter need with a hiring-manager constraint.
+- Do not confuse a recruiter JD with a hiring-manager constraint.
 - Do not return a generic list when the hub supports direct routing.
 - Do not stop searching if the match is weak and more registrations are likely.
 - Do not expose private data beyond the intended route.
@@ -400,17 +452,44 @@ Input:
 action: register
 type: profile
 payload:
-  name_or_handle: AI engineer in Seattle
-  domain_focus: distributed systems, model serving
+  name: AI engineer
+  age: 29
+  email: engineer@example.com
+  location: Seattle
+  highest_education_background: MS Computer Science
+  graduation_date: 2021-06
+  current_company: Example AI Lab
+  current_position: Research Engineer
+  previous_companies:
+    - Example Systems
+    - Example Infra
+  skills:
+    - distributed systems
+    - model serving
+    - evaluation
 
 action: register
 type: need
 payload:
-  role_title: Applied AI ML infra engineer
-  location: San Francisco
-  must_haves:
+  role_recruiter_name: Maya Chen
+  company_name: Future Labs
+  position: Applied AI ML infra engineer
+  team: Core platform
+  responsibility_keywords:
     - distributed systems
     - model serving
+  target_companies:
+    - OpenAI
+    - Anthropic
+  education_degree: MS or PhD
+  preferred_school: Stanford
+  preferred_major:
+    - Computer Science
+    - Electrical Engineering
+  qualification_keywords:
+    - distributed systems
+    - model serving
+    - Python
 
 action: search
 mode: watch
@@ -418,11 +497,11 @@ mode: watch
 
 Expected behavior:
 
-- register the profile
-- register the need
+- register the profile or JD
 - search the hub
+- enter watch mode automatically
 - return the best fit or say what is missing
-- keep monitoring for a stronger match
+- on the next visit, only present new fits
 
 ## Recommended Response Style
 
