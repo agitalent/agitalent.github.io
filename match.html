@@ -583,6 +583,57 @@
             font-size: 14px;
         }
 
+        .detail-share {
+            display: grid;
+            gap: 10px;
+            margin: 6px 0 18px;
+            padding: 14px 16px;
+            border-radius: 18px;
+            border: 1px solid rgba(194, 255, 231, 0.1);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .detail-share-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .detail-share-label {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .detail-share-input {
+            flex: 1 1 360px;
+            min-width: 0;
+            border-radius: 14px;
+            border: 1px solid rgba(194, 255, 231, 0.12);
+            background: rgba(6, 16, 13, 0.72);
+            color: #ffffff;
+            padding: 12px 14px;
+            font: inherit;
+        }
+
+        .detail-share-copy {
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(71, 229, 165, 0.24);
+            background: rgba(71, 229, 165, 0.1);
+            color: #ffffff;
+            font-weight: 700;
+        }
+
+        .detail-share-note {
+            color: rgba(255, 255, 255, 0.66);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
         .detail-close {
             width: 40px;
             height: 40px;
@@ -1294,6 +1345,14 @@
                     </svg>
                 </button>
             </div>
+            <div class="detail-share">
+                <div class="detail-share-label">Share link</div>
+                <div class="detail-share-row">
+                    <input class="detail-share-input" id="detail-share-url" type="text" readonly>
+                    <button class="detail-share-copy" type="button" id="detail-share-copy">Copy link</button>
+                </div>
+                <div class="detail-share-note" id="detail-share-note">This URL opens the same drawer state for anyone with the page link.</div>
+            </div>
             <div class="detail-grid" id="detail-grid"></div>
         </div>
     </div>
@@ -1309,6 +1368,9 @@
         const detailDrawer = document.getElementById('detail-drawer');
         const detailTitle = document.getElementById('detail-title');
         const detailSubtitle = document.getElementById('detail-subtitle');
+        const detailShareUrl = document.getElementById('detail-share-url');
+        const detailShareCopy = document.getElementById('detail-share-copy');
+        const detailShareNote = document.getElementById('detail-share-note');
         const detailGrid = document.getElementById('detail-grid');
         const detailClose = document.getElementById('detail-close');
         const registerForm = document.getElementById('irecruiter-register-form');
@@ -1335,6 +1397,7 @@
 
         let recentEntries = [];
         let matchEntries = [];
+        let currentDetailRequest = null;
         let pendingDetailRequest = null;
 
         const parseDetailRequest = (value) => {
@@ -1432,12 +1495,17 @@
             const url = new URL(window.location.href);
             url.searchParams.set('detail', `${kind}:${index}`);
             window.history.replaceState({}, '', url);
+            currentDetailRequest = { kind, index };
+            if (detailShareUrl) detailShareUrl.value = url.toString();
         };
 
         const clearDetailUrl = () => {
             const url = new URL(window.location.href);
             url.searchParams.delete('detail');
             window.history.replaceState({}, '', url);
+            currentDetailRequest = null;
+            if (detailShareUrl) detailShareUrl.value = '';
+            if (detailShareNote) detailShareNote.textContent = 'This URL opens the same drawer state for anyone with the page link.';
         };
 
         const openDetailDrawer = (kind, index, options = {}) => {
@@ -1459,6 +1527,17 @@
 
             detailDrawer.classList.add('is-open');
             detailDrawer.setAttribute('aria-hidden', 'false');
+            currentDetailRequest = { kind, index };
+
+            if (detailShareUrl) {
+                const shareUrl = new URL(window.location.href);
+                shareUrl.searchParams.set('detail', `${kind}:${index}`);
+                detailShareUrl.value = shareUrl.toString();
+            }
+
+            if (detailShareNote) {
+                detailShareNote.textContent = `Share this URL to open ${kind} ${index + 1} directly.`;
+            }
 
             if (options.updateUrl !== false) {
                 syncDetailUrl(kind, index);
@@ -1484,6 +1563,23 @@
             const request = pendingDetailRequest;
             pendingDetailRequest = null;
             openDetailDrawer(request.kind, request.index, { updateUrl: false });
+        };
+
+        const copyShareLink = async () => {
+            if (!detailShareUrl || !detailShareUrl.value) return;
+
+            try {
+                await navigator.clipboard.writeText(detailShareUrl.value);
+                if (detailShareNote) {
+                    detailShareNote.textContent = 'Share link copied to clipboard.';
+                }
+            } catch (error) {
+                detailShareUrl.select();
+                document.execCommand('copy');
+                if (detailShareNote) {
+                    detailShareNote.textContent = 'Share link selected. Copy it manually if clipboard access is blocked.';
+                }
+            }
         };
 
         const refreshRecentFeed = async () => {
@@ -1786,6 +1882,10 @@
 
         if (detailClose) {
             detailClose.addEventListener('click', closeDetailDrawer);
+        }
+
+        if (detailShareCopy) {
+            detailShareCopy.addEventListener('click', copyShareLink);
         }
 
         document.addEventListener('click', (event) => {
