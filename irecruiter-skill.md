@@ -121,6 +121,7 @@ Stores roles, openings, and hiring requests.
 
 Fields:
 
+- `contact_name`
 - `id` unique record ID
 - `role_title`
 - `team`
@@ -131,6 +132,7 @@ Fields:
 - `level`
 - `urgency`
 - `compensation`
+- `delivery_route`
 - `hiring_constraints` JSON array
 - `status` open | matched | closed
 - `created_at`
@@ -177,6 +179,15 @@ Indexes:
 4. Update `status` when a record is matched, paused, or closed.
 5. Keep searchable fields normalized so the hub can query them quickly.
 6. Store evidence as structured arrays, not free-form blobs, when possible.
+
+### Supabase Setup
+
+The live site uses a free Supabase project as the hub backend.
+
+- database schema: [`supabase-schema.sql`](/Users/owenzu/Documents/agitalent.github.io/supabase-schema.sql)
+- public client access: `anon` or `publishable` key
+- storage pattern: direct writes from the iRecruiter page into `profiles`, `needs`, and `matches`
+- access model: public read and insert for the prototype, with row-level security enabled
 
 ### Record Lifecycle
 
