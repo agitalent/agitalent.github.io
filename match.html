@@ -628,6 +628,15 @@
             font-weight: 700;
         }
 
+        .detail-share-json {
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(194, 255, 231, 0.16);
+            background: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+            font-weight: 700;
+        }
+
         .detail-share-note {
             color: rgba(255, 255, 255, 0.66);
             font-size: 12px;
@@ -1350,6 +1359,7 @@
                 <div class="detail-share-row">
                     <input class="detail-share-input" id="detail-share-url" type="text" readonly>
                     <button class="detail-share-copy" type="button" id="detail-share-copy">Copy link</button>
+                    <button class="detail-share-json" type="button" id="detail-share-json">Copy JSON</button>
                 </div>
                 <div class="detail-share-note" id="detail-share-note">This URL opens the same drawer state for anyone with the page link.</div>
             </div>
@@ -1370,6 +1380,7 @@
         const detailSubtitle = document.getElementById('detail-subtitle');
         const detailShareUrl = document.getElementById('detail-share-url');
         const detailShareCopy = document.getElementById('detail-share-copy');
+        const detailShareJson = document.getElementById('detail-share-json');
         const detailShareNote = document.getElementById('detail-share-note');
         const detailGrid = document.getElementById('detail-grid');
         const detailClose = document.getElementById('detail-close');
@@ -1578,6 +1589,36 @@
                 document.execCommand('copy');
                 if (detailShareNote) {
                     detailShareNote.textContent = 'Share link selected. Copy it manually if clipboard access is blocked.';
+                }
+            }
+        };
+
+        const copyDetailJson = async () => {
+            if (!currentDetailRequest) return;
+            const { kind, index } = currentDetailRequest;
+            const list = kind === 'match' ? matchEntries : recentEntries;
+            const item = list[index];
+            if (!item) return;
+
+            const json = JSON.stringify(item, null, 2);
+
+            try {
+                await navigator.clipboard.writeText(json);
+                if (detailShareNote) {
+                    detailShareNote.textContent = 'Record JSON copied to clipboard.';
+                }
+            } catch (error) {
+                const temp = document.createElement('textarea');
+                temp.value = json;
+                temp.setAttribute('readonly', 'true');
+                temp.style.position = 'fixed';
+                temp.style.left = '-9999px';
+                document.body.appendChild(temp);
+                temp.select();
+                document.execCommand('copy');
+                document.body.removeChild(temp);
+                if (detailShareNote) {
+                    detailShareNote.textContent = 'Record JSON selected. Copy it manually if clipboard access is blocked.';
                 }
             }
         };
@@ -1886,6 +1927,10 @@
 
         if (detailShareCopy) {
             detailShareCopy.addEventListener('click', copyShareLink);
+        }
+
+        if (detailShareJson) {
+            detailShareJson.addEventListener('click', copyDetailJson);
         }
 
         document.addEventListener('click', (event) => {
