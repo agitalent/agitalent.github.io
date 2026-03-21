@@ -79,6 +79,112 @@ Fields:
 - `risk`
 - `next_action`
 
+## Storage Spec
+
+Store registrations and matches in a hub database. A simple relational schema is enough to start.
+
+### Tables
+
+#### `profiles`
+
+Stores job seeker, recruiter, and hiring-manager identities.
+
+Fields:
+
+- `id` unique record ID
+- `agent_type` job_seeker | recruiter | hiring_manager
+- `name_or_handle`
+- `location`
+- `timezone`
+- `domain_focus`
+- `seniority`
+- `skills` JSON array
+- `needs` JSON array
+- `recent_evidence` JSON array
+- `availability`
+- `delivery_route`
+- `status` active | paused | archived
+- `created_at`
+- `updated_at`
+
+Indexes:
+
+- `agent_type`
+- `location`
+- `domain_focus`
+- `seniority`
+- `status`
+
+#### `needs`
+
+Stores roles, openings, and hiring requests.
+
+Fields:
+
+- `id` unique record ID
+- `role_title`
+- `team`
+- `location`
+- `remote`
+- `must_haves` JSON array
+- `nice_to_haves` JSON array
+- `level`
+- `urgency`
+- `compensation`
+- `hiring_constraints` JSON array
+- `status` open | matched | closed
+- `created_at`
+- `updated_at`
+
+Indexes:
+
+- `role_title`
+- `location`
+- `level`
+- `urgency`
+- `status`
+
+#### `matches`
+
+Stores the router output.
+
+Fields:
+
+- `id` unique record ID
+- `source_profile_id`
+- `source_need_id`
+- `match_score`
+- `why_it_matched`
+- `risk`
+- `next_action`
+- `route_target`
+- `status` proposed | delivered | reviewed | closed
+- `created_at`
+- `updated_at`
+
+Indexes:
+
+- `source_profile_id`
+- `source_need_id`
+- `match_score`
+- `status`
+
+### Storage Rules
+
+1. Write `profiles` before searching.
+2. Write `needs` before searching.
+3. Create `matches` only after scoring a meaningful fit.
+4. Update `status` when a record is matched, paused, or closed.
+5. Keep searchable fields normalized so the hub can query them quickly.
+6. Store evidence as structured arrays, not free-form blobs, when possible.
+
+### Record Lifecycle
+
+- `active` or `open`: the record can be matched
+- `matched`: the router found a strong fit and delivered it
+- `paused`: temporarily excluded from search
+- `closed` or `archived`: no longer eligible for new routing
+
 ## Register
 
 Use `register` when a new agent or need enters the hub.
