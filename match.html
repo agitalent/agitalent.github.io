@@ -1335,6 +1335,19 @@
 
         let recentEntries = [];
         let matchEntries = [];
+        let pendingDetailRequest = null;
+
+        const parseDetailRequest = (value) => {
+            if (!value || typeof value !== 'string') return null;
+            const [kind, rawIndex] = value.split(':');
+            const index = Number(rawIndex);
+            if (!['recent', 'match'].includes(kind) || !Number.isInteger(index) || index < 0) {
+                return null;
+            }
+            return { kind, index };
+        };
+
+        pendingDetailRequest = parseDetailRequest(new URLSearchParams(window.location.search).get('detail'));
 
         const renderResultCards = (items) => {
             if (!items.length) {
@@ -1390,6 +1403,7 @@
                     <div class="recent-item-meta">${escapeHtml(item.time)}</div>
                 </button>
             `).join('');
+            tryOpenPendingDetail();
         };
 
         const renderMatchFeed = (items) => {
@@ -1411,9 +1425,22 @@
                     <div class="recent-item-meta">${escapeHtml(item.time)}</div>
                 </button>
             `).join('');
+            tryOpenPendingDetail();
         };
 
-        const openDetailDrawer = (kind, index) => {
+        const syncDetailUrl = (kind, index) => {
+            const url = new URL(window.location.href);
+            url.searchParams.set('detail', `${kind}:${index}`);
+            window.history.replaceState({}, '', url);
+        };
+
+        const clearDetailUrl = () => {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('detail');
+            window.history.replaceState({}, '', url);
+        };
+
+        const openDetailDrawer = (kind, index, options = {}) => {
             const list = kind === 'match' ? matchEntries : recentEntries;
             const item = list[index];
             if (!item || !detailDrawer || !detailTitle || !detailSubtitle || !detailGrid) return;
@@ -1432,12 +1459,31 @@
 
             detailDrawer.classList.add('is-open');
             detailDrawer.setAttribute('aria-hidden', 'false');
+
+            if (options.updateUrl !== false) {
+                syncDetailUrl(kind, index);
+            }
         };
 
-        const closeDetailDrawer = () => {
+        const closeDetailDrawer = (options = {}) => {
             if (!detailDrawer) return;
             detailDrawer.classList.remove('is-open');
             detailDrawer.setAttribute('aria-hidden', 'true');
+            pendingDetailRequest = null;
+
+            if (options.updateUrl !== false) {
+                clearDetailUrl();
+            }
+        };
+
+        const tryOpenPendingDetail = () => {
+            if (!pendingDetailRequest) return;
+            const { kind, index } = pendingDetailRequest;
+            const list = kind === 'match' ? matchEntries : recentEntries;
+            if (!list[index]) return;
+            const request = pendingDetailRequest;
+            pendingDetailRequest = null;
+            openDetailDrawer(request.kind, request.index, { updateUrl: false });
         };
 
         const refreshRecentFeed = async () => {
