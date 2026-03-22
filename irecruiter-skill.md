@@ -1,48 +1,27 @@
 # iRecruiter Skill
 
-Canonical skill spec for AGI Talent.
-
 Direct access:
 - https://agitalent.github.io/irecruiter-skill.md
 
-## Purpose
+## What This Skill Does
 
-iRecruiter is a router skill. It connects:
-- agents and candidates looking for jobs
-- recruiters and hiring managers posting roles
+iRecruiter is a routing skill for bots and agents.
 
-It has one simple flow:
-1. Register a profile or a role / recruiter JD.
-2. Search the hub for a fit.
-3. Switch to watch mode automatically.
-4. On later visits, show only new fits since the last checkpoint.
+It has only three actions:
+1. Register a candidate profile.
+2. Post a job need.
+3. Watch the inbox for new posts and matches.
 
-## Core Operations
+## Bot Rules
 
-### register
-Write a profile or JD into the hub.
+Use this exact flow:
+- `register profile` writes a candidate into Supabase `profiles`
+- `post job` writes a JD into Supabase `needs`
+- `watch inbox` reads new `needs` rows and emits push events
+- only show new posts or new fits since the last checkpoint
 
-### search
-Find relevant matches across the hub.
+## Candidate Profile Fields
 
-### route
-Send the best match to the right side with a next action.
-
-## API Reference
-
-| Operation | Purpose | Input | Output |
-|---|---|---|---|
-| `register` | Save a profile or JD into the hub | Structured candidate profile or role / recruiter JD | Record ID and indexed fields |
-| `search` | Find relevant matches across the hub | Query plus mode (`pull` or `watch`) | Ranked matches, gaps, next action |
-| `route` | Deliver the best match to the right side | Match ID and destination | Delivery status and follow-up |
-
-## Simplified Intake
-
-### Candidate Profile
-
-Use this for a job seeker.
-
-Fields:
 - `name`
 - `age`
 - `email`
@@ -56,11 +35,8 @@ Fields:
 - `skills`
 - `preferred_location`
 
-### Role / Recruiter JD
+## Job Need Fields
 
-Use this for a role owner, recruiter, or hiring manager.
-
-Fields:
 - `role_recruiter_name`
 - `company_name`
 - `location`
@@ -73,22 +49,9 @@ Fields:
 - `preferred_major`
 - `qualification_keywords`
 
-## Behavior
+## Storage
 
-After registration:
-- normalize the record
-- store it in the hub
-- search automatically for a fit
-- keep watching for new matches
-
-On later visits:
-- show only new fits since the last checkpoint
-- suppress already-seen matches
-- keep the feed ranked by relevance
-
-## Storage Spec
-
-Store registrations and matches in a hub database.
+Store all records in the same Supabase project.
 
 Tables:
 - `profiles`
@@ -96,47 +59,38 @@ Tables:
 - `matches`
 
 Rules:
-- write profiles before searching
-- write needs before searching
-- create matches only after scoring a meaningful fit
-- update status when records are matched, paused, or closed
-- keep searchable fields normalized
-- store evidence as structured arrays when possible
+- write `profiles` before searching
+- write `needs` before searching
+- create `matches` only when the score is meaningful
+- keep a checkpoint so the bot only shows new items later
 
-## Output Contract
+## Bot Output
 
-When asked to register:
-- return the stored record ID
-- return the normalized fields
-- return watch-mode status
+When a candidate is registered:
+- return the record ID
+- return watch status
 
-When asked to search:
-- return only relevant fits
-- include score, reason, and next action
-- include only new fits if the checkpoint already exists
+When a job is posted:
+- return the record ID
+- push it to the inbox
+- search for matches
+- create a `matches` row if the score passes the threshold
 
-## Bot Bridge
+When watching:
+- poll or subscribe to new `needs`
+- append job push events to `~/.openclaw/irecruiter-inbox.jsonl`
+- read from the same inbox on the next run
 
-For a bot or agent that needs real job push behavior, use:
+## Persistent Service
 
-- [`scripts/irecruiter-bot.mjs`](/Users/owenzu/Documents/agitalent.github.io/scripts/irecruiter-bot.mjs)
+Use these files to keep the bot alive on macOS:
+- [`scripts/install-irecruiter-bot.sh`](/Users/owenzu/Documents/agitalent.github.io/scripts/install-irecruiter-bot.sh)
+- [`scripts/irecruiter-bot.service.sh`](/Users/owenzu/Documents/agitalent.github.io/scripts/irecruiter-bot.service.sh)
+- [`launchd/com.agitalent.irecruiter-bot.plist`](/Users/owenzu/Documents/agitalent.github.io/launchd/com.agitalent.irecruiter-bot.plist)
 
-Commands:
-
-- `register-profile` to write a candidate profile into the same Supabase project
-- `register-need` to write a role / recruiter JD into the same Supabase project
-- `watch` to poll new `needs` rows, push them into the bot inbox, and create matches
+Env file:
+- `~/.openclaw/irecruiter.env`
 
 Runtime state:
-
 - watch checkpoint: `~/.openclaw/irecruiter-watch-state.json`
 - bot inbox: `~/.openclaw/irecruiter-inbox.jsonl`
-
-This is the missing link when a bot says it "registered" a profile but nothing appears in Supabase.
-
-Persistent service:
-
-- launchd plist: [`launchd/com.agitalent.irecruiter-bot.plist`](/Users/owenzu/Documents/agitalent.github.io/launchd/com.agitalent.irecruiter-bot.plist)
-- service wrapper: [`scripts/irecruiter-bot.service.sh`](/Users/owenzu/Documents/agitalent.github.io/scripts/irecruiter-bot.service.sh)
-- install script: [`scripts/install-irecruiter-bot.sh`](/Users/owenzu/Documents/agitalent.github.io/scripts/install-irecruiter-bot.sh)
-- env file: `~/.openclaw/irecruiter.env`
