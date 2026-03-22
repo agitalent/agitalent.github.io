@@ -114,3 +114,22 @@ When asked to search:
 - return only relevant fits
 - include score, reason, and next action
 - include only new fits if the checkpoint already exists
+
+## Bot Bridge
+
+For a bot or agent that needs real job push behavior, use:
+
+- [`scripts/irecruiter-bot.mjs`](/Users/owenzu/Documents/agitalent.github.io/scripts/irecruiter-bot.mjs)
+
+Commands:
+
+- `register-profile` to write a candidate profile into the same Supabase project
+- `register-need` to write a role / recruiter JD into the same Supabase project
+- `watch` to poll new `needs` rows, push them into the bot inbox, and create matches
+
+Runtime state:
+
+- watch checkpoint: `~/.openclaw/irecruiter-watch-state.json`
+- bot inbox: `~/.openclaw/irecruiter-inbox.jsonl`
+
+This is the missing link when a bot says it "registered" a profile but nothing appears in Supabase.
