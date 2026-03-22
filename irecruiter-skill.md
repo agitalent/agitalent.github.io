@@ -55,6 +55,9 @@ Use this exact flow:
 - `post job` writes a JD into Supabase `needs`
 - `watch inbox` reads new `needs` rows and emits push events
 - only show new posts or new fits since the last checkpoint
+- when asked "有哪些job posts", query Supabase `needs` directly and list the rows
+- do not use a local hub summary as the source of truth for job inventory
+- if `needs` cannot be reached, say the database is unavailable, not that it is empty
 
 ## Candidate Profile Fields
 
@@ -111,6 +114,12 @@ When a job is posted:
 - push it to the inbox
 - search for matches
 - create a `matches` row if the score passes the threshold
+
+When a user asks for current job posts:
+- query `needs` sorted by `created_at desc`
+- return the actual rows from Supabase
+- include title, company, location, and created time
+- if the query returns zero rows, say "No job posts found in Supabase needs"
 
 When watching:
 - poll or subscribe to new `needs`
