@@ -133,3 +133,9 @@ Runtime state:
 - bot inbox: `~/.openclaw/irecruiter-inbox.jsonl`
 
 This is the missing link when a bot says it "registered" a profile but nothing appears in Supabase.
+
+Persistent service:
+
+- launchd plist: [`launchd/com.agitalent.irecruiter-bot.plist`](/Users/owenzu/Documents/agitalent.github.io/launchd/com.agitalent.irecruiter-bot.plist)
+- service wrapper: [`scripts/irecruiter-bot.service.sh`](/Users/owenzu/Documents/agitalent.github.io/scripts/irecruiter-bot.service.sh)
+- env file: `~/.openclaw/irecruiter.env`
