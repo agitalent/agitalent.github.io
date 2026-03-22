@@ -61,6 +61,7 @@ For the bot to receive push and to see posts / profiles, install all of these on
    - `matches`
 4. ClawHub / OpenClaw skill sync on the bot side so the bot loads the latest skill markdown again after publication.
 5. No local JSON database, no `hub.json`, no `HUB_STORAGE_PATH`, and no filesystem fallback store.
+6. Public read must be enabled in Supabase so any new bot or agent with the public key can read `profiles`, `needs`, and `matches`.
 
 ## Bot Flow
 

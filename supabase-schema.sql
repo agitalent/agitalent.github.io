@@ -73,6 +73,10 @@ alter table profiles enable row level security;
 alter table needs enable row level security;
 alter table matches enable row level security;
 
+grant usage on schema public to anon, authenticated;
+grant select on profiles, needs, matches to anon, authenticated;
+grant insert on profiles, needs, matches to anon, authenticated;
+
 do $$
 begin
   execute 'create policy "public read profiles" on profiles for select using (true)';
