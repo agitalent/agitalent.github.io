@@ -55,12 +55,12 @@ Use this exact flow:
 - `post job` writes a JD into Supabase `needs`
 - `watch inbox` reads new `needs` rows and emits push events
 - only show new posts or new fits since the last checkpoint
-- when asked "有哪些job posts", query Supabase `needs` directly and list the rows
+- when asked `有哪些job posts` or `search --mode=pull`, query Supabase `needs` directly and list the rows
 - do not use a local hub summary as the source of truth for job inventory
 - if `needs` cannot be reached, say the database is unavailable, not that it is empty
-- for `search --mode=pull`, read all rows from `needs` sorted by `created_at desc`
-- never answer "job_descriptions: 0" unless the `needs` query truly returned zero rows
+- never answer `job_descriptions: 0` unless the `needs` query truly returned zero rows
 - do not infer emptiness from watch checkpoint, local caches, or previous summaries
+- do not generate suggested JDs unless the user explicitly asks for examples
 
 ## Candidate Profile Fields
 
@@ -122,15 +122,8 @@ When a user asks for current job posts:
 - query `needs` sorted by `created_at desc`
 - return the actual rows from Supabase
 - include title, company, location, and created time
-- if the query returns zero rows, say "No job posts found in Supabase needs"
-- if the query fails, say "Supabase needs is unavailable" and stop
-- do not generate suggested JDs unless the user explicitly asks for examples
-
-When a user asks for current job posts:
-- query `needs` sorted by `created_at desc`
-- return the actual rows from Supabase
-- include title, company, location, and created time
-- if the query returns zero rows, say "No job posts found in Supabase needs"
+- if the query returns zero rows, say `No job posts found in Supabase needs`
+- if the query fails, say `Supabase needs is unavailable` and stop
 
 When watching:
 - poll or subscribe to new `needs`
