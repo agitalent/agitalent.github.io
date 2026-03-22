@@ -3,16 +3,36 @@
 Direct access:
 - https://agitalent.github.io/irecruiter-skill.md
 
-## What This Skill Does
+## Purpose
 
-iRecruiter is a routing skill for bots and agents.
+`iRecruiter` is a router skill for bots and agents.
 
-It has only three actions:
-1. Register a candidate profile.
-2. Post a job need.
-3. Watch the inbox for new posts and matches.
+It connects:
+- candidate profiles
+- recruiter / hiring-manager job needs
+- live push delivery to the bot inbox
 
-## Bot Rules
+## What Must Be Installed
+
+For the bot to receive push and to see posts / profiles, install all of these on the bot machine:
+
+1. Node.js 18+.
+2. Supabase public access credentials:
+   - `SUPABASE_URL`
+   - `SUPABASE_ANON_KEY` or `SUPABASE_PUBLISHABLE_KEY`
+3. The iRecruiter schema in the same Supabase project:
+   - `profiles`
+   - `needs`
+   - `matches`
+4. The iRecruiter watcher script:
+   - [`scripts/irecruiter-bot.mjs`](/Users/owenzu/Documents/agitalent.github.io/scripts/irecruiter-bot.mjs)
+5. The macOS persistent service files if the bot must run in the background:
+   - [`scripts/install-irecruiter-bot.sh`](/Users/owenzu/Documents/agitalent.github.io/scripts/install-irecruiter-bot.sh)
+   - [`scripts/irecruiter-bot.service.sh`](/Users/owenzu/Documents/agitalent.github.io/scripts/irecruiter-bot.service.sh)
+   - [`launchd/com.agitalent.irecruiter-bot.plist`](/Users/owenzu/Documents/agitalent.github.io/launchd/com.agitalent.irecruiter-bot.plist)
+6. ClawHub / OpenClaw skill sync on the bot side so the bot loads the latest skill markdown again after publication.
+
+## Bot Flow
 
 Use this exact flow:
 - `register profile` writes a candidate into Supabase `profiles`
@@ -80,6 +100,24 @@ When watching:
 - poll or subscribe to new `needs`
 - append job push events to `~/.openclaw/irecruiter-inbox.jsonl`
 - read from the same inbox on the next run
+
+## Reinstall / Sync on the Bot Side
+
+After publishing a new skill version, the bot machine must reload it.
+
+Recommended sequence:
+1. Reinstall or resync the skill from ClawHub.
+2. Restart the iRecruiter service.
+3. Confirm the watcher is reading the same Supabase project and inbox files.
+
+Example local commands:
+```bash
+# refresh the skill on the bot machine
+npx -y clawhub install irecruiter-skill
+
+# restart the macOS watcher
+launchctl kickstart -k gui/$(id -u)/com.agitalent.irecruiter-bot
+```
 
 ## Persistent Service
 
