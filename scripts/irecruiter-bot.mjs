@@ -302,6 +302,8 @@ const processNeed = async (need, state) => {
       contact_name: need.contact_name,
       team: need.team,
       location: need.location,
+      must_haves: need.must_haves,
+      nice_to_haves: need.nice_to_haves,
       level: need.level,
       urgency: need.urgency,
       created_at: need.created_at
@@ -311,7 +313,7 @@ const processNeed = async (need, state) => {
   console.log(JSON.stringify(event, null, 2));
   await appendInbox(event);
 
-  const profiles = await supabaseFetch('profiles', {
+  let profiles = await supabaseFetch('profiles', {
     query: {
       select: 'id,name_or_handle,email,location,domain_focus,seniority,skills,recent_evidence,status,created_at',
       status: 'eq.active',
@@ -319,6 +321,16 @@ const processNeed = async (need, state) => {
       limit: '100'
     }
   });
+
+  if (!profiles || profiles.length === 0) {
+    profiles = await supabaseFetch('profiles', {
+      query: {
+        select: 'id,name_or_handle,email,location,domain_focus,seniority,skills,recent_evidence,status,created_at',
+        order: 'created_at.desc',
+        limit: '100'
+      }
+    });
+  }
 
   const ranked = (profiles || [])
     .map((profile) => ({
@@ -329,6 +341,16 @@ const processNeed = async (need, state) => {
     .sort((a, b) => b.score - a.score);
 
   const top = ranked[0];
+  const debugEvent = {
+    type: 'match_debug',
+    need_id: need.id,
+    profile_count: (profiles || []).length,
+    ranked_count: ranked.length,
+    top_score: top ? top.score : null
+  };
+  console.log(JSON.stringify(debugEvent, null, 2));
+  await appendInbox(debugEvent);
+
   if (!top || top.score < MATCH_THRESHOLD) {
     const noMatchEvent = {
       type: 'no_match',
@@ -359,7 +381,7 @@ const processNeed = async (need, state) => {
 const getLatestNeeds = async () => {
   return supabaseFetch('needs', {
     query: {
-      select: 'id,contact_name,role_title,team,location,level,urgency,delivery_route,status,created_at',
+      select: 'id,contact_name,role_title,team,location,remote,must_haves,nice_to_haves,level,urgency,compensation,delivery_route,hiring_constraints,status,created_at',
       order: 'created_at.desc',
       limit: '50'
     }
