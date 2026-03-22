@@ -62,83 +62,6 @@
             width: 100%;
         }
 
-        .topbar {
-            position: sticky;
-            top: 0;
-            z-index: 30;
-            backdrop-filter: blur(18px);
-            background: rgba(255, 255, 255, 0.9);
-            border-bottom: 1px solid rgba(21, 55, 44, 0.08);
-        }
-
-        .nav-link {
-            color: #000000;
-            font-size: 14px;
-            font-weight: 500;
-            transition: color 0.2s ease;
-        }
-
-        .nav-link:hover {
-            color: #000000;
-        }
-
-        .nav-link.active {
-            color: #000000;
-            font-weight: 700;
-        }
-
-        .mobile-nav-toggle {
-            display: none;
-            align-items: center;
-            justify-content: center;
-            width: 44px;
-            height: 44px;
-            border: 1px solid rgba(21, 55, 44, 0.14);
-            border-radius: 10px;
-            color: var(--evergreen);
-        }
-
-        .mobile-nav-icon {
-            width: 22px;
-            height: 22px;
-            display: block;
-        }
-
-        .mobile-nav-icon-close {
-            display: none;
-        }
-
-        .mobile-nav-toggle.is-open .mobile-nav-icon-menu {
-            display: none;
-        }
-
-        .mobile-nav-toggle.is-open .mobile-nav-icon-close {
-            display: block;
-        }
-
-        .mobile-nav-panel {
-            display: none;
-            border-bottom: 1px solid rgba(21, 55, 44, 0.08);
-            background: rgba(255, 255, 255, 0.98);
-        }
-
-        .mobile-nav-panel.is-open {
-            display: block;
-        }
-
-        .mobile-nav-link {
-            display: block;
-            padding: 14px 0;
-            color: #000000;
-            font-size: 16px;
-            font-weight: 500;
-        }
-
-        .mobile-nav-link.active {
-            color: #000000;
-            font-weight: 700;
-        }
-
         .cta {
             display: inline-flex;
             align-items: center;
@@ -1078,10 +1001,6 @@
         }
 
         @media (max-width: 767px) {
-            .mobile-nav-toggle {
-                display: inline-flex;
-            }
-
             .container-custom {
                 padding: 0 20px;
             }
@@ -1134,33 +1053,6 @@
     </style>
 </head>
 <body>
-    <nav class="topbar">
-            <div class="container-custom py-5 flex justify-between items-center gap-4">
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 bg-[#24A47F] rounded-sm"></div>
-            </div>
-            <div class="hidden md:flex items-center gap-8">
-                <a href="match.html" class="nav-link active">iRecruiter</a>
-            </div>
-            <button class="mobile-nav-toggle md:hidden" type="button" aria-controls="mobile-nav-panel" aria-expanded="false" id="mobile-nav-button">
-                <svg class="mobile-nav-icon mobile-nav-icon-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M4 6h16"></path>
-                    <path d="M4 12h16"></path>
-                    <path d="M4 18h16"></path>
-                </svg>
-                <svg class="mobile-nav-icon mobile-nav-icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M18 6 6 18"></path>
-                    <path d="M6 6 18 18"></path>
-                </svg>
-            </button>
-        </div>
-            <div class="mobile-nav-panel md:hidden" id="mobile-nav-panel">
-            <div class="container-custom py-4">
-                <a href="match.html" class="mobile-nav-link active">iRecruiter</a>
-            </div>
-        </div>
-    </nav>
-
     <main class="hero">
         <div class="container-custom">
             <div class="hero-grid">
@@ -1349,8 +1241,6 @@
 
     <script>
         lucide.createIcons();
-        const mobileNavButton = document.getElementById('mobile-nav-button');
-        const mobileNavPanel = document.getElementById('mobile-nav-panel');
         const hubStatus = document.getElementById('hub-status');
         const hubResults = document.getElementById('hub-results');
         const recentFeed = document.getElementById('recent-feed');
@@ -2043,22 +1933,6 @@
 
             return ranked[0] || null;
         };
-
-        if (mobileNavButton && mobileNavPanel) {
-            mobileNavButton.addEventListener('click', () => {
-                const isOpen = mobileNavPanel.classList.toggle('is-open');
-                mobileNavButton.classList.toggle('is-open', isOpen);
-                mobileNavButton.setAttribute('aria-expanded', String(isOpen));
-            });
-
-            mobileNavPanel.querySelectorAll('a').forEach((link) => {
-                link.addEventListener('click', () => {
-                    mobileNavPanel.classList.remove('is-open');
-                    mobileNavButton.classList.remove('is-open');
-                    mobileNavButton.setAttribute('aria-expanded', 'false');
-                });
-            });
-        }
 
         if (recordKind) {
             recordKind.addEventListener('change', toggleFields);
