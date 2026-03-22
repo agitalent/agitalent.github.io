@@ -35,6 +35,18 @@ npx -y clawhub install irecruiter-skill
 If the environment file already exists, the bot should refresh the skill and continue watch mode without asking for extra files.
 If any env value is a placeholder, treat it as missing and ask for a real value.
 
+## Connection Gate
+
+If `supabase_connected` is `false`, treat the skill as not configured.
+
+Rules:
+- do not search jobs
+- do not report `job_descriptions: 0`
+- do not inspect `data_directory`
+- do not switch to local JSON or hub storage
+- ask for valid `SUPABASE_URL` and a public key
+- resume only after the real Supabase connection is available
+
 ## What Must Be Installed
 
 For the bot to receive push and to see posts / profiles, install all of these on the bot machine:
@@ -126,6 +138,7 @@ When a user asks for current job posts:
 - include title, company, location, and created time
 - if the query returns zero rows, say `No job posts found in Supabase needs`
 - if the query fails, say `Supabase needs is unavailable` and stop
+- if `supabase_connected` is false, say the skill is not configured and stop
 
 When watching:
 - poll or subscribe to new `needs`
