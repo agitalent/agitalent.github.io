@@ -1119,6 +1119,14 @@
                                 <span>from intake to first outreach</span>
                             </div>
                         </div>
+                        <div class="status-box" style="margin-top:18px;">
+                            <h3>Watch mode</h3>
+                            <p class="status-copy">Listening to Supabase `needs` inserts. New job posts will appear here as they land.</p>
+                            <div class="status-line" id="hub-status">Watch mode idle.</div>
+                            <div class="hub-results" id="hub-results">
+                                <div class="hub-empty">Waiting for new job posts in Supabase.</div>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
@@ -1289,6 +1297,26 @@
         let currentDetailRequest = null;
         let pendingDetailRequest = null;
         let sqlPreviewExpanded = !window.matchMedia('(max-width: 767px)').matches;
+        const watchStateKey = 'irecruiter-watch-state';
+        const watchSeenNeedIdsKey = 'irecruiter-watch-seen-need-ids';
+        let watchRealtimeChannel = null;
+        let watchPollHandle = null;
+        const watchState = (() => {
+            try {
+                return JSON.parse(localStorage.getItem(watchStateKey) || '{}') || {};
+            } catch {
+                return {};
+            }
+        })();
+        const watchSeenNeedIds = (() => {
+            try {
+                return new Set(JSON.parse(localStorage.getItem(watchSeenNeedIdsKey) || '[]'));
+            } catch {
+                return new Set();
+            }
+        })();
+        let watchLatestNeedId = watchState.latestNeedId || null;
+        let watchLatestNeedAt = watchState.latestNeedAt || null;
 
         const parseDetailRequest = (value) => {
             if (!value || typeof value !== 'string') return null;
@@ -1323,6 +1351,122 @@
                     <p>${escapeHtml(item.reason)}</p>
                 </div>
             `).join('');
+        };
+
+        const persistWatchState = () => {
+            try {
+                localStorage.setItem(watchStateKey, JSON.stringify({
+                    latestNeedId: watchLatestNeedId,
+                    latestNeedAt: watchLatestNeedAt
+                }));
+                localStorage.setItem(watchSeenNeedIdsKey, JSON.stringify(Array.from(watchSeenNeedIds).slice(-100)));
+            } catch (error) {
+                console.warn('Unable to persist iRecruiter watch state.', error);
+            }
+        };
+
+        const setWatchStatus = (message) => {
+            setStatus(message);
+        };
+
+        const buildNeedWatchCard = (row) => {
+            const title = row.role_title || row.contact_name || 'New job post';
+            const meta = [row.contact_name, row.team, row.location, row.level].filter(Boolean).join(' • ');
+            const route = [row.delivery_route, row.urgency, row.status].filter(Boolean).join(' • ');
+            return `
+                <div class="result-card">
+                    <div class="result-head">
+                        <strong>${escapeHtml(title)}</strong>
+                        <span class="score">NEW</span>
+                    </div>
+                    <p>${escapeHtml(meta || 'New job post detected in Supabase.')}</p>
+                    <p style="margin-top:10px;color:rgba(255,255,255,0.68);font-size:13px;">${escapeHtml(route)}</p>
+                </div>
+            `;
+        };
+
+        const noteNeedSeen = (row) => {
+            if (!row || !row.id) return false;
+            if (watchSeenNeedIds.has(row.id)) return false;
+            watchSeenNeedIds.add(row.id);
+            watchLatestNeedId = row.id;
+            watchLatestNeedAt = row.created_at || watchLatestNeedAt;
+            persistWatchState();
+            return true;
+        };
+
+        const surfaceNewNeed = (row) => {
+            if (!row || !row.id || !noteNeedSeen(row)) return;
+            setWatchStatus(`New job post detected: ${row.role_title || 'Need'} ${row.location ? `in ${row.location}` : ''}`.trim());
+            if (hubResults) {
+                const emptyState = hubResults.querySelector('.hub-empty');
+                if (emptyState) {
+                    hubResults.innerHTML = '';
+                }
+                const card = document.createElement('div');
+                card.innerHTML = buildNeedWatchCard(row).trim();
+                hubResults.prepend(card.firstElementChild);
+                while (hubResults.children.length > 5) {
+                    hubResults.removeChild(hubResults.lastElementChild);
+                }
+            }
+            refreshRecentFeed();
+            refreshMatchFeed();
+        };
+
+        const startNeedWatch = async () => {
+            if (!supabaseClient) return;
+
+            setWatchStatus('Watch mode live. Listening for new job posts in Supabase.');
+
+            const { data: latestNeed, error } = await supabaseClient
+                .from('needs')
+                .select('id, role_title, contact_name, team, location, level, urgency, delivery_route, status, created_at')
+                .order('created_at', { ascending: false })
+                .limit(1);
+
+            if (!error && latestNeed && latestNeed[0]) {
+                watchLatestNeedId = latestNeed[0].id;
+                watchLatestNeedAt = latestNeed[0].created_at;
+                persistWatchState();
+            }
+
+            if (watchRealtimeChannel) {
+                await supabaseClient.removeChannel(watchRealtimeChannel);
+                watchRealtimeChannel = null;
+            }
+
+            watchRealtimeChannel = supabaseClient
+                .channel('irecruiter-needs-watch')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'needs' }, (payload) => {
+                    surfaceNewNeed(payload.new);
+                })
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        setWatchStatus('Watch mode live. Listening for new job posts in Supabase.');
+                    }
+                });
+
+            if (watchPollHandle) {
+                window.clearInterval(watchPollHandle);
+            }
+
+            watchPollHandle = window.setInterval(async () => {
+                try {
+                    const { data, error: pollError } = await supabaseClient
+                        .from('needs')
+                        .select('id, role_title, contact_name, team, location, level, urgency, delivery_route, status, created_at')
+                        .order('created_at', { ascending: false })
+                        .limit(1);
+
+                    if (pollError) throw pollError;
+                    if (data && data[0] && data[0].id !== watchLatestNeedId) {
+                        surfaceNewNeed(data[0]);
+                    }
+                } catch (error) {
+                    console.warn('iRecruiter watch poll failed.', error);
+                }
+            }, 15000);
         };
 
         const setStatus = (message) => {
@@ -2000,8 +2144,18 @@
             openDetailDrawer(kind, index);
         });
 
+        window.addEventListener('beforeunload', () => {
+            if (watchRealtimeChannel && supabaseClient) {
+                supabaseClient.removeChannel(watchRealtimeChannel);
+            }
+            if (watchPollHandle) {
+                window.clearInterval(watchPollHandle);
+            }
+        });
+
         refreshRecentFeed();
         refreshMatchFeed();
+        startNeedWatch();
 
         if (registerForm && supabaseClient) {
             registerForm.addEventListener('submit', async (event) => {
