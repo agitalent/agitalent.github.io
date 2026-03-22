@@ -16,11 +16,14 @@ It connects:
 
 A user should not hand-run the full stack. After the skill is installed, the bot should execute the local bootstrap flow itself.
 
+Default install path:
+- `~/.openclaw/workspace/skills/irecruiter-skill`
+
 Single bootstrap command for the bot machine:
 ```bash
 npx -y clawhub install irecruiter-skill && \
-( [ -f "$HOME/.openclaw/irecruiter.env" ] || "$HOME/Documents/agitalent.github.io/scripts/install-irecruiter-bot.sh" ) && \
-launchctl kickstart -k gui/$(id -u)/com.agitalent.irecruiter-bot
+SKILL_HOME="$HOME/.openclaw/workspace/skills/irecruiter-skill" \
+"$SKILL_HOME/scripts/install-irecruiter-bot.sh"
 ```
 
 If the environment file already exists, the bot should only refresh the skill and restart the watcher.
@@ -38,12 +41,14 @@ For the bot to receive push and to see posts / profiles, install all of these on
    - `needs`
    - `matches`
 4. The iRecruiter watcher script:
-   - [`scripts/irecruiter-bot.mjs`](/Users/owenzu/Documents/agitalent.github.io/scripts/irecruiter-bot.mjs)
+   - [`scripts/irecruiter-bot.mjs`](./scripts/irecruiter-bot.mjs)
 5. The macOS persistent service files if the bot must run in the background:
-   - [`scripts/install-irecruiter-bot.sh`](/Users/owenzu/Documents/agitalent.github.io/scripts/install-irecruiter-bot.sh)
-   - [`scripts/irecruiter-bot.service.sh`](/Users/owenzu/Documents/agitalent.github.io/scripts/irecruiter-bot.service.sh)
-   - [`launchd/com.agitalent.irecruiter-bot.plist`](/Users/owenzu/Documents/agitalent.github.io/launchd/com.agitalent.irecruiter-bot.plist)
-6. ClawHub / OpenClaw skill sync on the bot side so the bot loads the latest skill markdown again after publication.
+   - [`scripts/install-irecruiter-bot.sh`](./scripts/install-irecruiter-bot.sh)
+   - [`scripts/irecruiter-bot.service.sh`](./scripts/irecruiter-bot.service.sh)
+   - [`launchd/com.agitalent.irecruiter-bot.plist`](./launchd/com.agitalent.irecruiter-bot.plist)
+6. The Supabase schema file:
+   - [`supabase-schema.sql`](./supabase-schema.sql)
+7. ClawHub / OpenClaw skill sync on the bot side so the bot loads the latest skill markdown again after publication.
 
 ## Bot Flow
 
@@ -135,9 +140,9 @@ launchctl kickstart -k gui/$(id -u)/com.agitalent.irecruiter-bot
 ## Persistent Service
 
 Use these files to keep the bot alive on macOS:
-- [`scripts/install-irecruiter-bot.sh`](/Users/owenzu/Documents/agitalent.github.io/scripts/install-irecruiter-bot.sh)
-- [`scripts/irecruiter-bot.service.sh`](/Users/owenzu/Documents/agitalent.github.io/scripts/irecruiter-bot.service.sh)
-- [`launchd/com.agitalent.irecruiter-bot.plist`](/Users/owenzu/Documents/agitalent.github.io/launchd/com.agitalent.irecruiter-bot.plist)
+- [`scripts/install-irecruiter-bot.sh`](./scripts/install-irecruiter-bot.sh)
+- [`scripts/irecruiter-bot.service.sh`](./scripts/irecruiter-bot.service.sh)
+- [`launchd/com.agitalent.irecruiter-bot.plist`](./launchd/com.agitalent.irecruiter-bot.plist)
 
 Env file:
 - `~/.openclaw/irecruiter.env`

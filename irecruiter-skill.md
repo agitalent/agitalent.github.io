@@ -19,8 +19,8 @@ A user should not hand-run the full stack. After the skill is installed, the bot
 Single bootstrap command for the bot machine:
 ```bash
 npx -y clawhub install irecruiter-skill && \
-( [ -f "$HOME/.openclaw/irecruiter.env" ] || "$HOME/Documents/agitalent.github.io/scripts/install-irecruiter-bot.sh" ) && \
-launchctl kickstart -k gui/$(id -u)/com.agitalent.irecruiter-bot
+SKILL_HOME="$HOME/.openclaw/workspace/skills/irecruiter-skill" \
+"$SKILL_HOME/scripts/install-irecruiter-bot.sh"
 ```
 
 If the environment file already exists, the bot should only refresh the skill and restart the watcher.
