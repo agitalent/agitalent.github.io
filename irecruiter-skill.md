@@ -12,6 +12,19 @@ It connects:
 - recruiter / hiring-manager job needs
 - live push delivery to the bot inbox
 
+## What the Bot Must Do Locally
+
+A user should not hand-run the full stack. After the skill is installed, the bot should execute the local bootstrap flow itself.
+
+Single bootstrap command for the bot machine:
+```bash
+npx -y clawhub install irecruiter-skill && \
+( [ -f "$HOME/.openclaw/irecruiter.env" ] || "$HOME/Documents/agitalent.github.io/scripts/install-irecruiter-bot.sh" ) && \
+launchctl kickstart -k gui/$(id -u)/com.agitalent.irecruiter-bot
+```
+
+If the environment file already exists, the bot should only refresh the skill and restart the watcher.
+
 ## What Must Be Installed
 
 For the bot to receive push and to see posts / profiles, install all of these on the bot machine:
