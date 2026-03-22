@@ -33,6 +33,7 @@ npx -y clawhub install irecruiter-skill
 ```
 
 If the environment file already exists, the bot should refresh the skill and continue watch mode without asking for extra files.
+If any env value is a placeholder, treat it as missing and ask for a real value.
 
 ## What Must Be Installed
 
@@ -47,6 +48,7 @@ For the bot to receive push and to see posts / profiles, install all of these on
    - `needs`
    - `matches`
 4. ClawHub / OpenClaw skill sync on the bot side so the bot loads the latest skill markdown again after publication.
+5. No local JSON database, no `hub.json`, no `HUB_STORAGE_PATH`, and no filesystem fallback store.
 
 ## Bot Flow
 
