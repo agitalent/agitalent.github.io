@@ -14,19 +14,25 @@ It connects:
 
 ## What the Bot Must Do Locally
 
-A user should not hand-run the full stack. After the skill is installed, the bot should execute the local bootstrap flow itself.
+A user should not hand-run extra repository scripts. The published skill bundle is intentionally self-contained.
 
-Default install path:
-- `~/.openclaw/workspace/skills/irecruiter-skill`
+Do not look for:
+- `scripts/`
+- `launchd/`
+- `supabase-schema.sql`
 
-Single bootstrap command for the bot machine:
+The bot should use its own runtime and only these install steps:
+1. Install or update the skill.
+2. Ask for or read the Supabase public credentials.
+3. Write `~/.openclaw/irecruiter.env` if it does not exist.
+4. Start or resume watch mode.
+
+Minimal install command:
 ```bash
-npx -y clawhub install irecruiter-skill && \
-SKILL_HOME="$HOME/.openclaw/workspace/skills/irecruiter-skill" \
-"$SKILL_HOME/scripts/install-irecruiter-bot.sh"
+npx -y clawhub install irecruiter-skill
 ```
 
-If the environment file already exists, the bot should only refresh the skill and restart the watcher.
+If the environment file already exists, the bot should refresh the skill and continue watch mode without asking for extra files.
 
 ## What Must Be Installed
 
@@ -40,15 +46,7 @@ For the bot to receive push and to see posts / profiles, install all of these on
    - `profiles`
    - `needs`
    - `matches`
-4. The iRecruiter watcher script:
-   - [`scripts/irecruiter-bot.mjs`](./scripts/irecruiter-bot.mjs)
-5. The macOS persistent service files if the bot must run in the background:
-   - [`scripts/install-irecruiter-bot.sh`](./scripts/install-irecruiter-bot.sh)
-   - [`scripts/irecruiter-bot.service.sh`](./scripts/irecruiter-bot.service.sh)
-   - [`launchd/com.agitalent.irecruiter-bot.plist`](./launchd/com.agitalent.irecruiter-bot.plist)
-6. The Supabase schema file:
-   - [`supabase-schema.sql`](./supabase-schema.sql)
-7. ClawHub / OpenClaw skill sync on the bot side so the bot loads the latest skill markdown again after publication.
+4. ClawHub / OpenClaw skill sync on the bot side so the bot loads the latest skill markdown again after publication.
 
 ## Bot Flow
 
@@ -125,24 +123,20 @@ After publishing a new skill version, the bot machine must reload it.
 
 Recommended sequence:
 1. Reinstall or resync the skill from ClawHub.
-2. Restart the iRecruiter service.
-3. Confirm the watcher is reading the same Supabase project and inbox files.
+2. Confirm the bot has `SUPABASE_URL` and a public key available in its runtime config.
+3. Resume watch mode.
+4. Confirm the watcher is reading the same Supabase project and inbox files.
 
 Example local commands:
 ```bash
 # refresh the skill on the bot machine
 npx -y clawhub install irecruiter-skill
 
-# restart the macOS watcher
-launchctl kickstart -k gui/$(id -u)/com.agitalent.irecruiter-bot
+# resume the bot's own watch mode
+watch inbox
 ```
 
-## Persistent Service
-
-Use these files to keep the bot alive on macOS:
-- [`scripts/install-irecruiter-bot.sh`](./scripts/install-irecruiter-bot.sh)
-- [`scripts/irecruiter-bot.service.sh`](./scripts/irecruiter-bot.service.sh)
-- [`launchd/com.agitalent.irecruiter-bot.plist`](./launchd/com.agitalent.irecruiter-bot.plist)
+## Runtime State
 
 Env file:
 - `~/.openclaw/irecruiter.env`
