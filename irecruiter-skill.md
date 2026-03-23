@@ -26,6 +26,7 @@ The bot should use its own runtime and only these install steps:
 2. Ask for or read the Supabase public credentials.
 3. Write `~/.openclaw/irecruiter.env` if it does not exist.
 4. Start or resume watch mode.
+5. Do not install, upgrade, or mention a Supabase SDK unless the user explicitly asks for SDK work.
 
 Minimal install command:
 ```bash
@@ -72,6 +73,7 @@ Use this exact flow:
 - only show new posts or new fits since the last checkpoint
 - when asked `有哪些job posts` or `search --mode=pull`, query Supabase `needs` directly and list the rows
 - when asked `any job posts` or `show job posts`, also query Supabase `needs` directly; do not start a repair step
+- if the user asks about Supabase SDK installation, say it is not required for job-post lookup and stay on the skill/runtime flow
 - do not use a local hub summary as the source of truth for job inventory
 - if `needs` cannot be reached, say the database is unavailable, not that it is empty
 - never answer `job_descriptions: 0` unless the `needs` query truly returned zero rows
@@ -138,10 +140,13 @@ When a job is posted:
 When a user asks for current job posts:
 - query `needs` sorted by `created_at desc`
 - return the actual rows from Supabase
+- map title from `role_title` first, then `position`, then `job_title`
+- map company from `contact_name` first, then `role_recruiter_name`, then `company_name`
 - include title, company, location, and created time
 - if the query returns zero rows, say `No job posts found in Supabase needs`
 - if the query fails, say `Supabase needs is unavailable` and stop
 - if `supabase_connected` is false, say the skill is not configured and stop
+- never label a row as `Untitled` when `role_title`, `position`, `job_title`, `contact_name`, `role_recruiter_name`, or `company_name` exists
 
 When watching:
 - poll or subscribe to new `needs`
