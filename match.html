@@ -1370,9 +1370,11 @@
         };
 
         const buildNeedWatchCard = (row) => {
-            const title = row.role_title || row.contact_name || 'New job post';
-            const meta = [row.contact_name, row.team, row.location, row.level].filter(Boolean).join(' • ');
-            const route = [row.delivery_route, row.urgency, row.status].filter(Boolean).join(' • ');
+            const title = row.role_title || row.position || row.job_title || 'missing';
+            const meta = [row.contact_name, row.role_recruiter_name, row.company_name, row.team, row.location, row.level]
+                .map((value) => value || 'missing')
+                .join(' • ');
+            const route = [row.delivery_route || 'missing', row.urgency || 'missing', row.status || 'missing'].join(' • ');
             return `
                 <div class="result-card">
                     <div class="result-head">
@@ -1397,7 +1399,7 @@
 
         const surfaceNewNeed = (row) => {
             if (!row || !row.id || !noteNeedSeen(row)) return;
-            setWatchStatus(`New job post detected: ${row.role_title || 'Need'} ${row.location ? `in ${row.location}` : ''}`.trim());
+            setWatchStatus(`New job post detected: ${(row.role_title || row.position || row.job_title || 'missing')} ${row.location ? `in ${row.location}` : ''}`.trim());
             if (hubResults) {
                 const emptyState = hubResults.querySelector('.hub-empty');
                 if (emptyState) {
@@ -1844,23 +1846,28 @@
                     })),
                     ...(needs || []).map((row) => ({
                         kind: 'Need',
-                        title: row.role_title || row.contact_name || 'Need',
-                        meta: [row.contact_name, row.location, row.level].filter(Boolean).join(' • '),
+                        title: row.role_title || row.position || row.job_title || 'missing',
+                        meta: [row.contact_name, row.role_recruiter_name, row.company_name, row.location, row.level]
+                            .map((value) => value || 'missing')
+                            .join(' • '),
                         time: formatDate(row.created_at),
                         created_at: row.created_at,
                         detailRows: [
-                            { label: 'Contact name', value: row.contact_name },
-                            { label: 'Role title', value: row.role_title },
-                            { label: 'Team', value: row.team },
-                            { label: 'Location', value: row.location },
+                            { label: 'ID', value: row.id },
+                            { label: 'Contact name', value: row.contact_name || row.role_recruiter_name || 'missing' },
+                            { label: 'Company name', value: row.company_name || row.contact_name || 'missing' },
+                            { label: 'Role title', value: row.role_title || row.position || row.job_title || 'missing' },
+                            { label: 'Position', value: row.position || row.role_title || 'missing' },
+                            { label: 'Team', value: row.team || 'missing' },
+                            { label: 'Location', value: row.location || 'missing' },
                             { label: 'Remote', value: row.remote ? 'Yes' : 'No' },
-                            { label: 'Must haves', value: toList(row.must_haves).join(', ') },
-                            { label: 'Nice to haves', value: toList(row.nice_to_haves).join(', ') },
-                            { label: 'Level', value: row.level },
-                            { label: 'Urgency', value: row.urgency },
-                            { label: 'Compensation', value: row.compensation },
-                            { label: 'Delivery route', value: row.delivery_route },
-                            { label: 'Hiring constraints', value: toList(row.hiring_constraints).join(', ') },
+                            { label: 'Must haves', value: toList(row.must_haves).join(', ') || 'missing' },
+                            { label: 'Nice to haves', value: toList(row.nice_to_haves).join(', ') || 'missing' },
+                            { label: 'Level', value: row.level || 'missing' },
+                            { label: 'Urgency', value: row.urgency || 'missing' },
+                            { label: 'Compensation', value: row.compensation || 'missing' },
+                            { label: 'Delivery route', value: row.delivery_route || 'missing' },
+                            { label: 'Hiring constraints', value: toList(row.hiring_constraints).join(', ') || 'missing' },
                             { label: 'Created', value: formatDate(row.created_at) }
                         ]
                     }))
@@ -1895,8 +1902,10 @@
                 const routed = (matches || []).map((row) => {
                     const profile = profileById.get(row.source_profile_id);
                     const need = needById.get(row.source_need_id);
-                    const left = profile ? `Profile: ${profile.name_or_handle || 'unknown'}` : `Profile ${row.source_profile_id?.slice(0, 8) || 'unknown'}`;
-                    const right = need ? `Need: ${need.role_title || need.contact_name || 'unknown'}` : `Need ${row.source_need_id?.slice(0, 8) || 'unknown'}`;
+                    const left = profile ? `Profile: ${profile.name_or_handle || 'missing'}` : `Profile ${row.source_profile_id?.slice(0, 8) || 'missing'}`;
+                    const right = need
+                        ? `Need: ${(need.role_title || need.position || need.job_title || 'missing')} • ${(need.contact_name || need.role_recruiter_name || need.company_name || 'missing')}`
+                        : `Need ${row.source_need_id?.slice(0, 8) || 'missing'}`;
                     return {
                         title: `${left} -> ${right}`,
                         score: `${Number(row.match_score || 0).toFixed(0)}`,
@@ -1910,8 +1919,8 @@
                             { label: 'Risk', value: row.risk },
                             { label: 'Next action', value: row.next_action },
                             { label: 'Why it matched', value: row.why_it_matched },
-                            { label: 'Profile', value: profile ? `${profile.name_or_handle || 'unknown'} • ${profile.location || 'location open'} • ${profile.domain_focus || 'domain open'} • ${profile.seniority || 'level open'} • ${profile.email || 'no email'}` : row.source_profile_id },
-                            { label: 'Need', value: need ? `${need.role_title || 'unknown'} • ${need.contact_name || 'contact open'} • ${need.location || 'location open'} • ${need.level || 'level open'} • ${need.urgency || 'urgency open'}` : row.source_need_id },
+                            { label: 'Profile', value: profile ? `${profile.name_or_handle || 'missing'} • ${profile.location || 'missing'} • ${profile.domain_focus || 'missing'} • ${profile.seniority || 'missing'} • ${profile.email || 'missing'}` : row.source_profile_id },
+                            { label: 'Need', value: need ? `${need.role_title || need.position || need.job_title || 'missing'} • ${need.contact_name || need.role_recruiter_name || need.company_name || 'missing'} • ${need.location || 'missing'} • ${need.level || 'missing'} • ${need.urgency || 'missing'}` : row.source_need_id },
                             { label: 'Created', value: formatDate(row.created_at) }
                         ]
                     };
@@ -2044,9 +2053,9 @@
                     .slice(0, 3);
 
                 renderResultCards(ranked.map((item) => summarizeMatch(
-                    item.need.role_title || item.need.team || 'Open need',
+                    item.need.role_title || item.need.position || item.need.job_title || item.need.team || 'missing',
                     item.score,
-                    `${item.need.location || 'Location open'} • ${item.need.level || 'Any level'} • ${item.need.urgency || 'Standard urgency'}`
+                    `${item.need.location || 'missing'} • ${item.need.level || 'missing'} • ${item.need.urgency || 'missing'}`
                 )));
 
                 return ranked[0] || null;
