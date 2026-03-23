@@ -140,6 +140,8 @@ When a job is posted:
 When a user asks for current job posts:
 - query `needs` sorted by `created_at desc`
 - return the actual rows from Supabase
+- include the row id for every result
+- include the raw fields as returned by Supabase
 - map title from `role_title` first, then `position`, then `job_title`
 - map company from `contact_name` first, then `role_recruiter_name`, then `company_name`
 - include title, company, location, and created time
@@ -147,6 +149,8 @@ When a user asks for current job posts:
 - if the query fails, say `Supabase needs is unavailable` and stop
 - if `supabase_connected` is false, say the skill is not configured and stop
 - never label a row as `Untitled` when `role_title`, `position`, `job_title`, `contact_name`, `role_recruiter_name`, or `company_name` exists
+- never replace missing fields with `N/A`; use `missing` or leave the field blank
+- never summarize row existence as "no real job data" if the query returned actual rows
 
 When watching:
 - poll or subscribe to new `needs`
