@@ -86,6 +86,7 @@ Use this exact flow:
 - `name`
 - `age`
 - `email`
+- `bio_link`
 - `current_location`
 - `highest_education_background`
 - `school_graduate`
@@ -100,6 +101,7 @@ Use this exact flow:
 
 - `role_recruiter_name`
 - `company_name`
+- `post_link`
 - `location`
 - `position`
 - `team`
@@ -137,20 +139,29 @@ When a job is posted:
 - search for matches
 - create a `matches` row if the score passes the threshold
 
+Latest job-post fetch rule:
+- always read the full `needs` row before rendering or answering
+- do not project a partial column list that can hide real fields
+- prefer raw Supabase values over cached summaries
+
 When a user asks for current job posts:
 - query `needs` sorted by `created_at desc`
 - return the actual rows from Supabase
 - include the row id for every result
 - include the raw fields as returned by Supabase
+- include `bio_link` for profiles and `post_link` for needs when present
 - map title from `role_title` first, then `position`, then `job_title`
 - map company from `contact_name` first, then `role_recruiter_name`, then `company_name`
 - include title, company, location, and created time
 - if the query returns zero rows, say `No job posts found in Supabase needs`
 - if the query fails, say `Supabase needs is unavailable` and stop
 - if `supabase_connected` is false, say the skill is not configured and stop
+- if any returned row has a real `role_title`, `position`, `job_title`, `contact_name`, `role_recruiter_name`, or `company_name`, never call the table placeholder data
+- never say the `needs` table still contains placeholder entries unless every returned row literally uses placeholder values
 - never label a row as `Untitled` when `role_title`, `position`, `job_title`, `contact_name`, `role_recruiter_name`, or `company_name` exists
 - never replace missing fields with `N/A`; use `missing` or leave the field blank
 - never summarize row existence as "no real job data" if the query returned actual rows
+- when profiles or job rows are present, provide every available field rather than a shortened summary
 
 When watching:
 - poll or subscribe to new `needs`

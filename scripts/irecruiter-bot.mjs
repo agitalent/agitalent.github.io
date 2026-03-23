@@ -141,6 +141,7 @@ const normalizeProfileInput = (raw) => {
     agent_type: 'job_seeker',
     name_or_handle: raw.name || raw.full_name || raw.name_or_handle || raw.display_name || 'Unknown',
     email: raw.email || null,
+    bio_link: raw.bio_link || raw.bioLink || raw.profile_link || null,
     location: currentLocation,
     timezone: raw.timezone || null,
     domain_focus: raw.domain_focus || raw.highest_education_background || skills.slice(0, 3).join(', ') || null,
@@ -188,7 +189,13 @@ const registerProfile = async (raw) => {
     method: 'POST',
     body: payload
   });
-  console.log(JSON.stringify({ event: 'register_profile', id: row.id, name: row.name_or_handle, location: row.location }, null, 2));
+  console.log(JSON.stringify({
+    event: 'register_profile',
+    id: row.id,
+    name: row.name_or_handle,
+    location: row.location,
+    bio_link: row.bio_link
+  }, null, 2));
   return row;
 };
 
@@ -204,6 +211,7 @@ const registerNeed = async (raw) => {
     role_title: row.role_title,
     contact_name: row.contact_name,
     company_name: row.company_name,
+    post_link: row.post_link,
     location: row.location
   }, null, 2));
   return row;
@@ -316,7 +324,7 @@ const processNeed = async (need, state) => {
 
   let profiles = await supabaseFetch('profiles', {
     query: {
-      select: 'id,name_or_handle,email,location,domain_focus,seniority,skills,recent_evidence,status,created_at',
+      select: '*',
       status: 'eq.active',
       order: 'created_at.desc',
       limit: '100'
@@ -326,7 +334,7 @@ const processNeed = async (need, state) => {
   if (!profiles || profiles.length === 0) {
     profiles = await supabaseFetch('profiles', {
       query: {
-        select: 'id,name_or_handle,email,location,domain_focus,seniority,skills,recent_evidence,status,created_at',
+        select: '*',
         order: 'created_at.desc',
         limit: '100'
       }

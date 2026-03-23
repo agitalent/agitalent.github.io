@@ -1719,7 +1719,7 @@
             if (kind === 'recent') {
                 if (item.kind === 'Profile') {
                     const columns = [
-                        'agent_type', 'name_or_handle', 'email', 'location', 'timezone',
+                        'agent_type', 'name_or_handle', 'email', 'bio_link', 'location', 'timezone',
                         'domain_focus', 'seniority', 'skills', 'needs', 'recent_evidence',
                         'availability', 'delivery_route', 'status'
                     ];
@@ -1727,6 +1727,7 @@
                         sqlValue('job_seeker'),
                         sqlValue(item.title),
                         sqlValue(item.email || null),
+                        sqlValue(item.bio_link || null),
                         sqlValue(item.location || null),
                         sqlValue(item.timezone || null),
                         sqlValue(item.domain_focus || null),
@@ -1742,7 +1743,7 @@
                 }
 
                 const columns = [
-                    'contact_name', 'company_name', 'role_title', 'team', 'location', 'remote',
+                    'contact_name', 'company_name', 'role_title', 'post_link', 'team', 'location', 'remote',
                     'must_haves', 'nice_to_haves', 'level', 'urgency', 'compensation',
                     'delivery_route', 'hiring_constraints', 'status'
                 ];
@@ -1750,6 +1751,7 @@
                     sqlValue(item.contact_name || null),
                     sqlValue(item.company_name || null),
                     sqlValue(item.title || null),
+                    sqlValue(item.post_link || null),
                     sqlValue(item.team || null),
                     sqlValue(item.location || null),
                     sqlValue(item.remote || false),
@@ -1817,7 +1819,7 @@
 
             try {
                 const [{ data: profiles, error: profilesError }, { data: needs, error: needsError }] = await Promise.all([
-                    supabaseClient.from('profiles').select('id, agent_type, name_or_handle, email, location, timezone, domain_focus, seniority, skills, availability, delivery_route, created_at').order('created_at', { ascending: false }).limit(5),
+                    supabaseClient.from('profiles').select('*').order('created_at', { ascending: false }).limit(5),
                     supabaseClient.from('needs').select('*').order('created_at', { ascending: false }).limit(5)
                 ]);
 
@@ -1835,6 +1837,7 @@
                             { label: 'Kind', value: row.agent_type },
                             { label: 'Name / handle', value: row.name_or_handle },
                             { label: 'Email', value: row.email },
+                            { label: 'Bio link', value: row.bio_link || 'missing' },
                             { label: 'Location', value: row.location },
                             { label: 'Timezone', value: row.timezone },
                             { label: 'Domain focus', value: row.domain_focus },
@@ -1858,6 +1861,7 @@
                             { label: 'Contact name', value: row.contact_name || row.role_recruiter_name || 'missing' },
                             { label: 'Company name', value: row.company_name || row.contact_name || 'missing' },
                             { label: 'Role title', value: row.role_title || row.position || row.job_title || 'missing' },
+                            { label: 'Post link', value: row.post_link || 'missing' },
                             { label: 'Position', value: row.position || row.role_title || 'missing' },
                             { label: 'Team', value: row.team || 'missing' },
                             { label: 'Location', value: row.location || 'missing' },
@@ -1889,7 +1893,7 @@
             try {
                 const [{ data: matches, error: matchesError }, { data: profiles, error: profilesError }, { data: needs, error: needsError }] = await Promise.all([
                     supabaseClient.from('matches').select('id, source_profile_id, source_need_id, match_score, why_it_matched, risk, next_action, route_target, status, created_at').order('created_at', { ascending: false }).limit(6),
-                    supabaseClient.from('profiles').select('id, name_or_handle, location, domain_focus, seniority, email').limit(100),
+                    supabaseClient.from('profiles').select('*').limit(100),
                     supabaseClient.from('needs').select('*').limit(100)
                 ]);
 
@@ -1920,8 +1924,8 @@
                             { label: 'Risk', value: row.risk },
                             { label: 'Next action', value: row.next_action },
                             { label: 'Why it matched', value: row.why_it_matched },
-                            { label: 'Profile', value: profile ? `${profile.name_or_handle || 'missing'} • ${profile.location || 'missing'} • ${profile.domain_focus || 'missing'} • ${profile.seniority || 'missing'} • ${profile.email || 'missing'}` : row.source_profile_id },
-                            { label: 'Need', value: need ? `${need.role_title || need.position || need.job_title || 'missing'} • ${need.contact_name || need.role_recruiter_name || need.company_name || 'missing'} • ${need.location || 'missing'} • ${need.level || 'missing'} • ${need.urgency || 'missing'}` : row.source_need_id },
+                            { label: 'Profile', value: profile ? `${profile.name_or_handle || 'missing'} • ${profile.location || 'missing'} • ${profile.domain_focus || 'missing'} • ${profile.seniority || 'missing'} • ${profile.email || 'missing'} • ${profile.bio_link || 'missing'}` : row.source_profile_id },
+                            { label: 'Need', value: need ? `${need.role_title || need.position || need.job_title || 'missing'} • ${need.contact_name || need.role_recruiter_name || need.company_name || 'missing'} • ${need.company_name || 'missing'} • ${need.location || 'missing'} • ${need.level || 'missing'} • ${need.urgency || 'missing'} • ${need.post_link || 'missing'}` : row.source_need_id },
                             { label: 'Created', value: formatDate(row.created_at) }
                         ]
                     };
@@ -1996,6 +2000,7 @@
             agent_type: 'job_seeker',
             name_or_handle: document.getElementById('display-name').value.trim(),
             email: document.getElementById('email').value.trim() || null,
+            bio_link: (document.getElementById('bio-link')?.value || '').trim() || null,
             location: document.getElementById('location').value.trim() || null,
             timezone: document.getElementById('timezone').value.trim() || null,
             domain_focus: document.getElementById('domain-focus').value.trim() || null,
@@ -2012,6 +2017,7 @@
             contact_name: document.getElementById('display-name').value.trim(),
             company_name: (document.getElementById('company-name')?.value || '').trim() || null,
             role_title: document.getElementById('role-title').value.trim(),
+            post_link: (document.getElementById('post-link')?.value || '').trim() || null,
             team: document.getElementById('team').value.trim() || null,
             location: document.getElementById('location').value.trim() || null,
             remote: /remote/i.test(document.getElementById('location').value) || /remote/i.test(document.getElementById('delivery-route-need').value),
