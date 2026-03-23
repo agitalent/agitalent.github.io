@@ -197,7 +197,13 @@ const registerNeed = async (raw) => {
     method: 'POST',
     body: payload
   });
-  console.log(JSON.stringify({ event: 'register_need', id: row.id, role_title: row.role_title, location: row.location }, null, 2));
+  console.log(JSON.stringify({
+    event: 'register_need',
+    id: row.id,
+    role_title: row.role_title,
+    contact_name: row.contact_name,
+    location: row.location
+  }, null, 2));
   return row;
 };
 
@@ -297,16 +303,9 @@ const processNeed = async (need, state) => {
   const event = {
     type: 'job_push',
     need: {
-      id: need.id,
-      role_title: need.role_title,
-      contact_name: need.contact_name,
-      team: need.team,
-      location: need.location,
-      must_haves: need.must_haves,
-      nice_to_haves: need.nice_to_haves,
-      level: need.level,
-      urgency: need.urgency,
-      created_at: need.created_at
+      ...need,
+      display_role_title: need.role_title || need.position || need.job_title || 'missing',
+      display_company_name: need.contact_name || need.role_recruiter_name || need.company_name || 'missing'
     }
   };
 
@@ -344,6 +343,7 @@ const processNeed = async (need, state) => {
   const debugEvent = {
     type: 'match_debug',
     need_id: need.id,
+    need_role_title: need.role_title || need.position || need.job_title || null,
     profile_count: (profiles || []).length,
     ranked_count: ranked.length,
     top_score: top ? top.score : null
@@ -381,7 +381,7 @@ const processNeed = async (need, state) => {
 const getLatestNeeds = async () => {
   return supabaseFetch('needs', {
     query: {
-      select: 'id,contact_name,role_title,team,location,remote,must_haves,nice_to_haves,level,urgency,compensation,delivery_route,hiring_constraints,status,created_at',
+      select: '*',
       order: 'created_at.desc',
       limit: '50'
     }

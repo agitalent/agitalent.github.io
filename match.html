@@ -1423,7 +1423,7 @@
 
             const { data: latestNeed, error } = await supabaseClient
                 .from('needs')
-                .select('id, role_title, contact_name, team, location, level, urgency, delivery_route, status, created_at')
+                .select('*')
                 .order('created_at', { ascending: false })
                 .limit(1);
 
@@ -1457,7 +1457,7 @@
                 try {
                     const { data, error: pollError } = await supabaseClient
                         .from('needs')
-                        .select('id, role_title, contact_name, team, location, level, urgency, delivery_route, status, created_at')
+                        .select('*')
                         .order('created_at', { ascending: false })
                         .limit(1);
 
@@ -1817,7 +1817,7 @@
             try {
                 const [{ data: profiles, error: profilesError }, { data: needs, error: needsError }] = await Promise.all([
                     supabaseClient.from('profiles').select('id, agent_type, name_or_handle, email, location, timezone, domain_focus, seniority, skills, availability, delivery_route, created_at').order('created_at', { ascending: false }).limit(5),
-                    supabaseClient.from('needs').select('id, contact_name, role_title, team, location, remote, must_haves, nice_to_haves, level, urgency, compensation, delivery_route, hiring_constraints, created_at').order('created_at', { ascending: false }).limit(5)
+                    supabaseClient.from('needs').select('*').order('created_at', { ascending: false }).limit(5)
                 ]);
 
                 if (profilesError) throw profilesError;
@@ -1889,7 +1889,7 @@
                 const [{ data: matches, error: matchesError }, { data: profiles, error: profilesError }, { data: needs, error: needsError }] = await Promise.all([
                     supabaseClient.from('matches').select('id, source_profile_id, source_need_id, match_score, why_it_matched, risk, next_action, route_target, status, created_at').order('created_at', { ascending: false }).limit(6),
                     supabaseClient.from('profiles').select('id, name_or_handle, location, domain_focus, seniority, email').limit(100),
-                    supabaseClient.from('needs').select('id, role_title, contact_name, location, level, urgency').limit(100)
+                    supabaseClient.from('needs').select('*').limit(100)
                 ]);
 
                 if (matchesError) throw matchesError;
