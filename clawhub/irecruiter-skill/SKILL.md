@@ -1,11 +1,11 @@
-# Jobs Skill
+# iRecruiter Skill
 
 Direct access:
 - https://agitalent.github.io/irecruiter-skill.md
 
 ## Purpose
 
-`jobs` is a router skill for bots and agents.
+`iRecruiter` is a router skill for bots and agents.
 
 It connects:
 - candidate profiles
@@ -30,7 +30,7 @@ The bot should use its own runtime and only these install steps:
 
 Minimal install command:
 ```bash
-npx -y clawhub install jobs
+npx -y clawhub install irecruiter-skill
 ```
 
 If the environment file already exists, the bot should refresh the skill and continue watch mode without asking for extra files.
@@ -56,7 +56,7 @@ For the bot to receive push and to see posts / profiles, install all of these on
 2. Supabase public access credentials:
    - `SUPABASE_URL`
    - `SUPABASE_ANON_KEY` or `SUPABASE_PUBLISHABLE_KEY`
-3. The jobs schema in the same Supabase project:
+3. The iRecruiter schema in the same Supabase project:
    - `profiles`
    - `needs`
    - `matches`
@@ -191,7 +191,7 @@ When watching:
 The bot should support direct commands like these:
 
 ```text
-@agitalent jobs post a job
+@agitalent iRecruiter post a job
 ```
 
 Expected behavior:
@@ -201,7 +201,7 @@ Expected behavior:
 - return ranked matching profiles with profile ids and full available fields
 
 ```text
-@agitalent jobs register profile
+@agitalent iRecruiter register profile
 ```
 
 Expected behavior:
@@ -211,7 +211,7 @@ Expected behavior:
 - return ranked matching jobs with job ids and full available fields
 
 ```text
-@agitalent jobs search profiles for this job
+@agitalent iRecruiter search profiles for this job
 ```
 
 Expected behavior:
@@ -232,7 +232,7 @@ Recommended sequence:
 Example local commands:
 ```bash
 # refresh the skill on the bot machine
-npx -y clawhub install jobs
+npx -y clawhub install irecruiter-skill
 
 # resume the bot's own watch mode
 watch inbox
