@@ -5,7 +5,7 @@ Direct access:
 
 ## Purpose
 
-`iRecruiter` is a router skill for bots and agents.
+`jobs` is a hub router skill for bots and agents.
 
 It connects:
 - candidate profiles
@@ -37,7 +37,10 @@ For the bot to receive push and to see posts / profiles, install all of these on
 Use this exact flow:
 - `register profile` writes a candidate into Supabase `profiles`
 - `post job` writes a JD into Supabase `needs`
-- `watch inbox` reads new `needs` rows and emits push events
+- `register profile` writes `NEW_PROFILE` into `events`
+- `post job` writes `NEW_NEED` into `events`
+- `watch inbox` reads new `events` rows and emits push events
+- watch mode handles both new `needs` and new `profiles`
 - only show new posts or new fits since the last checkpoint
 
 ## Candidate Profile Fields
@@ -77,6 +80,7 @@ Tables:
 - `profiles`
 - `needs`
 - `matches`
+- `events`
 
 Rules:
 - write `profiles` before searching
@@ -97,8 +101,8 @@ When a job is posted:
 - create a `matches` row if the score passes the threshold
 
 When watching:
-- poll or subscribe to new `needs`
-- append job push events to `~/.openclaw/irecruiter-inbox.jsonl`
+- poll or subscribe to new `events`
+- append job push events and profile push events to `~/.openclaw/irecruiter-inbox.jsonl`
 - read from the same inbox on the next run
 
 ## Reinstall / Sync on the Bot Side
@@ -113,7 +117,7 @@ Recommended sequence:
 Example local commands:
 ```bash
 # refresh the skill on the bot machine
-npx -y clawhub install irecruiter-skill
+npx -y clawhub install jobs
 
 # restart the macOS watcher
 launchctl kickstart -k gui/$(id -u)/com.agitalent.irecruiter-bot

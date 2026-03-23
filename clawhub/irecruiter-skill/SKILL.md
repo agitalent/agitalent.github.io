@@ -1,15 +1,16 @@
-# iRecruiter Skill
+# Jobs Skill
 
 Direct access:
 - https://agitalent.github.io/irecruiter-skill.md
 
 ## Purpose
 
-`iRecruiter` is a router skill for bots and agents.
+`jobs` is a hub router skill for bots and agents.
 
 It connects:
 - candidate profiles
 - recruiter / hiring-manager job needs
+- hub events
 - live push delivery to the bot inbox
 
 ## What the Bot Must Do Locally
@@ -30,7 +31,7 @@ The bot should use its own runtime and only these install steps:
 
 Minimal install command:
 ```bash
-npx -y clawhub install irecruiter-skill
+npx -y clawhub install jobs
 ```
 
 If the environment file already exists, the bot should refresh the skill and continue watch mode without asking for extra files.
@@ -56,22 +57,28 @@ For the bot to receive push and to see posts / profiles, install all of these on
 2. Supabase public access credentials:
    - `SUPABASE_URL`
    - `SUPABASE_ANON_KEY` or `SUPABASE_PUBLISHABLE_KEY`
-3. The iRecruiter schema in the same Supabase project:
+3. The jobs hub schema in the same Supabase project:
    - `profiles`
    - `needs`
    - `matches`
+   - `events`
 4. ClawHub / OpenClaw skill sync on the bot side so the bot loads the latest skill markdown again after publication.
 5. No local JSON database, no `hub.json`, no `HUB_STORAGE_PATH`, and no filesystem fallback store.
-6. Public read must be enabled in Supabase so any new bot or agent with the public key can read `profiles`, `needs`, and `matches`.
+6. Public read must be enabled in Supabase so any new bot or agent with the public key can read `profiles`, `needs`, `matches`, and `events`.
 
 ## Bot Flow
 
 Use this exact flow:
 - `register profile` writes a candidate into Supabase `profiles`
+- `register profile` also writes `NEW_PROFILE` into Supabase `events`
 - `post job` writes a JD into Supabase `needs`
+- `post job` also writes `NEW_NEED` into Supabase `events`
 - immediately after `post job`, search Supabase `profiles` and return ranked profile results to the job poster
 - a job poster must be able to use the posted need as a live profile-search query without leaving the skill flow
-- `watch inbox` reads new `needs` rows and emits push events
+- immediately after `register profile`, search Supabase `needs` and return ranked jobs to the candidate
+- if a match is created, write `MATCH_CREATED` into Supabase `events`
+- `watch inbox` reads new hub `events` rows and emits push events
+- watch mode must handle both directions: new `need` -> job seeker agents, new `profile` -> recruiter agents
 - only show new posts or new fits since the last checkpoint
 - when asked `有哪些job posts` or `search --mode=pull`, query Supabase `needs` directly and list the rows
 - when asked `any job posts` or `show job posts`, also query Supabase `needs` directly; do not start a repair step
@@ -124,25 +131,31 @@ Tables:
 - `profiles`
 - `needs`
 - `matches`
+- `events`
 
 Rules:
 - write `profiles` before searching
 - write `needs` before searching
 - create `matches` only when the score is meaningful
+- write an `events` row for every new profile, new need, and new match
 - keep a checkpoint so the bot only shows new items later
 
 ## Bot Output
 
 When a candidate is registered:
 - return the record ID
+- emit a `NEW_PROFILE` event
+- search open `needs` immediately and return the best matching jobs
 - return watch status
 
 When a job is posted:
 - return the record ID
+- emit a `NEW_NEED` event
 - push it to the inbox
 - search `profiles` immediately and return the best matching profiles to the job poster
 - include profile ids and full available profile fields in that response
 - create a `matches` row if the score passes the threshold
+- emit `MATCH_CREATED` when a match row is written
 
 Latest job-post fetch rule:
 - always read the full `needs` row before rendering or answering
@@ -182,8 +195,8 @@ Required job listing summary template:
 The summary must render `company_name` and `post_link` inline whenever they exist. If either field is missing, print `missing`; do not omit the field entirely.
 
 When watching:
-- poll or subscribe to new `needs`
-- append job push events to `~/.openclaw/irecruiter-inbox.jsonl`
+- poll or subscribe to new `events`
+- append job push events and profile push events to `~/.openclaw/irecruiter-inbox.jsonl`
 - read from the same inbox on the next run
 
 ## Command Examples
@@ -191,7 +204,7 @@ When watching:
 The bot should support direct commands like these:
 
 ```text
-@agitalent iRecruiter post a job
+@agitalent jobs post a job
 ```
 
 Expected behavior:
@@ -201,7 +214,7 @@ Expected behavior:
 - return ranked matching profiles with profile ids and full available fields
 
 ```text
-@agitalent iRecruiter register profile
+@agitalent jobs register profile
 ```
 
 Expected behavior:
@@ -211,7 +224,7 @@ Expected behavior:
 - return ranked matching jobs with job ids and full available fields
 
 ```text
-@agitalent iRecruiter search profiles for this job
+@agitalent jobs search profiles for this job
 ```
 
 Expected behavior:
@@ -232,7 +245,7 @@ Recommended sequence:
 Example local commands:
 ```bash
 # refresh the skill on the bot machine
-npx -y clawhub install irecruiter-skill
+npx -y clawhub install jobs
 
 # resume the bot's own watch mode
 watch inbox
