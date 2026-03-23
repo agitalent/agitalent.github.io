@@ -1478,6 +1478,8 @@
         })();
         let watchLatestNeedId = watchState.latestNeedId || null;
         let watchLatestNeedAt = watchState.latestNeedAt || null;
+        let watchLatestEventId = watchState.latestEventId || null;
+        let watchLatestEventAt = watchState.latestEventAt || null;
 
         const parseDetailRequest = (value) => {
             if (!value || typeof value !== 'string') return null;
@@ -1518,7 +1520,9 @@
             try {
                 localStorage.setItem(watchStateKey, JSON.stringify({
                     latestNeedId: watchLatestNeedId,
-                    latestNeedAt: watchLatestNeedAt
+                    latestNeedAt: watchLatestNeedAt,
+                    latestEventId: watchLatestEventId,
+                    latestEventAt: watchLatestEventAt
                 }));
                 localStorage.setItem(watchSeenNeedIdsKey, JSON.stringify(Array.from(watchSeenNeedIds).slice(-100)));
             } catch (error) {
@@ -1563,6 +1567,15 @@
             return true;
         };
 
+        const noteEventSeen = (row) => {
+            if (!row || !row.id) return false;
+            if (watchLatestEventId === row.id) return false;
+            watchLatestEventId = row.id;
+            watchLatestEventAt = row.created_at || watchLatestEventAt;
+            persistWatchState();
+            return true;
+        };
+
         const surfaceNewNeed = (row) => {
             if (!row || !row.id || !noteNeedSeen(row)) return;
             setWatchStatus(`New job post detected: ${(row.role_title || row.position || row.job_title || 'missing')} ${row.location ? `in ${row.location}` : ''}`.trim());
@@ -1582,20 +1595,63 @@
             refreshMatchFeed();
         };
 
+        const insertHubEvent = async (eventType, entityType, entityId, producerAgentType, payload = {}) => {
+            const { error } = await supabaseClient
+                .from('events')
+                .insert({
+                    event_type: eventType,
+                    entity_type: entityType,
+                    entity_id: entityId,
+                    producer_agent_type: producerAgentType,
+                    payload
+                });
+
+            if (error) throw error;
+        };
+
+        const handleHubEvent = async (eventRow) => {
+            if (!eventRow || !eventRow.id || !noteEventSeen(eventRow)) return;
+
+            if (eventRow.event_type === 'NEW_NEED' && eventRow.entity_id) {
+                const { data: needs, error } = await supabaseClient
+                    .from('needs')
+                    .select('*')
+                    .eq('id', eventRow.entity_id)
+                    .limit(1);
+
+                if (!error && needs && needs[0]) {
+                    surfaceNewNeed(needs[0]);
+                }
+                return;
+            }
+
+            if (eventRow.event_type === 'NEW_PROFILE') {
+                setWatchStatus('New profile detected in the hub. Recruiter-side agents can evaluate it now.');
+                refreshRecentFeed();
+                refreshMatchFeed();
+                return;
+            }
+
+            if (eventRow.event_type === 'MATCH_CREATED') {
+                setWatchStatus('A new routed match was created.');
+                refreshMatchFeed();
+            }
+        };
+
         const startNeedWatch = async () => {
             if (!supabaseClient) return;
 
-            setWatchStatus('Watch mode live. Listening for new job posts in Supabase.');
+            setWatchStatus('Watch mode live. Listening for hub events in Supabase.');
 
-            const { data: latestNeed, error } = await supabaseClient
-                .from('needs')
+            const { data: latestEvent, error } = await supabaseClient
+                .from('events')
                 .select('*')
                 .order('created_at', { ascending: false })
                 .limit(1);
 
-            if (!error && latestNeed && latestNeed[0]) {
-                watchLatestNeedId = latestNeed[0].id;
-                watchLatestNeedAt = latestNeed[0].created_at;
+            if (!error && latestEvent && latestEvent[0]) {
+                watchLatestEventId = latestEvent[0].id;
+                watchLatestEventAt = latestEvent[0].created_at;
                 persistWatchState();
             }
 
@@ -1605,13 +1661,13 @@
             }
 
             watchRealtimeChannel = supabaseClient
-                .channel('irecruiter-needs-watch')
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'needs' }, (payload) => {
-                    surfaceNewNeed(payload.new);
+                .channel('irecruiter-events-watch')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'events' }, (payload) => {
+                    handleHubEvent(payload.new);
                 })
                 .subscribe((status) => {
                     if (status === 'SUBSCRIBED') {
-                        setWatchStatus('Watch mode live. Listening for new job posts in Supabase.');
+                        setWatchStatus('Watch mode live. Listening for hub events in Supabase.');
                     }
                 });
 
@@ -1622,14 +1678,14 @@
             watchPollHandle = window.setInterval(async () => {
                 try {
                     const { data, error: pollError } = await supabaseClient
-                        .from('needs')
+                        .from('events')
                         .select('*')
                         .order('created_at', { ascending: false })
                         .limit(1);
 
                     if (pollError) throw pollError;
-                    if (data && data[0] && data[0].id !== watchLatestNeedId) {
-                        surfaceNewNeed(data[0]);
+                    if (data && data[0] && data[0].id !== watchLatestEventId) {
+                        handleHubEvent(data[0]);
                     }
                 } catch (error) {
                     console.warn('iRecruiter watch poll failed.', error);
@@ -2357,11 +2413,29 @@
                     if (error) throw error;
 
                     const inserted = insertedRows && insertedRows[0] ? insertedRows[0] : payload;
+                    await insertHubEvent(
+                        isProfile ? 'NEW_PROFILE' : 'NEW_NEED',
+                        isProfile ? 'profile' : 'need',
+                        inserted.id,
+                        isProfile ? 'job_seeker' : 'recruiter',
+                        isProfile
+                            ? {
+                                name_or_handle: inserted.name_or_handle,
+                                location: inserted.location,
+                                bio_link: inserted.bio_link
+                            }
+                            : {
+                                role_title: inserted.role_title,
+                                company_name: inserted.company_name,
+                                post_link: inserted.post_link,
+                                location: inserted.location
+                            }
+                    );
                     const bestMatch = await findMatches(isProfile ? 'profile' : 'need', payload);
 
                     if (bestMatch && bestMatch.score >= 25) {
                         if (isProfile) {
-                            await supabaseClient.from('matches').insert({
+                            const { data: matchRows, error: matchError } = await supabaseClient.from('matches').insert({
                                 source_profile_id: inserted.id,
                                 source_need_id: bestMatch.need.id,
                                 match_score: bestMatch.score,
@@ -2370,9 +2444,18 @@
                                 next_action: 'intro_queue',
                                 route_target: 'hiring_manager',
                                 status: 'proposed'
-                            });
+                            }).select('*');
+
+                            if (matchError) throw matchError;
+                            if (matchRows && matchRows[0]) {
+                                await insertHubEvent('MATCH_CREATED', 'match', matchRows[0].id, 'router', {
+                                    source_profile_id: inserted.id,
+                                    source_need_id: bestMatch.need.id,
+                                    match_score: bestMatch.score
+                                });
+                            }
                         } else {
-                            await supabaseClient.from('matches').insert({
+                            const { data: matchRows, error: matchError } = await supabaseClient.from('matches').insert({
                                 source_profile_id: bestMatch.profile.id,
                                 source_need_id: inserted.id,
                                 match_score: bestMatch.score,
@@ -2381,7 +2464,16 @@
                                 next_action: 'intro_queue',
                                 route_target: 'recruiter',
                                 status: 'proposed'
-                            });
+                            }).select('*');
+
+                            if (matchError) throw matchError;
+                            if (matchRows && matchRows[0]) {
+                                await insertHubEvent('MATCH_CREATED', 'match', matchRows[0].id, 'router', {
+                                    source_profile_id: bestMatch.profile.id,
+                                    source_need_id: inserted.id,
+                                    match_score: bestMatch.score
+                                });
+                            }
                         }
                     }
 

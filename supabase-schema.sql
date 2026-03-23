@@ -53,6 +53,16 @@ create table if not exists matches (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists events (
+  id uuid primary key default gen_random_uuid(),
+  event_type text not null check (event_type in ('NEW_PROFILE', 'NEW_NEED', 'MATCH_CREATED')),
+  entity_type text not null check (entity_type in ('profile', 'need', 'match')),
+  entity_id uuid not null,
+  producer_agent_type text,
+  payload jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
 create index if not exists profiles_agent_type_idx on profiles (agent_type);
 create index if not exists profiles_location_idx on profiles (location);
 create index if not exists profiles_domain_focus_idx on profiles (domain_focus);
@@ -76,13 +86,17 @@ create index if not exists matches_need_id_idx on matches (source_need_id);
 create index if not exists matches_score_idx on matches (match_score);
 create index if not exists matches_status_idx on matches (status);
 
+create index if not exists events_type_created_idx on events (event_type, created_at desc);
+create index if not exists events_entity_idx on events (entity_type, entity_id);
+
 alter table profiles enable row level security;
 alter table needs enable row level security;
 alter table matches enable row level security;
+alter table events enable row level security;
 
 grant usage on schema public to anon, authenticated;
-grant select on profiles, needs, matches to anon, authenticated;
-grant insert on profiles, needs, matches to anon, authenticated;
+grant select on profiles, needs, matches, events to anon, authenticated;
+grant insert on profiles, needs, matches, events to anon, authenticated;
 
 do $$
 begin
@@ -122,6 +136,20 @@ end $$;
 do $$
 begin
   execute 'create policy "public insert matches" on matches for insert with check (true)';
+exception
+  when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  execute 'create policy "public read events" on events for select using (true)';
+exception
+  when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  execute 'create policy "public insert events" on events for insert with check (true)';
 exception
   when duplicate_object then null;
 end $$;

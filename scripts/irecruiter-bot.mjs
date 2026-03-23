@@ -15,6 +15,7 @@ const DEFAULT_STATE_FILE = process.env.IRECRUITER_STATE_FILE || path.join(os.hom
 const DEFAULT_INBOX_FILE = process.env.IRECRUITER_INBOX_FILE || path.join(os.homedir(), '.openclaw', 'irecruiter-inbox.jsonl');
 const POLL_INTERVAL_MS = Number(process.env.IRECRUITER_POLL_INTERVAL_MS || 15000);
 const MATCH_THRESHOLD = Number(process.env.IRECRUITER_MATCH_THRESHOLD || 25);
+const WATCH_MODE = normalizeWatchMode(process.env.IRECRUITER_WATCH_MODE || 'all');
 
 const usage = () => {
   console.log(`Usage:
@@ -29,6 +30,7 @@ Env:
   IRECRUITER_INBOX_FILE
   IRECRUITER_POLL_INTERVAL_MS
   IRECRUITER_MATCH_THRESHOLD
+  IRECRUITER_WATCH_MODE=all|jobs|profiles
 `);
 };
 
@@ -116,6 +118,13 @@ const toList = (value) => {
 };
 
 const normalizeText = (value) => String(value || '').toLowerCase().trim();
+function normalizeWatchMode(value) {
+  const normalized = normalizeText(value);
+  if (normalized === 'jobs' || normalized === 'profiles') {
+    return normalized;
+  }
+  return 'all';
+}
 
 const tokensFrom = (value) => new Set(
   toList(value)
@@ -182,11 +191,36 @@ const normalizeNeedInput = (raw) => {
   };
 };
 
+const insertEvent = async ({ eventType, entityType, entityId, producerAgentType, payload = {} }) => {
+  const [row] = await supabaseFetch('events', {
+    method: 'POST',
+    body: {
+      event_type: eventType,
+      entity_type: entityType,
+      entity_id: entityId,
+      producer_agent_type: producerAgentType || null,
+      payload
+    }
+  });
+  return row;
+};
+
 const registerProfile = async (raw) => {
   const payload = normalizeProfileInput(raw);
   const [row] = await supabaseFetch('profiles', {
     method: 'POST',
     body: payload
+  });
+  await insertEvent({
+    eventType: 'NEW_PROFILE',
+    entityType: 'profile',
+    entityId: row.id,
+    producerAgentType: payload.agent_type,
+    payload: {
+      name_or_handle: row.name_or_handle,
+      location: row.location,
+      bio_link: row.bio_link
+    }
   });
   console.log(JSON.stringify({
     event: 'register_profile',
@@ -204,6 +238,18 @@ const registerNeed = async (raw) => {
   const [row] = await supabaseFetch('needs', {
     method: 'POST',
     body: payload
+  });
+  await insertEvent({
+    eventType: 'NEW_NEED',
+    entityType: 'need',
+    entityId: row.id,
+    producerAgentType: 'recruiter',
+    payload: {
+      role_title: row.role_title,
+      company_name: row.company_name,
+      post_link: row.post_link,
+      location: row.location
+    }
   });
   console.log(JSON.stringify({
     event: 'register_need',
@@ -224,14 +270,24 @@ const loadState = async () => {
     const parsed = JSON.parse(raw);
     return {
       seenNeedIds: new Set(Array.isArray(parsed.seenNeedIds) ? parsed.seenNeedIds : []),
+      seenProfileIds: new Set(Array.isArray(parsed.seenProfileIds) ? parsed.seenProfileIds : []),
+      seenEventIds: new Set(Array.isArray(parsed.seenEventIds) ? parsed.seenEventIds : []),
       latestNeedId: parsed.latestNeedId || null,
-      latestNeedAt: parsed.latestNeedAt || null
+      latestNeedAt: parsed.latestNeedAt || null,
+      latestProfileId: parsed.latestProfileId || null,
+      latestProfileAt: parsed.latestProfileAt || null,
+      latestEventAt: parsed.latestEventAt || null
     };
   } catch {
     return {
       seenNeedIds: new Set(),
+      seenProfileIds: new Set(),
+      seenEventIds: new Set(),
       latestNeedId: null,
-      latestNeedAt: null
+      latestNeedAt: null,
+      latestProfileId: null,
+      latestProfileAt: null,
+      latestEventAt: null
     };
   }
 };
@@ -240,8 +296,13 @@ const saveState = async (state) => {
   await fs.mkdir(path.dirname(DEFAULT_STATE_FILE), { recursive: true });
   const payload = {
     seenNeedIds: Array.from(state.seenNeedIds).slice(-200),
+    seenProfileIds: Array.from(state.seenProfileIds).slice(-200),
+    seenEventIds: Array.from(state.seenEventIds).slice(-400),
     latestNeedId: state.latestNeedId,
-    latestNeedAt: state.latestNeedAt
+    latestNeedAt: state.latestNeedAt,
+    latestProfileId: state.latestProfileId,
+    latestProfileAt: state.latestProfileAt,
+    latestEventAt: state.latestEventAt
   };
   await fs.writeFile(DEFAULT_STATE_FILE, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
 };
@@ -302,7 +363,41 @@ const insertMatch = async (profile, need, score) => {
     body: payload
   });
 
+  await insertEvent({
+    eventType: 'MATCH_CREATED',
+    entityType: 'match',
+    entityId: row.id,
+    producerAgentType: 'router',
+    payload: {
+      source_profile_id: profile.id,
+      source_need_id: need.id,
+      match_score: score
+    }
+  });
+
   return row;
+};
+
+const fetchNeedById = async (id) => {
+  const rows = await supabaseFetch('needs', {
+    query: {
+      select: '*',
+      id: `eq.${id}`,
+      limit: '1'
+    }
+  });
+  return rows?.[0] || null;
+};
+
+const fetchProfileById = async (id) => {
+  const rows = await supabaseFetch('profiles', {
+    query: {
+      select: '*',
+      id: `eq.${id}`,
+      limit: '1'
+    }
+  });
+  return rows?.[0] || null;
 };
 
 const processNeed = async (need, state) => {
@@ -396,42 +491,196 @@ const processNeed = async (need, state) => {
   await appendInbox(pushEvent);
 };
 
-const getLatestNeeds = async () => {
-  return supabaseFetch('needs', {
+const needSimilarity = (profile, need) => profileSimilarity(profile, need);
+
+const processProfile = async (profile, state) => {
+  if (!profile?.id || state.seenProfileIds.has(profile.id)) {
+    return;
+  }
+
+  state.seenProfileIds.add(profile.id);
+  state.latestProfileId = profile.id;
+  state.latestProfileAt = profile.created_at || state.latestProfileAt;
+  await saveState(state);
+
+  const event = {
+    type: 'profile_push',
+    profile: {
+      ...profile,
+      display_name: profile.name_or_handle || 'missing',
+      display_location: profile.location || 'missing',
+      display_bio_link: profile.bio_link || 'missing'
+    }
+  };
+
+  console.log(JSON.stringify(event, null, 2));
+  await appendInbox(event);
+
+  let needs = await supabaseFetch('needs', {
     query: {
       select: '*',
+      status: 'eq.open',
       order: 'created_at.desc',
-      limit: '50'
+      limit: '100'
     }
   });
+
+  if (!needs || needs.length === 0) {
+    needs = await supabaseFetch('needs', {
+      query: {
+        select: '*',
+        order: 'created_at.desc',
+        limit: '100'
+      }
+    });
+  }
+
+  const ranked = (needs || [])
+    .map((need) => ({
+      need,
+      score: needSimilarity(profile, need)
+    }))
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  const top = ranked[0];
+  const debugEvent = {
+    type: 'profile_match_debug',
+    profile_id: profile.id,
+    profile_name: profile.name_or_handle || null,
+    need_count: (needs || []).length,
+    ranked_count: ranked.length,
+    top_score: top ? top.score : null
+  };
+  console.log(JSON.stringify(debugEvent, null, 2));
+  await appendInbox(debugEvent);
+
+  if (!top || top.score < MATCH_THRESHOLD) {
+    const noMatchEvent = {
+      type: 'no_profile_match',
+      profile_id: profile.id,
+      profile_name: profile.name_or_handle,
+      reason: 'No open job cleared the match threshold.'
+    };
+    console.log(JSON.stringify(noMatchEvent, null, 2));
+    await appendInbox(noMatchEvent);
+    return;
+  }
+
+  const matchRow = await insertMatch(profile, top.need, top.score);
+  const pushEvent = {
+    type: 'profile_match_push',
+    profile_id: profile.id,
+    need_id: top.need.id,
+    match_id: matchRow.id,
+    score: top.score,
+    profile_name: profile.name_or_handle,
+    role_title: top.need.role_title,
+    company_name: top.need.company_name || top.need.contact_name || null,
+    post_link: top.need.post_link || null
+  };
+
+  console.log(JSON.stringify(pushEvent, null, 2));
+  await appendInbox(pushEvent);
+};
+
+const getLatestEvents = async () => {
+  const query = {
+    select: '*',
+    order: 'created_at.desc',
+    limit: '200'
+  };
+
+  if (WATCH_MODE === 'jobs') {
+    query.event_type = 'eq.NEW_NEED';
+  } else if (WATCH_MODE === 'profiles') {
+    query.event_type = 'eq.NEW_PROFILE';
+  } else {
+    query.event_type = 'in.(NEW_NEED,NEW_PROFILE)';
+  }
+
+  return supabaseFetch('events', { query });
+};
+
+const processEvent = async (event, state) => {
+  if (!event?.id || state.seenEventIds.has(event.id)) {
+    return;
+  }
+
+  state.seenEventIds.add(event.id);
+  state.latestEventAt = event.created_at || state.latestEventAt;
+  await saveState(state);
+
+  if (event.event_type === 'NEW_NEED') {
+    const need = await fetchNeedById(event.entity_id);
+    if (need) {
+      await processNeed(need, state);
+    }
+    return;
+  }
+
+  if (event.event_type === 'NEW_PROFILE') {
+    const profile = await fetchProfileById(event.entity_id);
+    if (profile) {
+      await processProfile(profile, state);
+    }
+  }
 };
 
 const watchNeeds = async () => {
   ensureConfig();
   const state = await loadState();
-  const latest = await supabaseFetch('needs', {
+  const latest = await getLatestEvents();
+
+  if (state.seenEventIds.size === 0) {
+    for (const row of latest || []) {
+      if (row?.id) {
+        state.seenEventIds.add(row.id);
+      }
+    }
+    state.latestEventAt = latest?.[0]?.created_at || null;
+    await saveState(state);
+    console.log(JSON.stringify({
+      type: 'watch_baseline',
+      seen_events: state.seenEventIds.size,
+      latest_event_at: state.latestEventAt,
+      watch_mode: WATCH_MODE
+    }, null, 2));
+  }
+
+  const latestNeeds = await supabaseFetch('needs', {
     query: {
       select: 'id,created_at',
       order: 'created_at.desc',
-      limit: '1000'
+      limit: '200'
     }
   });
-
   if (state.seenNeedIds.size === 0) {
-    for (const row of latest || []) {
+    for (const row of latestNeeds || []) {
       if (row?.id) {
         state.seenNeedIds.add(row.id);
       }
     }
-    state.latestNeedId = latest?.[0]?.id || null;
-    state.latestNeedAt = latest?.[0]?.created_at || null;
+    state.latestNeedId = latestNeeds?.[0]?.id || null;
+    state.latestNeedAt = latestNeeds?.[0]?.created_at || null;
+  }
+
+  const latestProfiles = await supabaseFetch('profiles', {
+    query: {
+      select: 'id,created_at',
+      order: 'created_at.desc',
+      limit: '200'
+    }
+  });
+  if (state.seenProfileIds.size === 0) {
+    for (const row of latestProfiles || []) {
+      if (row?.id) {
+        state.seenProfileIds.add(row.id);
+      }
+    }
+    state.latestProfileId = latestProfiles?.[0]?.id || null;
+    state.latestProfileAt = latestProfiles?.[0]?.created_at || null;
     await saveState(state);
-    console.log(JSON.stringify({
-      type: 'watch_baseline',
-      seen_rows: state.seenNeedIds.size,
-      latest_need_id: state.latestNeedId,
-      latest_need_at: state.latestNeedAt
-    }, null, 2));
   }
 
   console.log(JSON.stringify({
@@ -439,15 +688,16 @@ const watchNeeds = async () => {
     poll_interval_ms: POLL_INTERVAL_MS,
     match_threshold: MATCH_THRESHOLD,
     replay_existing: false,
+    watch_mode: WATCH_MODE,
     inbox_file: DEFAULT_INBOX_FILE,
     state_file: DEFAULT_STATE_FILE
   }, null, 2));
 
   const poll = async () => {
-    const needs = await getLatestNeeds();
-    const oldestToNewest = [...(needs || [])].reverse();
-    for (const need of oldestToNewest) {
-      await processNeed(need, state);
+    const events = await getLatestEvents();
+    const oldestToNewest = [...(events || [])].reverse();
+    for (const event of oldestToNewest) {
+      await processEvent(event, state);
     }
   };
 
