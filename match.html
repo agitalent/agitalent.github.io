@@ -1292,6 +1292,33 @@
             .replaceAll('"', '&quot;')
             .replaceAll("'", '&#39;');
 
+        const rawValue = (value) => {
+            if (value === null || value === undefined) return 'missing';
+            if (typeof value === 'string') return value || 'missing';
+            if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+            if (Array.isArray(value) || typeof value === 'object') return JSON.stringify(value);
+            return String(value);
+        };
+
+        const detailRowsFrom = (row, preferredKeys = []) => {
+            if (!row) return [];
+            const seen = new Set();
+            const orderedKeys = [
+                ...preferredKeys,
+                ...Object.keys(row).filter((key) => !preferredKeys.includes(key))
+            ];
+            return orderedKeys
+                .filter((key) => {
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                })
+                .map((key) => ({
+                    label: key.replaceAll('_', ' ').replace(/\b\w/g, (char) => char.toUpperCase()),
+                    value: rawValue(row[key])
+                }));
+        };
+
         let recentEntries = [];
         let matchEntries = [];
         let currentDetailRequest = null;
@@ -1833,20 +1860,7 @@
                         meta: [row.agent_type, row.location, row.domain_focus].filter(Boolean).join(' • '),
                         time: formatDate(row.created_at),
                         created_at: row.created_at,
-                        detailRows: [
-                            { label: 'Kind', value: row.agent_type },
-                            { label: 'Name / handle', value: row.name_or_handle },
-                            { label: 'Email', value: row.email },
-                            { label: 'Bio link', value: row.bio_link || 'missing' },
-                            { label: 'Location', value: row.location },
-                            { label: 'Timezone', value: row.timezone },
-                            { label: 'Domain focus', value: row.domain_focus },
-                            { label: 'Seniority', value: row.seniority },
-                            { label: 'Skills', value: toList(row.skills).join(', ') },
-                            { label: 'Availability', value: row.availability },
-                            { label: 'Delivery route', value: row.delivery_route },
-                            { label: 'Created', value: formatDate(row.created_at) }
-                        ]
+                        detailRows: detailRowsFrom(row, ['id', 'agent_type', 'name_or_handle', 'email', 'bio_link', 'location', 'timezone', 'domain_focus', 'seniority', 'skills', 'needs', 'recent_evidence', 'availability', 'delivery_route', 'status', 'created_at', 'updated_at'])
                     })),
                     ...(needs || []).map((row) => ({
                         kind: 'Need',
@@ -1856,25 +1870,7 @@
                             .join(' • '),
                         time: formatDate(row.created_at),
                         created_at: row.created_at,
-                        detailRows: [
-                            { label: 'ID', value: row.id },
-                            { label: 'Contact name', value: row.contact_name || row.role_recruiter_name || 'missing' },
-                            { label: 'Company name', value: row.company_name || row.contact_name || 'missing' },
-                            { label: 'Role title', value: row.role_title || row.position || row.job_title || 'missing' },
-                            { label: 'Post link', value: row.post_link || 'missing' },
-                            { label: 'Position', value: row.position || row.role_title || 'missing' },
-                            { label: 'Team', value: row.team || 'missing' },
-                            { label: 'Location', value: row.location || 'missing' },
-                            { label: 'Remote', value: row.remote ? 'Yes' : 'No' },
-                            { label: 'Must haves', value: toList(row.must_haves).join(', ') || 'missing' },
-                            { label: 'Nice to haves', value: toList(row.nice_to_haves).join(', ') || 'missing' },
-                            { label: 'Level', value: row.level || 'missing' },
-                            { label: 'Urgency', value: row.urgency || 'missing' },
-                            { label: 'Compensation', value: row.compensation || 'missing' },
-                            { label: 'Delivery route', value: row.delivery_route || 'missing' },
-                            { label: 'Hiring constraints', value: toList(row.hiring_constraints).join(', ') || 'missing' },
-                            { label: 'Created', value: formatDate(row.created_at) }
-                        ]
+                        detailRows: detailRowsFrom(row, ['id', 'contact_name', 'company_name', 'role_title', 'post_link', 'position', 'team', 'location', 'remote', 'must_haves', 'nice_to_haves', 'level', 'urgency', 'compensation', 'delivery_route', 'hiring_constraints', 'status', 'created_at', 'updated_at'])
                     }))
                 ]
                     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))

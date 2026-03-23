@@ -150,6 +150,7 @@ When a user asks for current job posts:
 - include the row id for every result
 - include the raw fields as returned by Supabase
 - include `bio_link` for profiles and `post_link` for needs when present
+- show every available field from the row when profiles or needs are present
 - map title from `role_title` first, then `position`, then `job_title`
 - map company from `contact_name` first, then `role_recruiter_name`, then `company_name`
 - include title, company, location, and created time

@@ -165,6 +165,7 @@ const normalizeNeedInput = (raw) => {
     contact_name: raw.role_recruiter_name || raw.contact_name || raw.recruiter_name || 'Unknown',
     company_name: raw.company_name || raw.company || raw.companyName || null,
     role_title: raw.position || raw.role_title || 'Open role',
+    post_link: raw.post_link || raw.postLink || raw.job_link || null,
     team: raw.team || null,
     location: raw.location || null,
     remote: Boolean(raw.remote || /remote/i.test(String(raw.location || ''))),
@@ -194,7 +195,8 @@ const registerProfile = async (raw) => {
     id: row.id,
     name: row.name_or_handle,
     location: row.location,
-    bio_link: row.bio_link
+    bio_link: row.bio_link,
+    record: row
   }, null, 2));
   return row;
 };
@@ -212,7 +214,8 @@ const registerNeed = async (raw) => {
     contact_name: row.contact_name,
     company_name: row.company_name,
     post_link: row.post_link,
-    location: row.location
+    location: row.location,
+    record: row
   }, null, 2));
   return row;
 };
