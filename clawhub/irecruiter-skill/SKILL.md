@@ -71,11 +71,13 @@ Use this exact flow:
 - `watch inbox` reads new `needs` rows and emits push events
 - only show new posts or new fits since the last checkpoint
 - when asked `有哪些job posts` or `search --mode=pull`, query Supabase `needs` directly and list the rows
+- when asked `any job posts` or `show job posts`, also query Supabase `needs` directly; do not start a repair step
 - do not use a local hub summary as the source of truth for job inventory
 - if `needs` cannot be reached, say the database is unavailable, not that it is empty
 - never answer `job_descriptions: 0` unless the `needs` query truly returned zero rows
 - do not infer emptiness from watch checkpoint, local caches, or previous summaries
 - do not generate suggested JDs unless the user explicitly asks for examples
+- do not write, print, or suggest new scripts when answering a job-post query
 
 ## Candidate Profile Fields
 
