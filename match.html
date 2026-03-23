@@ -1131,6 +1131,139 @@
                 </section>
 
                 <section class="match-shell">
+                    <section class="hub-console">
+                        <div class="glass hub-console-panel">
+                            <div class="hub-console-header">
+                                <div>
+                                    <h2>Register a profile or post a job</h2>
+                                    <p>Job posters can publish a need into the hub, then immediately search live profiles. Candidates can still register once and stay searchable.</p>
+                                </div>
+                                <div class="hub-console-pill">Supabase live hub</div>
+                            </div>
+                            <div class="hub-console-grid">
+                                <form class="register-form" id="irecruiter-register-form">
+                                    <div class="form-grid">
+                                        <div class="field">
+                                            <label for="record-kind">Record type</label>
+                                            <select id="record-kind" name="record-kind">
+                                                <option value="need">Post job</option>
+                                                <option value="profile">Register profile</option>
+                                            </select>
+                                        </div>
+                                        <div class="field">
+                                            <label for="display-name">Contact name</label>
+                                            <input id="display-name" name="display-name" type="text" placeholder="Recruiter or candidate name" required>
+                                        </div>
+
+                                        <div class="field profile-only" style="display:none;">
+                                            <label for="email">Email</label>
+                                            <input id="email" name="email" type="email" placeholder="name@example.com">
+                                        </div>
+                                        <div class="field profile-only" style="display:none;">
+                                            <label for="bio-link">Bio link</label>
+                                            <input id="bio-link" name="bio-link" type="url" placeholder="https://linkedin.com/in/...">
+                                        </div>
+
+                                        <div class="field need-only">
+                                            <label for="company-name">Company name</label>
+                                            <input id="company-name" name="company-name" type="text" placeholder="Agitalent or client company">
+                                        </div>
+                                        <div class="field need-only">
+                                            <label for="role-title">Role title</label>
+                                            <input id="role-title" name="role-title" type="text" placeholder="Research Engineer - LLM Systems">
+                                        </div>
+
+                                        <div class="field need-only full">
+                                            <label for="post-link">Post link</label>
+                                            <input id="post-link" name="post-link" type="url" placeholder="https://www.agitalent.tech">
+                                        </div>
+
+                                        <div class="field">
+                                            <label for="location">Location</label>
+                                            <input id="location" name="location" type="text" placeholder="San Francisco / Remote">
+                                        </div>
+                                        <div class="field profile-only" style="display:none;">
+                                            <label for="timezone">Timezone</label>
+                                            <input id="timezone" name="timezone" type="text" placeholder="Asia/Shanghai">
+                                        </div>
+                                        <div class="field need-only">
+                                            <label for="team">Team</label>
+                                            <input id="team" name="team" type="text" placeholder="Foundation Models">
+                                        </div>
+
+                                        <div class="field profile-only full" style="display:none;">
+                                            <label for="domain-focus">Domain focus</label>
+                                            <input id="domain-focus" name="domain-focus" type="text" placeholder="LLM systems, multimodal, infra">
+                                        </div>
+                                        <div class="field profile-only" style="display:none;">
+                                            <label for="seniority">Current position or seniority</label>
+                                            <input id="seniority" name="seniority" type="text" placeholder="Senior Research Engineer">
+                                        </div>
+                                        <div class="field profile-only" style="display:none;">
+                                            <label for="availability">Availability</label>
+                                            <input id="availability" name="availability" type="text" placeholder="active">
+                                        </div>
+
+                                        <div class="field profile-only full" style="display:none;">
+                                            <label for="skills">Skills</label>
+                                            <textarea id="skills" name="skills" placeholder="PyTorch, distributed systems, CUDA, inference"></textarea>
+                                        </div>
+                                        <div class="field profile-only full" style="display:none;">
+                                            <label for="recent-evidence">Recent evidence</label>
+                                            <textarea id="recent-evidence" name="recent-evidence" placeholder="Latest paper, shipped infra project, benchmark result"></textarea>
+                                        </div>
+                                        <div class="field profile-only full" style="display:none;">
+                                            <label for="delivery-route-profile">Delivery route</label>
+                                            <input id="delivery-route-profile" name="delivery-route-profile" type="text" placeholder="hub_notification">
+                                        </div>
+
+                                        <div class="field need-only full">
+                                            <label for="must-haves">Must-have keywords</label>
+                                            <textarea id="must-haves" name="must-haves" placeholder="PyTorch, LLM systems, distributed training, evaluation"></textarea>
+                                        </div>
+                                        <div class="field need-only full">
+                                            <label for="nice-to-haves">Nice-to-have keywords</label>
+                                            <textarea id="nice-to-haves" name="nice-to-haves" placeholder="agents, multimodal, optimization"></textarea>
+                                        </div>
+                                        <div class="field need-only">
+                                            <label for="compensation">Compensation</label>
+                                            <input id="compensation" name="compensation" type="text" placeholder="$220k-$320k">
+                                        </div>
+                                        <div class="field need-only">
+                                            <label for="delivery-route-need">Delivery route</label>
+                                            <input id="delivery-route-need" name="delivery-route-need" type="text" placeholder="hub_notification">
+                                        </div>
+                                        <div class="field need-only full">
+                                            <label for="hiring-constraints">Hiring constraints</label>
+                                            <textarea id="hiring-constraints" name="hiring-constraints" placeholder="PhD preferred, Stanford, Berkeley, systems experience"></textarea>
+                                            <div class="field-note">Used to filter and score matching profiles after the job is posted.</div>
+                                        </div>
+                                    </div>
+                                    <div class="form-actions">
+                                        <button class="submit-button" id="submit-button" type="submit">Post job and search profiles</button>
+                                        <div class="field-note">`Post job` writes to `needs` and searches `profiles`. `Register profile` writes to `profiles` and searches `needs`.</div>
+                                    </div>
+                                </form>
+
+                                <div class="status-box">
+                                    <div>
+                                        <h3>Recent registrations</h3>
+                                        <p class="status-copy">Latest profile and job-post records from the shared Supabase hub.</p>
+                                    </div>
+                                    <div class="recent-feed" id="recent-feed">
+                                        <div class="hub-empty">Recent registrations will appear here.</div>
+                                    </div>
+                                    <div class="match-feed">
+                                        <h4>Recent routed matches</h4>
+                                        <div class="recent-list" id="match-feed">
+                                            <div class="hub-empty">Match results will appear here after a profile or job post is stored.</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
                     <div class="glass match-board">
                         <div class="board-row">
                             <div class="board-column">
@@ -1141,7 +1274,7 @@
                                 <div class="stack">
                                     <div class="stack-card">
                                         <h3>Need signal</h3>
-                                        <p>Role title, level, location, tech stack, and urgency are captured in one structured brief.</p>
+                                        <p>Role title, company name, post link, location, tech stack, and hiring constraints are captured in one structured brief.</p>
                                         <div class="chip-row">
                                             <span class="chip">LLM infra</span>
                                             <span class="chip">Research engineer</span>
@@ -1272,6 +1405,7 @@
         const detailClose = document.getElementById('detail-close');
         const registerForm = document.getElementById('irecruiter-register-form');
         const recordKind = document.getElementById('record-kind');
+        const submitButton = document.getElementById('submit-button');
         const profileOnlyFields = document.querySelectorAll('.profile-only');
         const needOnlyFields = document.querySelectorAll('.need-only');
         const SUPABASE_URL = 'https://zocovvewzpqxspysanyy.supabase.co';
@@ -1398,10 +1532,15 @@
 
         const buildNeedWatchCard = (row) => {
             const title = row.role_title || row.position || row.job_title || 'missing';
-            const meta = [row.contact_name, row.role_recruiter_name, row.company_name, row.team, row.location, row.level]
-                .map((value) => value || 'missing')
+            const meta = [
+                `Company: ${row.company_name || row.contact_name || row.role_recruiter_name || 'missing'}`,
+                `Post: ${row.post_link || 'missing'}`,
+                row.team ? `Team: ${row.team}` : null,
+                row.location ? `Location: ${row.location}` : null
+            ]
+                .filter(Boolean)
                 .join(' • ');
-            const route = [row.delivery_route || 'missing', row.urgency || 'missing', row.status || 'missing'].join(' • ');
+            const route = [row.delivery_route || 'missing', row.status || 'missing'].join(' • ');
             return `
                 <div class="result-card">
                     <div class="result-head">
@@ -1771,7 +1910,7 @@
 
                 const columns = [
                     'contact_name', 'company_name', 'role_title', 'post_link', 'team', 'location', 'remote',
-                    'must_haves', 'nice_to_haves', 'level', 'urgency', 'compensation',
+                    'must_haves', 'nice_to_haves', 'compensation',
                     'delivery_route', 'hiring_constraints', 'status'
                 ];
                 const values = [
@@ -1784,8 +1923,6 @@
                     sqlValue(item.remote || false),
                     sqlValue(item.must_haves || []),
                     sqlValue(item.nice_to_haves || []),
-                    sqlValue(item.level || null),
-                    sqlValue(item.urgency || null),
                     sqlValue(item.compensation || null),
                     sqlValue(item.delivery_route || null),
                     sqlValue(item.hiring_constraints || []),
@@ -1865,12 +2002,16 @@
                     ...(needs || []).map((row) => ({
                         kind: 'Need',
                         title: row.role_title || row.position || row.job_title || 'missing',
-                        meta: [row.contact_name, row.role_recruiter_name, row.company_name, row.location, row.level]
-                            .map((value) => value || 'missing')
+                        meta: [
+                            `Company: ${row.company_name || row.contact_name || row.role_recruiter_name || 'missing'}`,
+                            `Post: ${row.post_link || 'missing'}`,
+                            row.location ? `Location: ${row.location}` : null
+                        ]
+                            .filter(Boolean)
                             .join(' • '),
                         time: formatDate(row.created_at),
                         created_at: row.created_at,
-                        detailRows: detailRowsFrom(row, ['id', 'contact_name', 'company_name', 'role_title', 'post_link', 'position', 'team', 'location', 'remote', 'must_haves', 'nice_to_haves', 'level', 'urgency', 'compensation', 'delivery_route', 'hiring_constraints', 'status', 'created_at', 'updated_at'])
+                        detailRows: detailRowsFrom(row, ['id', 'contact_name', 'company_name', 'role_title', 'post_link', 'position', 'team', 'location', 'remote', 'must_haves', 'nice_to_haves', 'compensation', 'delivery_route', 'hiring_constraints', 'status', 'created_at', 'updated_at'])
                     }))
                 ]
                     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
@@ -1905,7 +2046,7 @@
                     const need = needById.get(row.source_need_id);
                     const left = profile ? `Profile: ${profile.name_or_handle || 'missing'}` : `Profile ${row.source_profile_id?.slice(0, 8) || 'missing'}`;
                     const right = need
-                        ? `Need: ${(need.role_title || need.position || need.job_title || 'missing')} • ${(need.contact_name || need.role_recruiter_name || need.company_name || 'missing')}`
+                        ? `Need: ${(need.role_title || need.position || need.job_title || 'missing')} • ${(need.company_name || need.contact_name || need.role_recruiter_name || 'missing')} • ${(need.post_link || 'missing')}`
                         : `Need ${row.source_need_id?.slice(0, 8) || 'missing'}`;
                     return {
                         title: `${left} -> ${right}`,
@@ -1921,7 +2062,7 @@
                             { label: 'Next action', value: row.next_action },
                             { label: 'Why it matched', value: row.why_it_matched },
                             { label: 'Profile', value: profile ? `${profile.name_or_handle || 'missing'} • ${profile.location || 'missing'} • ${profile.domain_focus || 'missing'} • ${profile.seniority || 'missing'} • ${profile.email || 'missing'} • ${profile.bio_link || 'missing'}` : row.source_profile_id },
-                            { label: 'Need', value: need ? `${need.role_title || need.position || need.job_title || 'missing'} • ${need.contact_name || need.role_recruiter_name || need.company_name || 'missing'} • ${need.company_name || 'missing'} • ${need.location || 'missing'} • ${need.level || 'missing'} • ${need.urgency || 'missing'} • ${need.post_link || 'missing'}` : row.source_need_id },
+                            { label: 'Need', value: need ? `${need.role_title || need.position || need.job_title || 'missing'} • ${need.company_name || need.contact_name || need.role_recruiter_name || 'missing'} • ${need.post_link || 'missing'} • ${need.location || 'missing'} • ${need.team || 'missing'}` : row.source_need_id },
                             { label: 'Created', value: formatDate(row.created_at) }
                         ]
                     };
@@ -1942,6 +2083,9 @@
             needOnlyFields.forEach((field) => {
                 field.style.display = isProfile ? 'none' : '';
             });
+            if (submitButton) {
+                submitButton.textContent = isProfile ? 'Register profile and search jobs' : 'Post job and search profiles';
+            }
         };
 
         const scoreProfileAgainstNeed = (profile, need) => {
@@ -1949,6 +2093,12 @@
             const profileSkills = tokenSet(profile.skills);
             const needMustHaves = tokenSet(need.must_haves);
             const needNice = tokenSet(need.nice_to_haves);
+            const profileEducation = tokenSet([
+                profile.seniority || '',
+                readRecentEvidence(profile).highest_education_background || '',
+                readRecentEvidence(profile).school_graduate || ''
+            ]);
+            const needConstraints = tokenSet(need.hiring_constraints);
             const domain = normalize(profile.domain_focus);
             const needRole = normalize(need.role_title);
 
@@ -1961,7 +2111,9 @@
             });
 
             if (profile.location && need.location && normalize(profile.location) === normalize(need.location)) score += 12;
-            if (profile.seniority && need.level && normalize(profile.seniority) === normalize(need.level)) score += 10;
+            for (const term of needConstraints) {
+                if (profileEducation.has(term)) score += 8;
+            }
             if (domain && needRole && (needRole.includes(domain) || domain.includes(needRole))) score += 14;
             if (profile.availability && /open|now|active/i.test(profile.availability)) score += 4;
 
@@ -1973,6 +2125,12 @@
             const profileSkills = tokenSet(profile.skills);
             const needMustHaves = tokenSet(need.must_haves);
             const needNice = tokenSet(need.nice_to_haves);
+            const profileEducation = tokenSet([
+                profile.seniority || '',
+                readRecentEvidence(profile).highest_education_background || '',
+                readRecentEvidence(profile).school_graduate || ''
+            ]);
+            const needConstraints = tokenSet(need.hiring_constraints);
             const domain = normalize(profile.domain_focus);
             const needRole = normalize(need.role_title);
 
@@ -1985,9 +2143,10 @@
             });
 
             if (profile.location && need.location && normalize(profile.location) === normalize(need.location)) score += 12;
-            if (profile.seniority && need.level && normalize(profile.seniority) === normalize(need.level)) score += 10;
+            for (const term of needConstraints) {
+                if (profileEducation.has(term)) score += 8;
+            }
             if (domain && needRole && (needRole.includes(domain) || domain.includes(needRole))) score += 14;
-            if (need.urgency && /immediate|urgent/i.test(need.urgency)) score += 4;
 
             return Math.min(score, 100);
         };
@@ -2019,8 +2178,6 @@
             remote: /remote/i.test(document.getElementById('location').value) || /remote/i.test(document.getElementById('delivery-route-need').value),
             must_haves: toList(document.getElementById('must-haves').value),
             nice_to_haves: toList(document.getElementById('nice-to-haves').value),
-            level: document.getElementById('level').value.trim() || null,
-            urgency: document.getElementById('urgency').value.trim() || null,
             compensation: document.getElementById('compensation').value.trim() || null,
             delivery_route: document.getElementById('delivery-route-need').value.trim() || null,
             hiring_constraints: toList(document.getElementById('hiring-constraints').value),
@@ -2059,7 +2216,7 @@
                 renderResultCards(ranked.map((item) => summarizeMatch(
                     item.need.role_title || item.need.position || item.need.job_title || item.need.team || 'missing',
                     item.score,
-                    `${item.need.location || 'missing'} • ${item.need.level || 'missing'} • ${item.need.urgency || 'missing'}`
+                    `${item.need.company_name || item.need.contact_name || item.need.role_recruiter_name || 'missing'} • ${item.need.post_link || 'missing'} • ${item.need.location || 'missing'}`
                 )));
 
                 return ranked[0] || null;
@@ -2177,6 +2334,16 @@
                 const payload = isProfile ? buildProfilePayload() : buildNeedPayload();
                 const table = isProfile ? 'profiles' : 'needs';
                 const recordLabel = isProfile ? 'profile' : 'need';
+
+                if (isProfile && !payload.name_or_handle) {
+                    setStatus('Profile name is required.');
+                    return;
+                }
+
+                if (!isProfile && (!payload.contact_name || !payload.role_title)) {
+                    setStatus('Job poster name and role title are required.');
+                    return;
+                }
 
                 setStatus(`Writing ${recordLabel} to Supabase...`);
                 renderResultCards([]);

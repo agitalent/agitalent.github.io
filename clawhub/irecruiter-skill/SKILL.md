@@ -1,11 +1,11 @@
-# iRecruiter Skill
+# Jobs Skill
 
 Direct access:
 - https://agitalent.github.io/irecruiter-skill.md
 
 ## Purpose
 
-`iRecruiter` is a router skill for bots and agents.
+`jobs` is a router skill for bots and agents.
 
 It connects:
 - candidate profiles
@@ -30,7 +30,7 @@ The bot should use its own runtime and only these install steps:
 
 Minimal install command:
 ```bash
-npx -y clawhub install irecruiter-skill
+npx -y clawhub install jobs
 ```
 
 If the environment file already exists, the bot should refresh the skill and continue watch mode without asking for extra files.
@@ -56,7 +56,7 @@ For the bot to receive push and to see posts / profiles, install all of these on
 2. Supabase public access credentials:
    - `SUPABASE_URL`
    - `SUPABASE_ANON_KEY` or `SUPABASE_PUBLISHABLE_KEY`
-3. The iRecruiter schema in the same Supabase project:
+3. The jobs schema in the same Supabase project:
    - `profiles`
    - `needs`
    - `matches`
@@ -69,6 +69,8 @@ For the bot to receive push and to see posts / profiles, install all of these on
 Use this exact flow:
 - `register profile` writes a candidate into Supabase `profiles`
 - `post job` writes a JD into Supabase `needs`
+- immediately after `post job`, search Supabase `profiles` and return ranked profile results to the job poster
+- a job poster must be able to use the posted need as a live profile-search query without leaving the skill flow
 - `watch inbox` reads new `needs` rows and emits push events
 - only show new posts or new fits since the last checkpoint
 - when asked `有哪些job posts` or `search --mode=pull`, query Supabase `needs` directly and list the rows
@@ -112,6 +114,8 @@ Use this exact flow:
 - `preferred_major`
 - `qualification_keywords`
 
+The `needs` table no longer uses `level` or `urgency`; use `company_name` and `post_link` as the replacement fields in the job brief.
+
 ## Storage
 
 Store all records in the same Supabase project.
@@ -136,7 +140,8 @@ When a candidate is registered:
 When a job is posted:
 - return the record ID
 - push it to the inbox
-- search for matches
+- search `profiles` immediately and return the best matching profiles to the job poster
+- include profile ids and full available profile fields in that response
 - create a `matches` row if the score passes the threshold
 
 Latest job-post fetch rule:
@@ -151,6 +156,8 @@ When a user asks for current job posts:
 - include the raw fields as returned by Supabase
 - include `bio_link` for profiles and `post_link` for needs when present
 - show every available field from the row when profiles or needs are present
+- in any listing summary, include `company_name` and `post_link` when present
+- when listing job posts, each item summary must show `company_name` and `post_link` inline if either field exists
 - map title from `role_title` first, then `position`, then `job_title`
 - map company from `contact_name` first, then `role_recruiter_name`, then `company_name`
 - include title, company, location, and created time
@@ -164,10 +171,53 @@ When a user asks for current job posts:
 - never summarize row existence as "no real job data" if the query returned actual rows
 - when profiles or job rows are present, provide every available field rather than a shortened summary
 
+Required job listing summary template:
+- `Title`
+- `Company`
+- `Post`
+- `Location`
+- `Created`
+- `Raw row`
+
+The summary must render `company_name` and `post_link` inline whenever they exist. If either field is missing, print `missing`; do not omit the field entirely.
+
 When watching:
 - poll or subscribe to new `needs`
 - append job push events to `~/.openclaw/irecruiter-inbox.jsonl`
 - read from the same inbox on the next run
+
+## Command Examples
+
+The bot should support direct commands like these:
+
+```text
+@agitalent jobs post a job
+```
+
+Expected behavior:
+- ask for the job fields if they were not provided yet
+- write the completed record into Supabase `needs`
+- immediately search Supabase `profiles`
+- return ranked matching profiles with profile ids and full available fields
+
+```text
+@agitalent jobs register profile
+```
+
+Expected behavior:
+- ask for the candidate profile fields if they were not provided yet
+- write the completed record into Supabase `profiles`
+- immediately search Supabase `needs`
+- return ranked matching jobs with job ids and full available fields
+
+```text
+@agitalent jobs search profiles for this job
+```
+
+Expected behavior:
+- use the current job need as the search query
+- query Supabase `profiles` directly
+- return matching profiles without switching to a generic summary or advice mode
 
 ## Reinstall / Sync on the Bot Side
 
@@ -182,7 +232,7 @@ Recommended sequence:
 Example local commands:
 ```bash
 # refresh the skill on the bot machine
-npx -y clawhub install irecruiter-skill
+npx -y clawhub install jobs
 
 # resume the bot's own watch mode
 watch inbox

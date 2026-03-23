@@ -31,8 +31,6 @@ create table if not exists needs (
   remote boolean not null default false,
   must_haves jsonb not null default '[]'::jsonb,
   nice_to_haves jsonb not null default '[]'::jsonb,
-  level text,
-  urgency text,
   compensation text,
   delivery_route text,
   hiring_constraints jsonb not null default '[]'::jsonb,
@@ -62,10 +60,16 @@ create index if not exists profiles_seniority_idx on profiles (seniority);
 create index if not exists profiles_status_idx on profiles (status);
 
 create index if not exists needs_role_title_idx on needs (role_title);
+create index if not exists needs_company_name_idx on needs (company_name);
+create index if not exists needs_post_link_idx on needs (post_link);
 create index if not exists needs_location_idx on needs (location);
-create index if not exists needs_level_idx on needs (level);
-create index if not exists needs_urgency_idx on needs (urgency);
 create index if not exists needs_status_idx on needs (status);
+
+drop index if exists needs_level_idx;
+drop index if exists needs_urgency_idx;
+
+alter table needs drop column if exists level;
+alter table needs drop column if exists urgency;
 
 create index if not exists matches_profile_id_idx on matches (source_profile_id);
 create index if not exists matches_need_id_idx on matches (source_need_id);

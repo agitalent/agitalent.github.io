@@ -171,8 +171,6 @@ const normalizeNeedInput = (raw) => {
     remote: Boolean(raw.remote || /remote/i.test(String(raw.location || ''))),
     must_haves: combinedMustHaves,
     nice_to_haves: targetCompanies,
-    level: raw.level || raw.education_degree || null,
-    urgency: raw.urgency || 'Normal',
     compensation: raw.compensation || null,
     delivery_route: raw.delivery_route || 'hub_notification',
     hiring_constraints: toList([
@@ -258,10 +256,13 @@ const profileSimilarity = (profile, need) => {
   const profileSkills = tokensFrom(profile.skills || profileEvidence.skills || []);
   const needMustHaves = tokensFrom(need.must_haves);
   const needNice = tokensFrom(need.nice_to_haves);
+  const profileEducation = tokensFrom([
+    profile.seniority || profileEvidence.highest_education_background || '',
+    profileEvidence.school_graduate || ''
+  ]);
+  const needConstraints = tokensFrom(need.hiring_constraints);
   const profileLocation = normalizeText(profile.location || profileEvidence.current_location || profileEvidence.location);
   const needLocation = normalizeText(need.location);
-  const profileSeniority = normalizeText(profile.seniority || profileEvidence.current_position || profileEvidence.highest_education_background);
-  const needLevel = normalizeText(need.level);
   const profileDomain = normalizeText(profile.domain_focus || profileEvidence.highest_education_background || '');
   const needRole = normalizeText(need.role_title);
 
@@ -276,9 +277,10 @@ const profileSimilarity = (profile, need) => {
   }
 
   if (profileLocation && needLocation && profileLocation === needLocation) score += 12;
-  if (profileSeniority && needLevel && profileSeniority === needLevel) score += 10;
+  for (const term of needConstraints) {
+    if (profileEducation.has(term)) score += 8;
+  }
   if (profileDomain && needRole && (needRole.includes(profileDomain) || profileDomain.includes(needRole))) score += 14;
-  if (need.urgency && /immediate|urgent/i.test(String(need.urgency))) score += 4;
 
   return Math.min(score, 100);
 };
@@ -318,7 +320,8 @@ const processNeed = async (need, state) => {
     need: {
       ...need,
       display_role_title: need.role_title || need.position || need.job_title || 'missing',
-      display_company_name: need.contact_name || need.role_recruiter_name || need.company_name || 'missing'
+      display_company_name: need.company_name || need.contact_name || need.role_recruiter_name || 'missing',
+      display_post_link: need.post_link || 'missing'
     }
   };
 
@@ -384,7 +387,9 @@ const processNeed = async (need, state) => {
     match_id: matchRow.id,
     score: top.score,
     role_title: need.role_title,
-    profile_name: top.profile.name_or_handle
+    profile_name: top.profile.name_or_handle,
+    company_name: need.company_name || need.contact_name || need.role_recruiter_name || null,
+    post_link: need.post_link || null
   };
 
   console.log(JSON.stringify(pushEvent, null, 2));
