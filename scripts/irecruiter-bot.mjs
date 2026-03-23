@@ -162,6 +162,7 @@ const normalizeNeedInput = (raw) => {
 
   return {
     contact_name: raw.role_recruiter_name || raw.contact_name || raw.recruiter_name || 'Unknown',
+    company_name: raw.company_name || raw.company || raw.companyName || null,
     role_title: raw.position || raw.role_title || 'Open role',
     team: raw.team || null,
     location: raw.location || null,
@@ -202,6 +203,7 @@ const registerNeed = async (raw) => {
     id: row.id,
     role_title: row.role_title,
     contact_name: row.contact_name,
+    company_name: row.company_name,
     location: row.location
   }, null, 2));
   return row;

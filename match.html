@@ -1742,12 +1742,13 @@
                 }
 
                 const columns = [
-                    'contact_name', 'role_title', 'team', 'location', 'remote',
+                    'contact_name', 'company_name', 'role_title', 'team', 'location', 'remote',
                     'must_haves', 'nice_to_haves', 'level', 'urgency', 'compensation',
                     'delivery_route', 'hiring_constraints', 'status'
                 ];
                 const values = [
                     sqlValue(item.contact_name || null),
+                    sqlValue(item.company_name || null),
                     sqlValue(item.title || null),
                     sqlValue(item.team || null),
                     sqlValue(item.location || null),
@@ -2009,6 +2010,7 @@
 
         const buildNeedPayload = () => ({
             contact_name: document.getElementById('display-name').value.trim(),
+            company_name: (document.getElementById('company-name')?.value || '').trim() || null,
             role_title: document.getElementById('role-title').value.trim(),
             team: document.getElementById('team').value.trim() || null,
             location: document.getElementById('location').value.trim() || null,
