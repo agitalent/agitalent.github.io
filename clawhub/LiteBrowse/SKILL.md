@@ -21,7 +21,7 @@ Do not load or summarize the full page first.
 Always run the local extractor before reasoning on webpage content:
 
 ```bash
-python3 scripts/web_relevance_extract.py "<url-or-html-file>" "<query>"
+python3 ./scripts/web_relevance_extract.py "<url-or-html-file>" "<query>"
 ```
 
 The extractor returns only the most relevant blocks under a fixed character budget.
@@ -32,7 +32,7 @@ Use that compact output as the default context for answering.
 1. Restate the information target as a short query string.
 2. Run:
    ```bash
-   python3 scripts/web_relevance_extract.py "<source>" "<query>" --top-k 5 --max-chars 2400 --format json
+   python3 ./scripts/web_relevance_extract.py "<source>" "<query>" --top-k 5 --max-chars 2400 --format json
    ```
 3. Read only the returned blocks.
 4. Answer from those blocks if they are sufficient.
@@ -62,19 +62,19 @@ When answering:
 Find pricing details from a long page:
 
 ```bash
-python3 scripts/web_relevance_extract.py "https://example.com/pricing" "pricing tiers api limits enterprise" --max-chars 1600 --top-k 4 --format text
+python3 ./scripts/web_relevance_extract.py "https://example.com/pricing" "pricing tiers api limits enterprise" --max-chars 1600 --top-k 4 --format text
 ```
 
 Find job requirements from a careers page:
 
 ```bash
-python3 scripts/web_relevance_extract.py "https://example.com/jobs/ml-engineer" "requirements python llm retrieval location" --max-chars 1800 --top-k 5 --format json
+python3 ./scripts/web_relevance_extract.py "https://example.com/jobs/ml-engineer" "requirements python llm retrieval location" --max-chars 1800 --top-k 5 --format json
 ```
 
 Use a saved HTML file:
 
 ```bash
-python3 scripts/web_relevance_extract.py "/tmp/page.html" "refund policy cancellation deadline" --max-chars 1200
+python3 ./scripts/web_relevance_extract.py "/tmp/page.html" "refund policy cancellation deadline" --max-chars 1200
 ```
 
 ## Failure Handling
