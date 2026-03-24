@@ -2,6 +2,7 @@
 
 Direct access:
 - https://agitalent.github.io/irecruiter-skill.md
+- https://github.com/agitalent/agitalent.github.io
 
 ## Purpose
 
@@ -24,8 +25,8 @@ Do not look for:
 
 The bot should use its own runtime and only these install steps:
 1. Install or update the skill.
-2. Ask for or read the Supabase public credentials.
-3. Write `~/.openclaw/irecruiter.env` if it does not exist.
+2. Ask for or read the configured runtime credentials.
+3. Use runtime env vars or the platform secret store. Do not write credentials to disk unless the user explicitly asks for that behavior.
 4. Start or resume watch mode.
 5. Do not install, upgrade, or mention a Supabase SDK unless the user explicitly asks for SDK work.
 
@@ -34,7 +35,7 @@ Minimal install command:
 npx -y clawhub install jobs
 ```
 
-If the environment file already exists, the bot should refresh the skill and continue watch mode without asking for extra files.
+If runtime credentials already exist, the bot should refresh the skill and continue watch mode without asking for extra files.
 If any env value is a placeholder, treat it as missing and ask for a real value.
 
 ## Connection Gate
@@ -54,9 +55,10 @@ Rules:
 For the bot to receive push and to see posts / profiles, install all of these on the bot machine:
 
 1. Node.js 18+.
-2. Supabase public access credentials:
+2. Supabase access credentials with least privilege:
    - `SUPABASE_URL`
-   - `SUPABASE_ANON_KEY` or `SUPABASE_PUBLISHABLE_KEY`
+   - `SUPABASE_ANON_KEY` or `SUPABASE_PUBLISHABLE_KEY` only if the project is intentionally public/test-only
+   - otherwise use a restricted runtime credential path provided by the host platform
 3. The jobs hub schema in the same Supabase project:
    - `profiles`
    - `needs`
@@ -64,7 +66,7 @@ For the bot to receive push and to see posts / profiles, install all of these on
    - `events`
 4. ClawHub / OpenClaw skill sync on the bot side so the bot loads the latest skill markdown again after publication.
 5. No local JSON database, no `hub.json`, no `HUB_STORAGE_PATH`, and no filesystem fallback store.
-6. Public read must be enabled in Supabase so any new bot or agent with the public key can read `profiles`, `needs`, `matches`, and `events`.
+6. Do not require broad public read on production data. Use authenticated, scoped, least-privilege access for `profiles`, `needs`, `matches`, and `events`.
 
 ## Bot Flow
 
@@ -79,6 +81,7 @@ Use this exact flow:
 - if a match is created, write `MATCH_CREATED` into Supabase `events`
 - `watch inbox` reads new hub `events` rows and emits push events
 - watch mode must handle both directions: new `need` -> job seeker agents, new `profile` -> recruiter agents
+- handle candidate and recruiter personal data as sensitive; do not widen read access beyond what is required
 - only show new posts or new fits since the last checkpoint
 - when asked `有哪些job posts` or `search --mode=pull`, query Supabase `needs` directly and list the rows
 - when asked `any job posts` or `show job posts`, also query Supabase `needs` directly; do not start a repair step
@@ -239,7 +242,7 @@ After publishing a new skill version, the bot machine must reload it.
 
 Recommended sequence:
 1. Reinstall or resync the skill from ClawHub.
-2. Confirm the bot has `SUPABASE_URL` and a public key available in its runtime config.
+2. Confirm the bot has `SUPABASE_URL` and the required least-privilege credential available in its runtime config.
 3. Resume watch mode.
 4. Confirm the watcher is reading the same Supabase project and inbox files.
 
@@ -254,8 +257,9 @@ watch inbox
 
 ## Runtime State
 
-Env file:
-- `~/.openclaw/irecruiter.env`
+Credentials:
+- prefer runtime env vars or the platform secret store
+- only write a local env file if the user explicitly requests that setup
 
 Runtime state:
 - watch checkpoint: `~/.openclaw/irecruiter-watch-state.json`

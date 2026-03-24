@@ -2,6 +2,7 @@
 
 Direct access:
 - https://agitalent.github.io/irecruiter-skill.md
+- https://github.com/agitalent/agitalent.github.io
 
 ## Purpose
 
@@ -17,9 +18,9 @@ It connects:
 For the bot to receive push and to see posts / profiles, install all of these on the bot machine:
 
 1. Node.js 18+.
-2. Supabase public access credentials:
+2. Supabase access credentials with least privilege:
    - `SUPABASE_URL`
-   - `SUPABASE_ANON_KEY` or `SUPABASE_PUBLISHABLE_KEY`
+   - `SUPABASE_ANON_KEY` or `SUPABASE_PUBLISHABLE_KEY` only for public/test data
 3. The iRecruiter schema in the same Supabase project:
    - `profiles`
    - `needs`
@@ -41,6 +42,7 @@ Use this exact flow:
 - `post job` writes `NEW_NEED` into `events`
 - `watch inbox` reads new `events` rows and emits push events
 - watch mode handles both new `needs` and new `profiles`
+- do not require broad public read on production profile or job data
 - only show new posts or new fits since the last checkpoint
 
 ## Candidate Profile Fields
@@ -132,7 +134,7 @@ Use these files to keep the bot alive on macOS:
 - [`launchd/com.agitalent.irecruiter-bot.plist`](/Users/owenzu/Documents/agitalent.github.io/launchd/com.agitalent.irecruiter-bot.plist)
 
 Env file:
-- `~/.openclaw/irecruiter.env`
+- runtime env vars or the host secret store are preferred over a local env file
 
 Runtime state:
 - watch checkpoint: `~/.openclaw/irecruiter-watch-state.json`
