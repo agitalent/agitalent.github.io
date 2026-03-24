@@ -388,6 +388,10 @@
             });
             if (error) throw error;
         };
+        const isMissingEventsTableError = (error) => {
+            const message = String(error?.message || error || '');
+            return message.includes("Could not find the table 'public.events' in the schema cache");
+        };
         const findMatches = async (kind, payload) => {
             if (kind === 'profile') {
                 const { data: needs, error } = await supabaseClient.from('needs').select('*').eq('status', 'open').limit(50);
@@ -434,7 +438,13 @@
 
                 if (error) throw error;
                 const inserted = insertedRows && insertedRows[0] ? insertedRows[0] : payload;
-                await insertHubEvent(isProfile ? 'NEW_PROFILE' : 'NEW_NEED', isProfile ? 'profile' : 'need', inserted.id, isProfile ? 'job_seeker' : 'recruiter', inserted);
+                try {
+                    await insertHubEvent(isProfile ? 'NEW_PROFILE' : 'NEW_NEED', isProfile ? 'profile' : 'need', inserted.id, isProfile ? 'job_seeker' : 'recruiter', inserted);
+                } catch (eventError) {
+                    if (!isMissingEventsTableError(eventError)) {
+                        throw eventError;
+                    }
+                }
                 const bestMatch = await findMatches(isProfile ? 'profile' : 'need', insertPayload);
                 if (bestMatch && bestMatch.score >= 25) {
                     const matchPayload = isProfile ? {
@@ -455,7 +465,13 @@
                     }).select('*');
                     if (matchError) throw matchError;
                     if (matchRows && matchRows[0]) {
-                        await insertHubEvent('MATCH_CREATED', 'match', matchRows[0].id, 'router', { ...matchPayload, match_score: bestMatch.score });
+                        try {
+                            await insertHubEvent('MATCH_CREATED', 'match', matchRows[0].id, 'router', { ...matchPayload, match_score: bestMatch.score });
+                        } catch (eventError) {
+                            if (!isMissingEventsTableError(eventError)) {
+                                throw eventError;
+                            }
+                        }
                     }
                 }
                 setStatus(`Stored successfully. ${bestMatch ? `Top match score: ${bestMatch.score}%` : 'No direct match yet.'}`);
