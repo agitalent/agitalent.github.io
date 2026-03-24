@@ -402,6 +402,10 @@
             renderResultCards(ranked.map((item) => ({ title: item.profile.name_or_handle || 'Active profile', score: item.score, reason: `${item.profile.location || 'Location open'} • ${item.profile.domain_focus || 'General AI'} • ${item.profile.seniority || 'Any level'}` })));
             return ranked[0] || null;
         };
+        const isMissingNeedsEmailColumnError = (error) => {
+            const message = String(error?.message || error || '');
+            return message.includes("Could not find the 'email' column of 'needs' in the schema cache");
+        };
         recordKind.addEventListener('change', toggleFields);
         toggleFields();
         registerForm.addEventListener('submit', async (event) => {
@@ -415,11 +419,23 @@
             const table = isProfile ? 'profiles' : 'needs';
             setStatus(`Writing ${isProfile ? 'profile' : 'job'} to the shared hub...`);
             try {
-                const { data: insertedRows, error } = await supabaseClient.from(table).insert(payload).select('*');
+                let insertPayload = payload;
+                let insertedRows;
+                let error;
+                ({ data: insertedRows, error } = await supabaseClient.from(table).insert(insertPayload).select('*'));
+
+                // Some deployed projects have not applied the needs.email migration yet.
+                // Fall back to the pre-migration payload so job posting keeps working.
+                if (error && !isProfile && isMissingNeedsEmailColumnError(error)) {
+                    const { email, ...legacyPayload } = payload;
+                    insertPayload = legacyPayload;
+                    ({ data: insertedRows, error } = await supabaseClient.from(table).insert(insertPayload).select('*'));
+                }
+
                 if (error) throw error;
                 const inserted = insertedRows && insertedRows[0] ? insertedRows[0] : payload;
                 await insertHubEvent(isProfile ? 'NEW_PROFILE' : 'NEW_NEED', isProfile ? 'profile' : 'need', inserted.id, isProfile ? 'job_seeker' : 'recruiter', inserted);
-                const bestMatch = await findMatches(isProfile ? 'profile' : 'need', payload);
+                const bestMatch = await findMatches(isProfile ? 'profile' : 'need', insertPayload);
                 if (bestMatch && bestMatch.score >= 25) {
                     const matchPayload = isProfile ? {
                         source_profile_id: inserted.id,
