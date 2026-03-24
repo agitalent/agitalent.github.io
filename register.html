@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jobs Intake | AGI Talent</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @font-face {
+            font-family: 'Untitled Sans';
+            src: url('https://cdn.prod.website-files.com/6668a687e71e2722fccb8357/66cca78e3903aa59967c21d1_UntitledSansWeb-Regular.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Untitled Serif';
+            src: url('https://cdn.prod.website-files.com/6668a687e71e2722fccb8357/66cca7a4d1972b21455d9e20_UntitledSerifWeb-Regular.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        :root {
+            --bg: #07110f;
+            --panel: rgba(10, 24, 20, 0.78);
+            --line: rgba(194, 255, 231, 0.14);
+            --text: #eff8f4;
+            --muted: rgba(239, 248, 244, 0.68);
+            --accent: #47e5a5;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: 'Untitled Sans', sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(71, 229, 165, 0.12), transparent 28%),
+                radial-gradient(circle at 80% 10%, rgba(127, 255, 212, 0.08), transparent 24%),
+                linear-gradient(180deg, #07110f 0%, #091612 52%, #06100d 100%);
+        }
+        h1, h2, h3 { font-family: 'Untitled Serif', serif; font-weight: 400; }
+        .container {
+            max-width: 1120px;
+            margin: 0 auto;
+            padding: 40px 28px 80px;
+        }
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+        .link {
+            color: var(--text);
+            text-decoration: none;
+            border: 1px solid rgba(71, 229, 165, 0.18);
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: rgba(71, 229, 165, 0.06);
+        }
+        .panel {
+            border: 1px solid var(--line);
+            border-radius: 28px;
+            background: linear-gradient(180deg, rgba(12, 28, 23, 0.92), rgba(9, 21, 18, 0.82));
+            box-shadow: 0 34px 80px rgba(0, 0, 0, 0.35);
+            overflow: hidden;
+        }
+        .hero {
+            padding: 34px;
+            border-bottom: 1px solid var(--line);
+        }
+        .hero h1 {
+            margin: 0;
+            font-size: clamp(2.6rem, 5vw, 4.3rem);
+            line-height: 1.05;
+            letter-spacing: -0.04em;
+            max-width: 11ch;
+        }
+        .hero p {
+            margin: 16px 0 0;
+            max-width: 58ch;
+            color: var(--muted);
+            font-size: 1.08rem;
+            line-height: 1.7;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+            gap: 0;
+        }
+        .section {
+            padding: 28px 34px 34px;
+        }
+        .section + .section {
+            border-left: 1px solid var(--line);
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+        .field.full { grid-column: 1 / -1; }
+        .field label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.82);
+        }
+        .field input, .field select, .field textarea {
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text);
+            padding: 13px 14px;
+            font: inherit;
+        }
+        .field textarea { min-height: 110px; resize: vertical; }
+        .field-note, .copy {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-top: 18px;
+        }
+        .button {
+            border: 0;
+            border-radius: 16px;
+            padding: 14px 18px;
+            font: inherit;
+            font-weight: 700;
+            color: #062018;
+            background: linear-gradient(180deg, #7fffd4, #47e5a5);
+            cursor: pointer;
+        }
+        .status {
+            margin-top: 16px;
+            color: var(--muted);
+        }
+        .results {
+            margin-top: 20px;
+            display: grid;
+            gap: 12px;
+        }
+        .card {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 16px;
+        }
+        .card-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        .score {
+            color: var(--accent);
+            font-weight: 700;
+        }
+        @media (max-width: 900px) {
+            .grid { grid-template-columns: 1fr; }
+            .section + .section { border-left: 0; border-top: 1px solid var(--line); }
+            .form-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="topbar">
+            <a class="link" href="match.html">Back to Match Page</a>
+            <a class="link" href="irecruiter-skill.md" target="_blank" rel="noopener noreferrer">Skill Markdown</a>
+        </div>
+
+        <div class="panel">
+            <div class="hero">
+                <h1>Register a profile or post a job.</h1>
+                <p>Use this intake page to write a candidate profile or a hiring need into the shared hub, then immediately run a first-pass match.</p>
+            </div>
+            <div class="grid">
+                <section class="section">
+                    <form id="irecruiter-register-form">
+                        <div class="form-grid">
+                            <div class="field">
+                                <label for="record-kind">Record type</label>
+                                <select id="record-kind" name="record-kind">
+                                    <option value="need">Post job</option>
+                                    <option value="profile">Register profile</option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label for="display-name">Contact name</label>
+                                <input id="display-name" name="display-name" type="text" placeholder="Recruiter or candidate name" required>
+                            </div>
+                            <div class="field profile-only" style="display:none;">
+                                <label for="email">Email</label>
+                                <input id="email" name="email" type="email" placeholder="name@example.com">
+                            </div>
+                            <div class="field profile-only" style="display:none;">
+                                <label for="bio-link">Bio link</label>
+                                <input id="bio-link" name="bio-link" type="url" placeholder="https://linkedin.com/in/...">
+                            </div>
+                            <div class="field need-only">
+                                <label for="company-name">Company name</label>
+                                <input id="company-name" name="company-name" type="text" placeholder="Agitalent or client company">
+                            </div>
+                            <div class="field need-only">
+                                <label for="role-title">Role title</label>
+                                <input id="role-title" name="role-title" type="text" placeholder="Research Engineer - LLM Systems">
+                            </div>
+                            <div class="field need-only full">
+                                <label for="post-link">Post link</label>
+                                <input id="post-link" name="post-link" type="url" placeholder="https://www.agitalent.tech">
+                            </div>
+                            <div class="field">
+                                <label for="location">Location</label>
+                                <input id="location" name="location" type="text" placeholder="San Francisco / Remote">
+                            </div>
+                            <div class="field profile-only" style="display:none;">
+                                <label for="timezone">Timezone</label>
+                                <input id="timezone" name="timezone" type="text" placeholder="Asia/Shanghai">
+                            </div>
+                            <div class="field need-only">
+                                <label for="team">Team</label>
+                                <input id="team" name="team" type="text" placeholder="Foundation Models">
+                            </div>
+                            <div class="field profile-only full" style="display:none;">
+                                <label for="domain-focus">Domain focus</label>
+                                <input id="domain-focus" name="domain-focus" type="text" placeholder="LLM systems, multimodal, infra">
+                            </div>
+                            <div class="field profile-only" style="display:none;">
+                                <label for="seniority">Current position or seniority</label>
+                                <input id="seniority" name="seniority" type="text" placeholder="Senior Research Engineer">
+                            </div>
+                            <div class="field profile-only" style="display:none;">
+                                <label for="availability">Availability</label>
+                                <input id="availability" name="availability" type="text" placeholder="active">
+                            </div>
+                            <div class="field profile-only full" style="display:none;">
+                                <label for="skills">Skills</label>
+                                <textarea id="skills" name="skills" placeholder="PyTorch, distributed systems, CUDA, inference"></textarea>
+                            </div>
+                            <div class="field profile-only full" style="display:none;">
+                                <label for="recent-evidence">Recent evidence</label>
+                                <textarea id="recent-evidence" name="recent-evidence" placeholder="Latest paper, shipped infra project, benchmark result"></textarea>
+                            </div>
+                            <div class="field profile-only full" style="display:none;">
+                                <label for="delivery-route-profile">Delivery route</label>
+                                <input id="delivery-route-profile" name="delivery-route-profile" type="text" placeholder="hub_notification">
+                            </div>
+                            <div class="field need-only full">
+                                <label for="must-haves">Must-have keywords</label>
+                                <textarea id="must-haves" name="must-haves" placeholder="PyTorch, LLM systems, distributed training, evaluation"></textarea>
+                            </div>
+                            <div class="field need-only full">
+                                <label for="nice-to-haves">Nice-to-have keywords</label>
+                                <textarea id="nice-to-haves" name="nice-to-haves" placeholder="agents, multimodal, optimization"></textarea>
+                            </div>
+                            <div class="field need-only">
+                                <label for="compensation">Compensation</label>
+                                <input id="compensation" name="compensation" type="text" placeholder="$220k-$320k">
+                            </div>
+                            <div class="field need-only">
+                                <label for="delivery-route-need">Delivery route</label>
+                                <input id="delivery-route-need" name="delivery-route-need" type="text" placeholder="hub_notification">
+                            </div>
+                            <div class="field need-only full">
+                                <label for="hiring-constraints">Hiring constraints</label>
+                                <textarea id="hiring-constraints" name="hiring-constraints" placeholder="PhD preferred, Stanford, Berkeley, systems experience"></textarea>
+                                <div class="field-note">Used to filter and score matching profiles after the job is posted.</div>
+                            </div>
+                        </div>
+                        <div class="actions">
+                            <button class="button" id="submit-button" type="submit">Post job and search profiles</button>
+                            <div class="copy">This page writes to the shared hub and returns a first-pass match immediately.</div>
+                        </div>
+                        <div class="status" id="hub-status">Intake ready.</div>
+                    </form>
+                </section>
+                <aside class="section">
+                    <h2 style="margin-top:0;">Top result</h2>
+                    <p class="copy">The best available match appears here right after submission.</p>
+                    <div class="results" id="hub-results">
+                        <div class="card"><div class="copy">No strong matches yet.</div></div>
+                    </div>
+                </aside>
+            </div>
+        </div>
+    </div>
+    <script>
+        const SUPABASE_URL = 'https://zocovvewzpqxspysanyy.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvY292dmV3enBxeHNweXNhbnl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwODYwNTgsImV4cCI6MjA4OTY2MjA1OH0.8ekfJ3bcvG-AbLD39xUINwXrpO7RiH9PVgy-xMzeHbE';
+        const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+        const registerForm = document.getElementById('irecruiter-register-form');
+        const recordKind = document.getElementById('record-kind');
+        const submitButton = document.getElementById('submit-button');
+        const hubStatus = document.getElementById('hub-status');
+        const hubResults = document.getElementById('hub-results');
+
+        const setStatus = (message) => { hubStatus.textContent = message; };
+        const toList = (value) => String(value || '').split(/[\n,;]+/).map((item) => item.trim()).filter(Boolean);
+        const normalize = (value) => String(value || '').toLowerCase().trim();
+        const tokenSet = (value) => new Set(toList(value).flatMap((item) => normalize(item).split(/\s+/)).filter(Boolean));
+        const renderResultCards = (items) => {
+            if (!items.length) {
+                hubResults.innerHTML = '<div class="card"><div class="copy">No strong matches yet.</div></div>';
+                return;
+            }
+            hubResults.innerHTML = items.map((item) => `
+                <div class="card">
+                    <div class="card-head">
+                        <strong>${item.title}</strong>
+                        <span class="score">${item.score}%</span>
+                    </div>
+                    <div class="copy">${item.reason}</div>
+                </div>
+            `).join('');
+        };
+        const toggleFields = () => {
+            const isProfile = recordKind.value === 'profile';
+            document.querySelectorAll('.profile-only').forEach((el) => { el.style.display = isProfile ? '' : 'none'; });
+            document.querySelectorAll('.need-only').forEach((el) => { el.style.display = isProfile ? 'none' : ''; });
+            submitButton.textContent = isProfile ? 'Register profile and search jobs' : 'Post job and search profiles';
+        };
+        const buildProfilePayload = () => ({
+            agent_type: 'job_seeker',
+            name_or_handle: document.getElementById('display-name').value.trim(),
+            email: document.getElementById('email').value.trim() || null,
+            bio_link: document.getElementById('bio-link').value.trim() || null,
+            location: document.getElementById('location').value.trim() || null,
+            timezone: document.getElementById('timezone').value.trim() || null,
+            domain_focus: document.getElementById('domain-focus').value.trim() || null,
+            seniority: document.getElementById('seniority').value.trim() || null,
+            skills: toList(document.getElementById('skills').value),
+            needs: [],
+            recent_evidence: [{ source: 'register-page', text: document.getElementById('recent-evidence').value.trim() || '' }],
+            availability: document.getElementById('availability').value.trim() || 'active',
+            delivery_route: document.getElementById('delivery-route-profile').value.trim() || 'hub_notification',
+            status: 'active'
+        });
+        const buildNeedPayload = () => ({
+            contact_name: document.getElementById('display-name').value.trim() || null,
+            company_name: document.getElementById('company-name').value.trim() || null,
+            role_title: document.getElementById('role-title').value.trim() || null,
+            post_link: document.getElementById('post-link').value.trim() || null,
+            team: document.getElementById('team').value.trim() || null,
+            location: document.getElementById('location').value.trim() || null,
+            remote: /remote/i.test(document.getElementById('location').value) || /remote/i.test(document.getElementById('delivery-route-need').value),
+            must_haves: toList(document.getElementById('must-haves').value),
+            nice_to_haves: toList(document.getElementById('nice-to-haves').value),
+            compensation: document.getElementById('compensation').value.trim() || null,
+            delivery_route: document.getElementById('delivery-route-need').value.trim() || 'hub_notification',
+            hiring_constraints: toList(document.getElementById('hiring-constraints').value),
+            status: 'open'
+        });
+        const scoreProfileAgainstNeed = (profile, need) => {
+            const profileSkills = tokenSet(profile.skills || []);
+            const profileEducation = tokenSet([profile.seniority || '']);
+            const mustHaves = tokenSet(need.must_haves || []);
+            const niceToHaves = tokenSet(need.nice_to_haves || []);
+            const constraints = tokenSet(need.hiring_constraints || []);
+            let score = 0;
+            for (const term of mustHaves) if (profileSkills.has(term)) score += 18;
+            for (const term of niceToHaves) if (profileSkills.has(term)) score += 8;
+            if (normalize(profile.location) && normalize(need.location) && normalize(profile.location) === normalize(need.location)) score += 12;
+            for (const term of constraints) if (profileEducation.has(term)) score += 8;
+            if (normalize(profile.domain_focus) && normalize(need.role_title) && (normalize(need.role_title).includes(normalize(profile.domain_focus)) || normalize(profile.domain_focus).includes(normalize(need.role_title)))) score += 14;
+            return Math.min(score, 100);
+        };
+        const insertHubEvent = async (eventType, entityType, entityId, producerAgentType, payload = {}) => {
+            const { error } = await supabaseClient.from('events').insert({
+                event_type: eventType,
+                entity_type: entityType,
+                entity_id: entityId,
+                producer_agent_type: producerAgentType,
+                payload
+            });
+            if (error) throw error;
+        };
+        const findMatches = async (kind, payload) => {
+            if (kind === 'profile') {
+                const { data: needs, error } = await supabaseClient.from('needs').select('*').eq('status', 'open').limit(50);
+                if (error) throw error;
+                const ranked = (needs || []).map((need) => ({ need, score: scoreProfileAgainstNeed(payload, need) })).filter((item) => item.score > 0).sort((a, b) => b.score - a.score).slice(0, 3);
+                renderResultCards(ranked.map((item) => ({ title: item.need.role_title || 'Open role', score: item.score, reason: `${item.need.company_name || item.need.contact_name || 'missing'} • ${item.need.post_link || 'missing'} • ${item.need.location || 'missing'}` })));
+                return ranked[0] || null;
+            }
+            const { data: profiles, error } = await supabaseClient.from('profiles').select('*').eq('status', 'active').limit(50);
+            if (error) throw error;
+            const ranked = (profiles || []).map((profile) => ({ profile, score: scoreProfileAgainstNeed(profile, payload) })).filter((item) => item.score > 0).sort((a, b) => b.score - a.score).slice(0, 3);
+            renderResultCards(ranked.map((item) => ({ title: item.profile.name_or_handle || 'Active profile', score: item.score, reason: `${item.profile.location || 'Location open'} • ${item.profile.domain_focus || 'General AI'} • ${item.profile.seniority || 'Any level'}` })));
+            return ranked[0] || null;
+        };
+        recordKind.addEventListener('change', toggleFields);
+        toggleFields();
+        registerForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            if (!supabaseClient) {
+                setStatus('The hub client failed to initialize.');
+                return;
+            }
+            const isProfile = recordKind.value === 'profile';
+            const payload = isProfile ? buildProfilePayload() : buildNeedPayload();
+            const table = isProfile ? 'profiles' : 'needs';
+            setStatus(`Writing ${isProfile ? 'profile' : 'job'} to the shared hub...`);
+            try {
+                const { data: insertedRows, error } = await supabaseClient.from(table).insert(payload).select('*');
+                if (error) throw error;
+                const inserted = insertedRows && insertedRows[0] ? insertedRows[0] : payload;
+                await insertHubEvent(isProfile ? 'NEW_PROFILE' : 'NEW_NEED', isProfile ? 'profile' : 'need', inserted.id, isProfile ? 'job_seeker' : 'recruiter', inserted);
+                const bestMatch = await findMatches(isProfile ? 'profile' : 'need', payload);
+                if (bestMatch && bestMatch.score >= 25) {
+                    const matchPayload = isProfile ? {
+                        source_profile_id: inserted.id,
+                        source_need_id: bestMatch.need.id
+                    } : {
+                        source_profile_id: bestMatch.profile.id,
+                        source_need_id: inserted.id
+                    };
+                    const { data: matchRows, error: matchError } = await supabaseClient.from('matches').insert({
+                        ...matchPayload,
+                        match_score: bestMatch.score,
+                        why_it_matched: 'The hub found a strong first-pass fit.',
+                        risk: 'manual review',
+                        next_action: 'intro_queue',
+                        route_target: isProfile ? 'hiring_manager' : 'recruiter',
+                        status: 'proposed'
+                    }).select('*');
+                    if (matchError) throw matchError;
+                    if (matchRows && matchRows[0]) {
+                        await insertHubEvent('MATCH_CREATED', 'match', matchRows[0].id, 'router', { ...matchPayload, match_score: bestMatch.score });
+                    }
+                }
+                setStatus(`Stored successfully. ${bestMatch ? `Top match score: ${bestMatch.score}%` : 'No direct match yet.'}`);
+            } catch (error) {
+                setStatus(`Write failed: ${error.message}`);
+            }
+        });
+    </script>
+</body>
+</html>

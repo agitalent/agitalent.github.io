@@ -1121,10 +1121,10 @@
                         </div>
                         <div class="status-box" style="margin-top:18px;">
                             <h3>Watch mode</h3>
-                            <p class="status-copy">Listening to Supabase `needs` inserts. New job posts will appear here as they land.</p>
+                            <p class="status-copy">Listening to new hub events. New job posts will appear here as they land.</p>
                             <div class="status-line" id="hub-status">Watch mode idle.</div>
                             <div class="hub-results" id="hub-results">
-                                <div class="hub-empty">Waiting for new job posts in Supabase.</div>
+                                <div class="hub-empty">Waiting for new job posts in the shared hub.</div>
                             </div>
                         </div>
                     </div>
@@ -1135,131 +1135,13 @@
                         <div class="glass hub-console-panel">
                             <div class="hub-console-header">
                                 <div>
-                                    <h2>Register a profile or post a job</h2>
-                                    <p>Job posters can publish a need into the hub, then immediately search live profiles. Candidates can still register once and stay searchable.</p>
+                                    <h2>Keep matching here. Submit on a dedicated page.</h2>
+                                    <p>This page stays focused on watch mode and routed results. Use the separate intake page to register a profile or post a job.</p>
                                 </div>
-                                <div class="hub-console-pill">Supabase live hub</div>
+                                <div class="hub-console-pill">Hub intake moved</div>
                             </div>
-                            <div class="hub-console-grid">
-                                <form class="register-form" id="irecruiter-register-form">
-                                    <div class="form-grid">
-                                        <div class="field">
-                                            <label for="record-kind">Record type</label>
-                                            <select id="record-kind" name="record-kind">
-                                                <option value="need">Post job</option>
-                                                <option value="profile">Register profile</option>
-                                            </select>
-                                        </div>
-                                        <div class="field">
-                                            <label for="display-name">Contact name</label>
-                                            <input id="display-name" name="display-name" type="text" placeholder="Recruiter or candidate name" required>
-                                        </div>
-
-                                        <div class="field profile-only" style="display:none;">
-                                            <label for="email">Email</label>
-                                            <input id="email" name="email" type="email" placeholder="name@example.com">
-                                        </div>
-                                        <div class="field profile-only" style="display:none;">
-                                            <label for="bio-link">Bio link</label>
-                                            <input id="bio-link" name="bio-link" type="url" placeholder="https://linkedin.com/in/...">
-                                        </div>
-
-                                        <div class="field need-only">
-                                            <label for="company-name">Company name</label>
-                                            <input id="company-name" name="company-name" type="text" placeholder="Agitalent or client company">
-                                        </div>
-                                        <div class="field need-only">
-                                            <label for="role-title">Role title</label>
-                                            <input id="role-title" name="role-title" type="text" placeholder="Research Engineer - LLM Systems">
-                                        </div>
-
-                                        <div class="field need-only full">
-                                            <label for="post-link">Post link</label>
-                                            <input id="post-link" name="post-link" type="url" placeholder="https://www.agitalent.tech">
-                                        </div>
-
-                                        <div class="field">
-                                            <label for="location">Location</label>
-                                            <input id="location" name="location" type="text" placeholder="San Francisco / Remote">
-                                        </div>
-                                        <div class="field profile-only" style="display:none;">
-                                            <label for="timezone">Timezone</label>
-                                            <input id="timezone" name="timezone" type="text" placeholder="Asia/Shanghai">
-                                        </div>
-                                        <div class="field need-only">
-                                            <label for="team">Team</label>
-                                            <input id="team" name="team" type="text" placeholder="Foundation Models">
-                                        </div>
-
-                                        <div class="field profile-only full" style="display:none;">
-                                            <label for="domain-focus">Domain focus</label>
-                                            <input id="domain-focus" name="domain-focus" type="text" placeholder="LLM systems, multimodal, infra">
-                                        </div>
-                                        <div class="field profile-only" style="display:none;">
-                                            <label for="seniority">Current position or seniority</label>
-                                            <input id="seniority" name="seniority" type="text" placeholder="Senior Research Engineer">
-                                        </div>
-                                        <div class="field profile-only" style="display:none;">
-                                            <label for="availability">Availability</label>
-                                            <input id="availability" name="availability" type="text" placeholder="active">
-                                        </div>
-
-                                        <div class="field profile-only full" style="display:none;">
-                                            <label for="skills">Skills</label>
-                                            <textarea id="skills" name="skills" placeholder="PyTorch, distributed systems, CUDA, inference"></textarea>
-                                        </div>
-                                        <div class="field profile-only full" style="display:none;">
-                                            <label for="recent-evidence">Recent evidence</label>
-                                            <textarea id="recent-evidence" name="recent-evidence" placeholder="Latest paper, shipped infra project, benchmark result"></textarea>
-                                        </div>
-                                        <div class="field profile-only full" style="display:none;">
-                                            <label for="delivery-route-profile">Delivery route</label>
-                                            <input id="delivery-route-profile" name="delivery-route-profile" type="text" placeholder="hub_notification">
-                                        </div>
-
-                                        <div class="field need-only full">
-                                            <label for="must-haves">Must-have keywords</label>
-                                            <textarea id="must-haves" name="must-haves" placeholder="PyTorch, LLM systems, distributed training, evaluation"></textarea>
-                                        </div>
-                                        <div class="field need-only full">
-                                            <label for="nice-to-haves">Nice-to-have keywords</label>
-                                            <textarea id="nice-to-haves" name="nice-to-haves" placeholder="agents, multimodal, optimization"></textarea>
-                                        </div>
-                                        <div class="field need-only">
-                                            <label for="compensation">Compensation</label>
-                                            <input id="compensation" name="compensation" type="text" placeholder="$220k-$320k">
-                                        </div>
-                                        <div class="field need-only">
-                                            <label for="delivery-route-need">Delivery route</label>
-                                            <input id="delivery-route-need" name="delivery-route-need" type="text" placeholder="hub_notification">
-                                        </div>
-                                        <div class="field need-only full">
-                                            <label for="hiring-constraints">Hiring constraints</label>
-                                            <textarea id="hiring-constraints" name="hiring-constraints" placeholder="PhD preferred, Stanford, Berkeley, systems experience"></textarea>
-                                            <div class="field-note">Used to filter and score matching profiles after the job is posted.</div>
-                                        </div>
-                                    </div>
-                                    <div class="form-actions">
-                                        <button class="submit-button" id="submit-button" type="submit">Post job and search profiles</button>
-                                        <div class="field-note">`Post job` writes to `needs` and searches `profiles`. `Register profile` writes to `profiles` and searches `needs`.</div>
-                                    </div>
-                                </form>
-
-                                <div class="status-box">
-                                    <div>
-                                        <h3>Recent registrations</h3>
-                                        <p class="status-copy">Latest profile and job-post records from the shared Supabase hub.</p>
-                                    </div>
-                                    <div class="recent-feed" id="recent-feed">
-                                        <div class="hub-empty">Recent registrations will appear here.</div>
-                                    </div>
-                                    <div class="match-feed">
-                                        <h4>Recent routed matches</h4>
-                                        <div class="recent-list" id="match-feed">
-                                            <div class="hub-empty">Match results will appear here after a profile or job post is stored.</div>
-                                        </div>
-                                    </div>
-                                </div>
+                            <div class="hero-actions" style="margin-top:18px;">
+                                <a class="cta" href="register.html">Open Intake Page</a>
                             </div>
                         </div>
                     </section>
@@ -1551,7 +1433,7 @@
                         <strong>${escapeHtml(title)}</strong>
                         <span class="score">NEW</span>
                     </div>
-                    <p>${escapeHtml(meta || 'New job post detected in Supabase.')}</p>
+                    <p>${escapeHtml(meta || 'New job post detected in the shared hub.')}</p>
                     <p style="margin-top:10px;color:rgba(255,255,255,0.68);font-size:13px;">${escapeHtml(route)}</p>
                 </div>
             `;
@@ -1641,7 +1523,7 @@
         const startNeedWatch = async () => {
             if (!supabaseClient) return;
 
-            setWatchStatus('Watch mode live. Listening for hub events in Supabase.');
+            setWatchStatus('Watch mode live. Listening for hub events.');
 
             const { data: latestEvent, error } = await supabaseClient
                 .from('events')
@@ -1667,7 +1549,7 @@
                 })
                 .subscribe((status) => {
                     if (status === 'SUBSCRIBED') {
-                        setWatchStatus('Watch mode live. Listening for hub events in Supabase.');
+                        setWatchStatus('Watch mode live. Listening for hub events.');
                     }
                 });
 
@@ -2076,7 +1958,7 @@
                 renderRecentFeed(recent);
             } catch (error) {
                 console.error(error);
-                recentFeed.innerHTML = '<div class="hub-empty">Recent feed failed to load. Check Supabase read access and table names.</div>';
+                recentFeed.innerHTML = '<div class="hub-empty">Recent feed failed to load. Check read access and table names.</div>';
             }
         };
 
@@ -2248,7 +2130,7 @@
 
         const findMatches = async (kind, payload) => {
             if (!supabaseClient) {
-                throw new Error('Supabase client is unavailable.');
+                throw new Error('Hub client is unavailable.');
             }
 
             if (kind === 'profile') {
@@ -2401,7 +2283,7 @@
                     return;
                 }
 
-                setStatus(`Writing ${recordLabel} to Supabase...`);
+                setStatus(`Writing ${recordLabel} to the shared hub...`);
                 renderResultCards([]);
 
                 try {
@@ -2477,17 +2359,17 @@
                         }
                     }
 
-                    setStatus(`Stored ${recordLabel} in Supabase. ${bestMatch ? `Top match score: ${bestMatch.score}%` : 'No direct match yet.'}`);
+                    setStatus(`Stored ${recordLabel} in the shared hub. ${bestMatch ? `Top match score: ${bestMatch.score}%` : 'No direct match yet.'}`);
                     refreshRecentFeed();
                     refreshMatchFeed();
                 } catch (error) {
                     console.error(error);
-                    setStatus(`Supabase write failed: ${error.message}`);
-                    hubResults.innerHTML = '<div class="hub-empty">The app is wired, but Supabase rejected the write. Run the schema and policies file in your project, then try again.</div>';
+                    setStatus(`Hub write failed: ${error.message}`);
+                    hubResults.innerHTML = '<div class="hub-empty">The app is wired, but the hub rejected the write. Run the schema and policies file in your project, then try again.</div>';
                 }
             });
         } else if (registerForm) {
-            setStatus('Supabase client failed to initialize. Check the project URL and public key.');
+            setStatus('Hub client failed to initialize. Check the project URL and public key.');
         }
     </script>
 </body>
