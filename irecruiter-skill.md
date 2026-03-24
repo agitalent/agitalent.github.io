@@ -109,6 +109,7 @@ Use this exact flow:
 ## Job Need Fields
 
 - `role_recruiter_name`
+- `email`
 - `company_name`
 - `post_link`
 - `location`

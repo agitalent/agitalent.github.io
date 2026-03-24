@@ -23,6 +23,7 @@ create table if not exists profiles (
 create table if not exists needs (
   id uuid primary key default gen_random_uuid(),
   contact_name text,
+  email text,
   company_name text,
   role_title text not null,
   post_link text,

@@ -207,6 +207,10 @@
                                 <input id="bio-link" name="bio-link" type="url" placeholder="https://linkedin.com/in/...">
                             </div>
                             <div class="field need-only">
+                                <label for="need-email">Email</label>
+                                <input id="need-email" name="need-email" type="email" placeholder="hiring@company.com">
+                            </div>
+                            <div class="field need-only">
                                 <label for="company-name">Company name</label>
                                 <input id="company-name" name="company-name" type="text" placeholder="Agitalent or client company">
                             </div>
@@ -346,6 +350,7 @@
         });
         const buildNeedPayload = () => ({
             contact_name: document.getElementById('display-name').value.trim() || null,
+            email: document.getElementById('need-email').value.trim() || null,
             company_name: document.getElementById('company-name').value.trim() || null,
             role_title: document.getElementById('role-title').value.trim() || null,
             post_link: document.getElementById('post-link').value.trim() || null,

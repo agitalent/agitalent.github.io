@@ -172,6 +172,7 @@ const normalizeNeedInput = (raw) => {
 
   return {
     contact_name: raw.role_recruiter_name || raw.contact_name || raw.recruiter_name || 'Unknown',
+    email: raw.email || raw.contact_email || raw.recruiter_email || null,
     company_name: raw.company_name || raw.company || raw.companyName || null,
     role_title: raw.position || raw.role_title || 'Open role',
     post_link: raw.post_link || raw.postLink || raw.job_link || null,
@@ -246,6 +247,7 @@ const registerNeed = async (raw) => {
     producerAgentType: 'recruiter',
     payload: {
       role_title: row.role_title,
+      email: row.email,
       company_name: row.company_name,
       post_link: row.post_link,
       location: row.location
@@ -256,6 +258,7 @@ const registerNeed = async (raw) => {
     id: row.id,
     role_title: row.role_title,
     contact_name: row.contact_name,
+    email: row.email,
     company_name: row.company_name,
     post_link: row.post_link,
     location: row.location,
