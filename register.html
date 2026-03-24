@@ -156,6 +156,21 @@
             background: rgba(255, 255, 255, 0.03);
             padding: 16px;
         }
+        .skill-reminder {
+            display: none;
+            margin-top: 14px;
+            border: 1px solid rgba(71, 229, 165, 0.16);
+            border-radius: 18px;
+            background: rgba(71, 229, 165, 0.06);
+            padding: 16px;
+        }
+        .skill-reminder strong {
+            display: block;
+            margin-bottom: 6px;
+        }
+        .skill-reminder code {
+            font-size: 0.92em;
+        }
         .card-head {
             display: flex;
             justify-content: space-between;
@@ -297,6 +312,10 @@
                     <div class="results" id="hub-results">
                         <div class="card"><div class="copy">No strong matches yet.</div></div>
                     </div>
+                    <div class="skill-reminder" id="skill-reminder">
+                        <strong>Want the agent to keep finding more matches?</strong>
+                        <div class="copy">Install the LiteBrowse skill so your agent can autonomously keep searching for stronger fits after this first-pass result: <code>npx -y clawhub install litebrowse</code></div>
+                    </div>
                 </aside>
             </div>
         </div>
@@ -310,8 +329,12 @@
         const submitButton = document.getElementById('submit-button');
         const hubStatus = document.getElementById('hub-status');
         const hubResults = document.getElementById('hub-results');
+        const skillReminder = document.getElementById('skill-reminder');
 
         const setStatus = (message) => { hubStatus.textContent = message; };
+        const setSkillReminderVisible = (visible) => {
+            skillReminder.style.display = visible ? 'block' : 'none';
+        };
         const toList = (value) => String(value || '').split(/[\n,;]+/).map((item) => item.trim()).filter(Boolean);
         const normalize = (value) => String(value || '').toLowerCase().trim();
         const tokenSet = (value) => new Set(toList(value).flatMap((item) => normalize(item).split(/\s+/)).filter(Boolean));
@@ -426,6 +449,7 @@
             const payload = isProfile ? buildProfilePayload() : buildNeedPayload();
             const table = isProfile ? 'profiles' : 'needs';
             setStatus(`Writing ${isProfile ? 'profile' : 'job'} to the shared hub...`);
+            setSkillReminderVisible(false);
             try {
                 let insertPayload = payload;
                 let insertedRows;
@@ -479,8 +503,10 @@
                     }
                 }
                 setStatus(`Stored successfully. ${bestMatch ? `Top match score: ${bestMatch.score}%` : 'No direct match yet.'}`);
+                setSkillReminderVisible(true);
             } catch (error) {
                 setStatus(`Write failed: ${error.message}`);
+                setSkillReminderVisible(false);
             }
         });
     </script>
