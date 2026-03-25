@@ -552,6 +552,11 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             return message.includes('Could not find the function public.search_profiles_sql');
         };
 
+        const isLlmAuthError = (error) => {
+            const message = String(error?.message || error || '');
+            return message.includes('401') || message.includes('Missing Authentication header');
+        };
+
         const promptTerms = (prompt) => String(prompt || '')
             .toLowerCase()
             .split(/[^a-z0-9]+/i)
@@ -672,6 +677,11 @@ Rules:
             updatePagination();
         };
 
+        const runPromptFallbackSearch = async (offset = 0) => {
+            usingRpcFallback = true;
+            await fetchProfilesClientFiltered(offset);
+        };
+
         const fetchProfiles = async (offset = 0) => {
             if (!supabaseClient) {
                 throw new Error('Supabase client failed to initialize.');
@@ -716,7 +726,16 @@ Rules:
                     const model = customModelInput.value.trim() || modelSelect.value;
                     const modelLabel = MODEL_LABELS[model] || model;
                     setStatus(`Searching with ${modelLabel}...`);
-                    activeSql = await generateSqlFromPrompt(activePrompt);
+                    try {
+                        activeSql = await generateSqlFromPrompt(activePrompt);
+                    } catch (error) {
+                        if (!isLlmAuthError(error)) {
+                            throw error;
+                        }
+                        await runPromptFallbackSearch(0);
+                        setStatus(`Loaded ${lastRowsLength} profile${lastRowsLength === 1 ? '' : 's'} with direct search fallback.`);
+                        return;
+                    }
                 } else {
                     activePrompt = '';
                     activeSql = 'select * from profiles order by created_at desc nulls last, updated_at desc nulls last';
