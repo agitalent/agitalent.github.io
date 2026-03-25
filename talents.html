@@ -321,6 +321,11 @@
             white-space: pre-wrap;
             word-break: break-word;
         }
+        .meta-value a {
+            color: var(--accent-2);
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
         .pagination {
             display: flex;
             flex-wrap: wrap;
@@ -486,10 +491,63 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;');
 
-        const formatValue = (value) => {
-            if (value === null || value === undefined || value === '') return '—';
-            if (typeof value === 'object') return JSON.stringify(value, null, 2);
-            return String(value);
+        const isBlankString = (value) => typeof value === 'string' && value.trim().replace(/^"+|"+$/g, '') === '';
+
+        const isEmptyValue = (value) => {
+            if (value === null || value === undefined) return true;
+            if (isBlankString(value)) return true;
+            if (Array.isArray(value)) {
+                return value.length === 0 || value.every((item) => isEmptyValue(item));
+            }
+            if (typeof value === 'object') {
+                const entries = Object.values(value);
+                return entries.length === 0 || entries.every((item) => isEmptyValue(item));
+            }
+            return false;
+        };
+
+        const normalizeLink = (value) => {
+            const text = String(value || '').trim();
+            if (!text) return '';
+            if (/^https?:\/\//i.test(text)) return text;
+            return `https://${text}`;
+        };
+
+        const formatStructuredValue = (value) => {
+            if (isEmptyValue(value)) return '';
+            if (Array.isArray(value)) {
+                const items = value
+                    .map((item) => formatStructuredValue(item))
+                    .filter(Boolean);
+                return items.join('<br>');
+            }
+            if (typeof value === 'object') {
+                return Object.entries(value)
+                    .filter(([, item]) => !isEmptyValue(item))
+                    .map(([key, item]) => `${escapeHtml(key)}: ${formatStructuredValue(item)}`)
+                    .join('<br>');
+            }
+            return escapeHtml(String(value).trim().replace(/^"+|"+$/g, ''));
+        };
+
+        const renderValueHtml = (key, value) => {
+            if (isEmptyValue(value)) return '';
+
+            if (key === 'bio_link') {
+                const href = normalizeLink(value);
+                const label = escapeHtml(String(value).trim());
+                return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+            }
+
+            if (key === 'skills' || key === 'needs' || key === 'recent_evidence') {
+                return formatStructuredValue(value);
+            }
+
+            if (typeof value === 'object') {
+                return formatStructuredValue(value);
+            }
+
+            return escapeHtml(String(value).trim());
         };
 
         const titleForProfile = (profile) => {
@@ -508,12 +566,16 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
 
             resultsEl.innerHTML = rows.map((profile) => {
                 const keys = Object.keys(profile);
-                const metaItems = keys.map((key) => `
-                    <div class="meta">
-                        <div class="meta-key">${escapeHtml(key)}</div>
-                        <div class="meta-value">${escapeHtml(formatValue(profile[key]))}</div>
-                    </div>
-                `).join('');
+                const metaItems = keys.map((key) => {
+                    const renderedValue = renderValueHtml(key, profile[key]);
+                    if (!renderedValue) return '';
+                    return `
+                        <div class="meta">
+                            <div class="meta-key">${escapeHtml(key)}</div>
+                            <div class="meta-value">${renderedValue}</div>
+                        </div>
+                    `;
+                }).filter(Boolean).join('');
 
                 return `
                     <article class="card">
