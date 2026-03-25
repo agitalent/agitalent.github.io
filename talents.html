@@ -540,6 +540,25 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             return escapeHtml(String(value).trim().replace(/^"+|"+$/g, ''));
         };
 
+        const renderRecentEvidenceHtml = (value) => {
+            if (!Array.isArray(value) || !value.length) return '';
+            const items = value
+                .map((item) => {
+                    if (item && typeof item === 'object') {
+                        const quote = item.quote ?? item.text ?? '';
+                        return String(quote).trim().replace(/^"+|"+$/g, '');
+                    }
+                    return String(item || '').trim().replace(/^"+|"+$/g, '');
+                })
+                .filter(Boolean);
+
+            if (!items.length) return '';
+
+            return items
+                .map((item, index) => `${index + 1}. ${escapeHtml(item)}`)
+                .join('<br><br>');
+        };
+
         const renderValueHtml = (key, value) => {
             if (isEmptyValue(value)) return '';
 
@@ -550,6 +569,9 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             }
 
             if (key === 'skills' || key === 'needs' || key === 'recent_evidence') {
+                if (key === 'recent_evidence') {
+                    return renderRecentEvidenceHtml(value);
+                }
                 return formatStructuredValue(value);
             }
 
