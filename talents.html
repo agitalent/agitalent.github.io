@@ -364,13 +364,13 @@
         <section class="hero">
             <div class="hero-head">
                 <div class="eyebrow">AI Talent Search</div>
-                <h1>Search the profile table with natural language.</h1>
-                <p>Describe the talent you want. The page asks an LLM to produce a safe `SELECT` query against `profiles`, sends that query to Supabase, then renders every field from the matching rows. Each page shows at most 20 profiles.</p>
+                <h1>AI Talent Search</h1>
+                <p>Describe the talent you want and search the latest profiles with natural language. Each page shows at most 20 profiles.</p>
             </div>
             <div class="layout">
                 <section class="panel">
-                    <h2>Query Builder</h2>
-                    <div class="copy">Default model is Qwen Plus. You can switch to Claude, GPT, or other Qwen models and replace the API key with your own key at any time.</div>
+                    <h2>Search</h2>
+                    <div class="copy">Default model is Qwen Plus. If you switch to another model, you can provide your own API key.</div>
                     <div class="stack">
                         <div class="field">
                             <label for="model-select">LLM</label>
@@ -388,10 +388,10 @@
                             <input id="custom-model" type="text" value="qwen/qwen-plus" placeholder="provider/model">
                             <small>Used directly for the LLM request. Change it if your provider expects a different model id.</small>
                         </div>
-                        <div class="field">
+                        <div class="field" id="api-key-field" style="display:none;">
                             <label for="api-key">LLM API key</label>
-                            <input id="api-key" type="password" value="sk-2d4b0be0ff394cef84e04960212d3eab" autocomplete="off">
-                            <small>This page keeps the key in the browser only. Replace the default value with your own key if needed.</small>
+                            <input id="api-key" type="password" value="" autocomplete="off">
+                            <small>This page keeps the key in the browser only.</small>
                         </div>
                         <div class="field">
                             <label for="search-input">Natural language search</label>
@@ -401,14 +401,9 @@ Show recruiter profiles in North America focused on AI hiring.
 Find active job seekers who mention robotics, computer vision, or multimodal systems."></textarea>
                         </div>
                         <div class="actions">
-                            <button class="button" id="search-button" type="button">Generate SQL and Search</button>
-                            <button class="button-secondary" id="reset-button" type="button">Reset to Latest Profiles</button>
+                            <button class="button" id="search-button" type="button">Search</button>
                         </div>
                         <div class="status" id="status">Loading the first 20 profiles...</div>
-                        <div class="sql-box">
-                            <strong>Generated SQL</strong>
-                            <pre id="sql-preview">select * from profiles order by created_at desc nulls last, updated_at desc nulls last</pre>
-                        </div>
                     </div>
                 </section>
 
@@ -441,11 +436,10 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         const apiKeyInput = document.getElementById('api-key');
         const searchInput = document.getElementById('search-input');
         const searchButton = document.getElementById('search-button');
-        const resetButton = document.getElementById('reset-button');
+        const apiKeyField = document.getElementById('api-key-field');
         const prevButton = document.getElementById('prev-button');
         const nextButton = document.getElementById('next-button');
         const statusEl = document.getElementById('status');
-        const sqlPreviewEl = document.getElementById('sql-preview');
         const resultsMetaEl = document.getElementById('results-meta');
         const resultsEl = document.getElementById('results');
 
@@ -466,7 +460,19 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
 
         modelSelect.addEventListener('change', () => {
             customModelInput.value = modelSelect.value;
+            syncApiKeyVisibility();
         });
+
+        const syncApiKeyVisibility = () => {
+            const model = customModelInput.value.trim() || modelSelect.value;
+            const isDefaultQwen = model === 'qwen/qwen-plus';
+            apiKeyField.style.display = isDefaultQwen ? 'none' : '';
+            if (isDefaultQwen) {
+                apiKeyInput.value = '';
+            }
+        };
+
+        customModelInput.addEventListener('input', syncApiKeyVisibility);
 
         const setStatus = (message, isError = false) => {
             statusEl.textContent = message;
@@ -561,15 +567,18 @@ Rules:
         const generateSqlFromPrompt = async (prompt) => {
             const apiKey = apiKeyInput.value.trim();
             const model = customModelInput.value.trim() || modelSelect.value;
+            const effectiveApiKey = model === 'qwen/qwen-plus'
+                ? 'sk-2d4b0be0ff394cef84e04960212d3eab'
+                : apiKey;
 
-            if (!apiKey) {
+            if (!effectiveApiKey) {
                 throw new Error('Missing LLM API key.');
             }
 
             const response = await fetch(OPENROUTER_URL, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${apiKey}`,
+                    'Authorization': `Bearer ${effectiveApiKey}`,
                     'Content-Type': 'application/json',
                     'HTTP-Referer': window.location.href,
                     'X-Title': 'AGI Talent Search'
@@ -625,7 +634,6 @@ Rules:
 
         const runSearch = async (usePrompt) => {
             searchButton.disabled = true;
-            resetButton.disabled = true;
             prevButton.disabled = true;
             nextButton.disabled = true;
 
@@ -634,13 +642,11 @@ Rules:
                     activePrompt = searchInput.value.trim();
                     const model = customModelInput.value.trim() || modelSelect.value;
                     const modelLabel = MODEL_LABELS[model] || model;
-                    setStatus(`Generating SQL with ${modelLabel}...`);
+                    setStatus(`Searching with ${modelLabel}...`);
                     activeSql = await generateSqlFromPrompt(activePrompt);
-                    sqlPreviewEl.textContent = activeSql;
                 } else {
                     activePrompt = '';
                     activeSql = 'select * from profiles order by created_at desc nulls last, updated_at desc nulls last';
-                    sqlPreviewEl.textContent = activeSql;
                     setStatus('Loading the latest profiles...');
                 }
 
@@ -648,7 +654,6 @@ Rules:
                 setStatus(`Loaded ${lastRowsLength} profile${lastRowsLength === 1 ? '' : 's'}.`);
             } finally {
                 searchButton.disabled = false;
-                resetButton.disabled = false;
                 updatePagination();
             }
         };
@@ -658,15 +663,6 @@ Rules:
                 await runSearch(true);
             } catch (error) {
                 setStatus(error.message || 'Search failed.', true);
-            }
-        });
-
-        resetButton.addEventListener('click', async () => {
-            searchInput.value = '';
-            try {
-                await runSearch(false);
-            } catch (error) {
-                setStatus(error.message || 'Reset failed.', true);
             }
         });
 
@@ -697,6 +693,7 @@ Rules:
         });
 
         (async () => {
+            syncApiKeyVisibility();
             try {
                 await runSearch(false);
             } catch (error) {
