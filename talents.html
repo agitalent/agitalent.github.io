@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Talent Search | AGI Talent</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @font-face {
+            font-family: 'Untitled Sans';
+            src: url('https://cdn.prod.website-files.com/6668a687e71e2722fccb8357/66cca78e3903aa59967c21d1_UntitledSansWeb-Regular.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Untitled Serif';
+            src: url('https://cdn.prod.website-files.com/6668a687e71e2722fccb8357/66cca7a4d1972b21455d9e20_UntitledSerifWeb-Regular.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        :root {
+            --bg: #07110f;
+            --panel: rgba(10, 24, 20, 0.78);
+            --panel-strong: rgba(12, 28, 23, 0.92);
+            --line: rgba(194, 255, 231, 0.14);
+            --text: #eff8f4;
+            --muted: rgba(239, 248, 244, 0.68);
+            --accent: #47e5a5;
+            --accent-2: #7fffd4;
+            --danger: #ff8b8b;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: 'Untitled Sans', sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(71, 229, 165, 0.12), transparent 28%),
+                radial-gradient(circle at 80% 10%, rgba(127, 255, 212, 0.08), transparent 24%),
+                linear-gradient(180deg, #07110f 0%, #091612 52%, #06100d 100%);
+        }
+        h1, h2, h3 {
+            font-family: 'Untitled Serif', serif;
+            font-weight: 400;
+        }
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+        .container {
+            max-width: 1320px;
+            margin: 0 auto;
+            padding: 36px 24px 80px;
+        }
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.86);
+        }
+        .brand-mark {
+            width: 12px;
+            height: 12px;
+            border-radius: 999px;
+            background: linear-gradient(180deg, var(--accent-2), var(--accent));
+            box-shadow: 0 0 24px rgba(71, 229, 165, 0.45);
+        }
+        .link {
+            border: 1px solid rgba(71, 229, 165, 0.18);
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: rgba(71, 229, 165, 0.06);
+        }
+        .hero {
+            border: 1px solid var(--line);
+            border-radius: 32px;
+            background: linear-gradient(180deg, rgba(12, 28, 23, 0.96), rgba(9, 21, 18, 0.82));
+            box-shadow: 0 34px 80px rgba(0, 0, 0, 0.35);
+            overflow: hidden;
+        }
+        .hero-head {
+            padding: 34px;
+            border-bottom: 1px solid var(--line);
+        }
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(71, 229, 165, 0.16);
+            background: rgba(71, 229, 165, 0.08);
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            font-size: 11px;
+            font-weight: 700;
+            margin-bottom: 18px;
+        }
+        .hero h1 {
+            margin: 0;
+            font-size: clamp(3rem, 6vw, 4.9rem);
+            line-height: 1.02;
+            letter-spacing: -0.045em;
+            max-width: 12ch;
+        }
+        .hero p {
+            margin: 16px 0 0;
+            max-width: 72ch;
+            color: var(--muted);
+            font-size: 1.08rem;
+            line-height: 1.8;
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
+            gap: 0;
+        }
+        .panel {
+            padding: 28px 30px 30px;
+        }
+        .panel + .panel {
+            border-left: 1px solid var(--line);
+        }
+        .panel h2 {
+            margin: 0 0 8px;
+            font-size: 1.9rem;
+        }
+        .copy {
+            color: var(--muted);
+            line-height: 1.7;
+        }
+        .stack {
+            display: grid;
+            gap: 14px;
+            margin-top: 20px;
+        }
+        .field label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.86);
+        }
+        .field input,
+        .field select,
+        .field textarea {
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text);
+            padding: 13px 14px;
+            font: inherit;
+        }
+        .field textarea {
+            min-height: 160px;
+            resize: vertical;
+        }
+        .field small {
+            display: block;
+            margin-top: 8px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 6px;
+        }
+        .button,
+        .button-secondary {
+            border-radius: 16px;
+            padding: 14px 18px;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.18s ease, border-color 0.18s ease;
+        }
+        .button {
+            border: 0;
+            color: #062018;
+            background: linear-gradient(180deg, #7fffd4, #47e5a5);
+        }
+        .button-secondary {
+            border: 1px solid rgba(71, 229, 165, 0.22);
+            color: var(--text);
+            background: rgba(71, 229, 165, 0.08);
+        }
+        .button:hover,
+        .button-secondary:hover {
+            transform: translateY(-1px);
+        }
+        .button:disabled,
+        .button-secondary:disabled {
+            opacity: 0.48;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .status {
+            margin-top: 16px;
+            min-height: 24px;
+            color: var(--muted);
+        }
+        .status.error {
+            color: var(--danger);
+        }
+        .sql-box {
+            margin-top: 18px;
+            padding: 16px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.03);
+        }
+        .sql-box strong {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 13px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.82);
+        }
+        .sql-box pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: #dffdf1;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.92rem;
+            line-height: 1.6;
+        }
+        .results-head {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: end;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .results-meta {
+            color: var(--muted);
+            font-size: 0.96rem;
+        }
+        .results {
+            display: grid;
+            gap: 14px;
+        }
+        .empty {
+            padding: 28px;
+            border-radius: 22px;
+            border: 1px dashed rgba(255, 255, 255, 0.12);
+            color: var(--muted);
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .card {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02)),
+                rgba(255, 255, 255, 0.02);
+            padding: 20px;
+        }
+        .card-head {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .card-title {
+            margin: 0;
+            font-size: 1.4rem;
+        }
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(71, 229, 165, 0.08);
+            border: 1px solid rgba(71, 229, 165, 0.16);
+            color: var(--accent-2);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 700;
+        }
+        .field-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .meta {
+            padding: 12px 14px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.03);
+            min-width: 0;
+        }
+        .meta-key {
+            font-size: 11px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.58);
+            margin-bottom: 8px;
+        }
+        .meta-value {
+            color: var(--text);
+            line-height: 1.65;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .pagination {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        @media (max-width: 1040px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+            .panel + .panel {
+                border-left: 0;
+                border-top: 1px solid var(--line);
+            }
+        }
+        @media (max-width: 720px) {
+            .container {
+                padding: 24px 16px 60px;
+            }
+            .hero-head,
+            .panel {
+                padding: 22px 20px;
+            }
+            .field-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="topbar">
+            <a class="brand" href="match.html">
+                <span class="brand-mark"></span>
+                <span>AGI Talent</span>
+            </a>
+            <a class="link" href="register.html">Register Profile or Job</a>
+        </div>
+
+        <section class="hero">
+            <div class="hero-head">
+                <div class="eyebrow">AI Talent Search</div>
+                <h1>Search the profile table with natural language.</h1>
+                <p>Describe the talent you want. The page asks an LLM to produce a safe `SELECT` query against `profiles`, sends that query to Supabase, then renders every field from the matching rows. Each page shows at most 20 profiles.</p>
+            </div>
+            <div class="layout">
+                <section class="panel">
+                    <h2>Query Builder</h2>
+                    <div class="copy">Default model is Qwen Plus. You can switch to Claude, GPT, or other Qwen models and replace the API key with your own key at any time.</div>
+                    <div class="stack">
+                        <div class="field">
+                            <label for="model-select">LLM</label>
+                            <select id="model-select">
+                                <option value="qwen/qwen-plus" selected>Qwen Plus</option>
+                                <option value="qwen/qwen-2.5-72b-instruct">Qwen 2.5 72B Instruct</option>
+                                <option value="anthropic/claude-3.7-sonnet">Claude 3.7 Sonnet</option>
+                                <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+                                <option value="openai/gpt-4o">GPT-4o</option>
+                                <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="custom-model">Custom model id</label>
+                            <input id="custom-model" type="text" value="qwen/qwen-plus" placeholder="provider/model">
+                            <small>Used directly for the LLM request. Change it if your provider expects a different model id.</small>
+                        </div>
+                        <div class="field">
+                            <label for="api-key">LLM API key</label>
+                            <input id="api-key" type="password" value="sk-2d4b0be0ff394cef84e04960212d3eab" autocomplete="off">
+                            <small>This page keeps the key in the browser only. Replace the default value with your own key if needed.</small>
+                        </div>
+                        <div class="field">
+                            <label for="search-input">Natural language search</label>
+                            <textarea id="search-input" placeholder="Examples:
+Find senior AI researchers in China with LLM, agents, and publications.
+Show recruiter profiles in North America focused on AI hiring.
+Find active job seekers who mention robotics, computer vision, or multimodal systems."></textarea>
+                        </div>
+                        <div class="actions">
+                            <button class="button" id="search-button" type="button">Generate SQL and Search</button>
+                            <button class="button-secondary" id="reset-button" type="button">Reset to Latest Profiles</button>
+                        </div>
+                        <div class="status" id="status">Loading the first 20 profiles...</div>
+                        <div class="sql-box">
+                            <strong>Generated SQL</strong>
+                            <pre id="sql-preview">select * from profiles order by created_at desc nulls last, updated_at desc nulls last</pre>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="panel">
+                    <div class="results-head">
+                        <div>
+                            <h2>Profiles</h2>
+                            <div class="results-meta" id="results-meta">Waiting for data...</div>
+                        </div>
+                    </div>
+                    <div class="results" id="results"></div>
+                    <div class="pagination">
+                        <button class="button-secondary" id="prev-button" type="button">Previous</button>
+                        <button class="button-secondary" id="next-button" type="button">Next</button>
+                    </div>
+                </section>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://zocovvewzpqxspysanyy.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvY292dmV3enBxeHNweXNhbnl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwODYwNTgsImV4cCI6MjA4OTY2MjA1OH0.8ekfJ3bcvG-AbLD39xUINwXrpO7RiH9PVgy-xMzeHbE';
+        const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+        const PAGE_SIZE = 20;
+
+        const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+        const modelSelect = document.getElementById('model-select');
+        const customModelInput = document.getElementById('custom-model');
+        const apiKeyInput = document.getElementById('api-key');
+        const searchInput = document.getElementById('search-input');
+        const searchButton = document.getElementById('search-button');
+        const resetButton = document.getElementById('reset-button');
+        const prevButton = document.getElementById('prev-button');
+        const nextButton = document.getElementById('next-button');
+        const statusEl = document.getElementById('status');
+        const sqlPreviewEl = document.getElementById('sql-preview');
+        const resultsMetaEl = document.getElementById('results-meta');
+        const resultsEl = document.getElementById('results');
+
+        let activeSql = 'select * from profiles order by created_at desc nulls last, updated_at desc nulls last';
+        let activePrompt = '';
+        let currentOffset = 0;
+        let totalCount = 0;
+        let lastRowsLength = 0;
+
+        const MODEL_LABELS = {
+            'qwen/qwen-plus': 'Qwen Plus',
+            'qwen/qwen-2.5-72b-instruct': 'Qwen 2.5 72B Instruct',
+            'anthropic/claude-3.7-sonnet': 'Claude 3.7 Sonnet',
+            'anthropic/claude-3.5-sonnet': 'Claude 3.5 Sonnet',
+            'openai/gpt-4o': 'GPT-4o',
+            'openai/gpt-4o-mini': 'GPT-4o Mini'
+        };
+
+        modelSelect.addEventListener('change', () => {
+            customModelInput.value = modelSelect.value;
+        });
+
+        const setStatus = (message, isError = false) => {
+            statusEl.textContent = message;
+            statusEl.classList.toggle('error', isError);
+        };
+
+        const escapeHtml = (value) => String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+
+        const formatValue = (value) => {
+            if (value === null || value === undefined || value === '') return '—';
+            if (typeof value === 'object') return JSON.stringify(value, null, 2);
+            return String(value);
+        };
+
+        const titleForProfile = (profile) => {
+            return profile.name_or_handle || profile.name || profile.email || profile.id || 'Profile';
+        };
+
+        const badgeForProfile = (profile) => {
+            return profile.agent_type || profile.domain_focus || 'profile';
+        };
+
+        const renderRows = (rows) => {
+            if (!rows.length) {
+                resultsEl.innerHTML = '<div class="empty">No profiles matched this query.</div>';
+                return;
+            }
+
+            resultsEl.innerHTML = rows.map((profile) => {
+                const keys = Object.keys(profile);
+                const metaItems = keys.map((key) => `
+                    <div class="meta">
+                        <div class="meta-key">${escapeHtml(key)}</div>
+                        <div class="meta-value">${escapeHtml(formatValue(profile[key]))}</div>
+                    </div>
+                `).join('');
+
+                return `
+                    <article class="card">
+                        <div class="card-head">
+                            <h3 class="card-title">${escapeHtml(titleForProfile(profile))}</h3>
+                            <div class="pill">${escapeHtml(badgeForProfile(profile))}</div>
+                        </div>
+                        <div class="field-grid">${metaItems}</div>
+                    </article>
+                `;
+            }).join('');
+        };
+
+        const updatePagination = () => {
+            const page = Math.floor(currentOffset / PAGE_SIZE) + 1;
+            const showingStart = totalCount === 0 ? 0 : currentOffset + 1;
+            const showingEnd = totalCount === 0 ? 0 : currentOffset + lastRowsLength;
+            const summary = activePrompt
+                ? `Showing ${showingStart}-${showingEnd} of ${totalCount} results for "${activePrompt}".`
+                : `Showing ${showingStart}-${showingEnd} of ${totalCount} latest profiles.`;
+            resultsMetaEl.textContent = summary;
+            prevButton.disabled = currentOffset === 0;
+            nextButton.disabled = currentOffset + PAGE_SIZE >= totalCount;
+        };
+
+        const normalizeGeneratedSql = (rawText) => {
+            const trimmed = String(rawText || '').trim();
+            const fenced = trimmed.match(/```(?:sql)?\s*([\s\S]*?)```/i);
+            const candidate = fenced ? fenced[1].trim() : trimmed;
+            return candidate.replace(/;+$/g, '').trim();
+        };
+
+        const buildSystemPrompt = () => `
+You translate user search requests into PostgreSQL queries for Supabase.
+
+Rules:
+- Output only SQL. No markdown. No explanation.
+- Query only the table profiles.
+- Always start with SELECT.
+- Do not use LIMIT or OFFSET.
+- Do not mutate data.
+- Prefer case-insensitive matching with ILIKE.
+- You may read any column from profiles, including:
+  id, agent_type, name_or_handle, email, bio_link, location, timezone, domain_focus, seniority, skills, needs, recent_evidence, availability, delivery_route, status, created_at, updated_at.
+- JSONB columns skills, needs, recent_evidence can be cast to text for keyword search when useful.
+- Order results by strongest relevance you can infer, then by created_at desc nulls last.
+- If the request is broad or empty, return:
+  select * from profiles order by created_at desc nulls last, updated_at desc nulls last
+        `.trim();
+
+        const generateSqlFromPrompt = async (prompt) => {
+            const apiKey = apiKeyInput.value.trim();
+            const model = customModelInput.value.trim() || modelSelect.value;
+
+            if (!apiKey) {
+                throw new Error('Missing LLM API key.');
+            }
+
+            const response = await fetch(OPENROUTER_URL, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json',
+                    'HTTP-Referer': window.location.href,
+                    'X-Title': 'AGI Talent Search'
+                },
+                body: JSON.stringify({
+                    model,
+                    messages: [
+                        { role: 'system', content: buildSystemPrompt() },
+                        { role: 'user', content: prompt || 'Show the latest AI talent profiles.' }
+                    ],
+                    temperature: 0.1
+                })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`LLM request failed: ${response.status} ${errorText}`);
+            }
+
+            const payload = await response.json();
+            const content = payload?.choices?.[0]?.message?.content || '';
+            const sql = normalizeGeneratedSql(content);
+
+            if (!/^select\b/i.test(sql) || !/\bfrom\s+profiles\b/i.test(sql)) {
+                throw new Error('The LLM returned SQL outside the allowed profiles query shape.');
+            }
+
+            return sql;
+        };
+
+        const fetchProfiles = async (offset = 0) => {
+            if (!supabaseClient) {
+                throw new Error('Supabase client failed to initialize.');
+            }
+
+            const { data, error } = await supabaseClient.rpc('search_profiles_sql', {
+                search_sql: activeSql,
+                page_limit: PAGE_SIZE,
+                page_offset: offset
+            });
+
+            if (error) {
+                throw error;
+            }
+
+            const rows = Array.isArray(data?.rows) ? data.rows : [];
+            totalCount = Number(data?.count || 0);
+            currentOffset = Number(data?.offset || offset || 0);
+            lastRowsLength = rows.length;
+            renderRows(rows);
+            updatePagination();
+        };
+
+        const runSearch = async (usePrompt) => {
+            searchButton.disabled = true;
+            resetButton.disabled = true;
+            prevButton.disabled = true;
+            nextButton.disabled = true;
+
+            try {
+                if (usePrompt) {
+                    activePrompt = searchInput.value.trim();
+                    const model = customModelInput.value.trim() || modelSelect.value;
+                    const modelLabel = MODEL_LABELS[model] || model;
+                    setStatus(`Generating SQL with ${modelLabel}...`);
+                    activeSql = await generateSqlFromPrompt(activePrompt);
+                    sqlPreviewEl.textContent = activeSql;
+                } else {
+                    activePrompt = '';
+                    activeSql = 'select * from profiles order by created_at desc nulls last, updated_at desc nulls last';
+                    sqlPreviewEl.textContent = activeSql;
+                    setStatus('Loading the latest profiles...');
+                }
+
+                await fetchProfiles(0);
+                setStatus(`Loaded ${lastRowsLength} profile${lastRowsLength === 1 ? '' : 's'}.`);
+            } finally {
+                searchButton.disabled = false;
+                resetButton.disabled = false;
+                updatePagination();
+            }
+        };
+
+        searchButton.addEventListener('click', async () => {
+            try {
+                await runSearch(true);
+            } catch (error) {
+                setStatus(error.message || 'Search failed.', true);
+            }
+        });
+
+        resetButton.addEventListener('click', async () => {
+            searchInput.value = '';
+            try {
+                await runSearch(false);
+            } catch (error) {
+                setStatus(error.message || 'Reset failed.', true);
+            }
+        });
+
+        prevButton.addEventListener('click', async () => {
+            if (currentOffset === 0) return;
+            try {
+                setStatus('Loading the previous page...');
+                prevButton.disabled = true;
+                nextButton.disabled = true;
+                await fetchProfiles(Math.max(0, currentOffset - PAGE_SIZE));
+                setStatus(`Loaded ${lastRowsLength} profile${lastRowsLength === 1 ? '' : 's'}.`);
+            } catch (error) {
+                setStatus(error.message || 'Pagination failed.', true);
+            }
+        });
+
+        nextButton.addEventListener('click', async () => {
+            if (currentOffset + PAGE_SIZE >= totalCount) return;
+            try {
+                setStatus('Loading the next page...');
+                prevButton.disabled = true;
+                nextButton.disabled = true;
+                await fetchProfiles(currentOffset + PAGE_SIZE);
+                setStatus(`Loaded ${lastRowsLength} profile${lastRowsLength === 1 ? '' : 's'}.`);
+            } catch (error) {
+                setStatus(error.message || 'Pagination failed.', true);
+            }
+        });
+
+        (async () => {
+            try {
+                await runSearch(false);
+            } catch (error) {
+                setStatus(`${error.message || 'Initial load failed.'} Apply the latest SQL schema so the search_profiles_sql RPC exists.`, true);
+                resultsEl.innerHTML = '<div class="empty">The page is ready, but the Supabase RPC is missing. Apply the updated schema and reload.</div>';
+            }
+        })();
+    </script>
+</body>
+</html>
