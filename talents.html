@@ -606,9 +606,9 @@ Rules:
             }
 
             const { data, error } = await supabaseClient.rpc('search_profiles_sql', {
-                search_sql: activeSql,
                 page_limit: PAGE_SIZE,
-                page_offset: offset
+                page_offset: offset,
+                search_sql: activeSql
             });
 
             if (error) {

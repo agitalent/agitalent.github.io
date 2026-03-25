@@ -176,6 +176,17 @@ $$;
 
 grant execute on function public.search_profiles_sql(text, integer, integer) to anon, authenticated;
 
+create or replace function public.search_profiles_sql(page_limit integer default 20, page_offset integer default 0, search_sql text default null)
+returns jsonb
+language sql
+security definer
+set search_path = public
+as $$
+  select public.search_profiles_sql(search_sql, page_limit, page_offset);
+$$;
+
+grant execute on function public.search_profiles_sql(integer, integer, text) to anon, authenticated;
+
 do $$
 begin
   execute 'create policy "public read profiles" on profiles for select using (true)';
