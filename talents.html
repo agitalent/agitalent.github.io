@@ -443,12 +443,11 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         const resultsMetaEl = document.getElementById('results-meta');
         const resultsEl = document.getElementById('results');
 
-        let activeSql = 'select * from profiles order by created_at desc nulls last, updated_at desc nulls last';
         let activePrompt = '';
         let currentOffset = 0;
         let totalCount = 0;
         let lastRowsLength = 0;
-        let usingRpcFallback = false;
+        let searchMode = 'latest';
 
         const MODEL_LABELS = {
             'qwen/qwen-plus': 'Qwen Plus',
@@ -545,11 +544,6 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             const fenced = trimmed.match(/```(?:sql)?\s*([\s\S]*?)```/i);
             const candidate = fenced ? fenced[1].trim() : trimmed;
             return candidate.replace(/;+$/g, '').trim();
-        };
-
-        const isMissingSearchRpcError = (error) => {
-            const message = String(error?.message || error || '');
-            return message.includes('Could not find the function public.search_profiles_sql');
         };
 
         const isLlmAuthError = (error) => {
@@ -650,7 +644,7 @@ Rules:
             updatePagination();
         };
 
-        const fetchProfilesClientFiltered = async (offset = 0) => {
+        const fetchProfilesClientFiltered = async (offset = 0, promptOverride = activePrompt) => {
             const { data, error } = await supabaseClient
                 .from('profiles')
                 .select('*')
@@ -661,7 +655,7 @@ Rules:
             if (error) throw error;
 
             const rows = Array.isArray(data) ? data : [];
-            const terms = promptTerms(activePrompt);
+            const terms = promptTerms(promptOverride);
             const filtered = !terms.length
                 ? rows
                 : rows.filter((profile) => {
@@ -677,42 +671,15 @@ Rules:
             updatePagination();
         };
 
-        const runPromptFallbackSearch = async (offset = 0) => {
-            usingRpcFallback = true;
-            await fetchProfilesClientFiltered(offset);
-        };
-
         const fetchProfiles = async (offset = 0) => {
             if (!supabaseClient) {
                 throw new Error('Supabase client failed to initialize.');
             }
-
-            const { data, error } = await supabaseClient.rpc('search_profiles_sql', {
-                page_limit: PAGE_SIZE,
-                page_offset: offset,
-                search_sql: activeSql
-            });
-
-            if (error) {
-                if (isMissingSearchRpcError(error)) {
-                    usingRpcFallback = true;
-                    if (activePrompt) {
-                        await fetchProfilesClientFiltered(offset);
-                    } else {
-                        await fetchProfilesDirect(offset);
-                    }
-                    return;
-                }
-                throw error;
+            if (searchMode === 'prompt') {
+                await fetchProfilesClientFiltered(offset);
+                return;
             }
-
-            usingRpcFallback = false;
-            const rows = Array.isArray(data?.rows) ? data.rows : [];
-            totalCount = Number(data?.count || 0);
-            currentOffset = Number(data?.offset || offset || 0);
-            lastRowsLength = rows.length;
-            renderRows(rows);
-            updatePagination();
+            await fetchProfilesDirect(offset);
         };
 
         const runSearch = async (usePrompt) => {
@@ -726,27 +693,24 @@ Rules:
                     const model = customModelInput.value.trim() || modelSelect.value;
                     const modelLabel = MODEL_LABELS[model] || model;
                     setStatus(`Searching with ${modelLabel}...`);
+                    searchMode = 'prompt';
                     try {
-                        activeSql = await generateSqlFromPrompt(activePrompt);
+                        await generateSqlFromPrompt(activePrompt);
                     } catch (error) {
                         if (!isLlmAuthError(error)) {
-                            throw error;
+                            // Treat the LLM as optional and continue with direct prompt filtering.
+                            console.warn('LLM search assist failed, using direct prompt filtering instead.', error);
                         }
-                        await runPromptFallbackSearch(0);
-                        setStatus(`Loaded ${lastRowsLength} profile${lastRowsLength === 1 ? '' : 's'} with direct search fallback.`);
-                        return;
                     }
                 } else {
                     activePrompt = '';
-                    activeSql = 'select * from profiles order by created_at desc nulls last, updated_at desc nulls last';
+                    searchMode = 'latest';
                     setStatus('Loading the latest profiles...');
                 }
 
                 await fetchProfiles(0);
-                if (usingRpcFallback && activePrompt) {
-                    setStatus(`Loaded ${lastRowsLength} profile${lastRowsLength === 1 ? '' : 's'} with fallback search.`);
-                } else if (usingRpcFallback) {
-                    setStatus(`Loaded ${lastRowsLength} latest profile${lastRowsLength === 1 ? '' : 's'}.`);
+                if (searchMode === 'prompt') {
+                    setStatus(`Loaded ${lastRowsLength} profile${lastRowsLength === 1 ? '' : 's'} for your search.`);
                 } else {
                     setStatus(`Loaded ${lastRowsLength} profile${lastRowsLength === 1 ? '' : 's'}.`);
                 }
