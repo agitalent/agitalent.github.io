@@ -448,6 +448,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         let currentOffset = 0;
         let totalCount = 0;
         let lastRowsLength = 0;
+        let usingRpcFallback = false;
 
         const MODEL_LABELS = {
             'qwen/qwen-plus': 'Qwen Plus',
@@ -546,6 +547,22 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             return candidate.replace(/;+$/g, '').trim();
         };
 
+        const isMissingSearchRpcError = (error) => {
+            const message = String(error?.message || error || '');
+            return message.includes('Could not find the function public.search_profiles_sql');
+        };
+
+        const promptTerms = (prompt) => String(prompt || '')
+            .toLowerCase()
+            .split(/[^a-z0-9]+/i)
+            .map((term) => term.trim())
+            .filter((term) => term && term.length > 1);
+
+        const rowText = (profile) => Object.values(profile || {})
+            .map((value) => typeof value === 'object' ? JSON.stringify(value) : String(value || ''))
+            .join(' ')
+            .toLowerCase();
+
         const buildSystemPrompt = () => `
 You translate user search requests into PostgreSQL queries for Supabase.
 
@@ -609,6 +626,52 @@ Rules:
             return sql;
         };
 
+        const fetchProfilesDirect = async (offset = 0) => {
+            const query = supabaseClient
+                .from('profiles')
+                .select('*', { count: 'exact' })
+                .order('created_at', { ascending: false, nullsFirst: false })
+                .order('updated_at', { ascending: false, nullsFirst: false })
+                .range(offset, offset + PAGE_SIZE - 1);
+
+            const { data, error, count } = await query;
+            if (error) throw error;
+
+            const rows = Array.isArray(data) ? data : [];
+            totalCount = Number(count || 0);
+            currentOffset = offset;
+            lastRowsLength = rows.length;
+            renderRows(rows);
+            updatePagination();
+        };
+
+        const fetchProfilesClientFiltered = async (offset = 0) => {
+            const { data, error } = await supabaseClient
+                .from('profiles')
+                .select('*')
+                .order('created_at', { ascending: false, nullsFirst: false })
+                .order('updated_at', { ascending: false, nullsFirst: false })
+                .limit(500);
+
+            if (error) throw error;
+
+            const rows = Array.isArray(data) ? data : [];
+            const terms = promptTerms(activePrompt);
+            const filtered = !terms.length
+                ? rows
+                : rows.filter((profile) => {
+                    const haystack = rowText(profile);
+                    return terms.every((term) => haystack.includes(term));
+                });
+
+            totalCount = filtered.length;
+            currentOffset = offset;
+            const pagedRows = filtered.slice(offset, offset + PAGE_SIZE);
+            lastRowsLength = pagedRows.length;
+            renderRows(pagedRows);
+            updatePagination();
+        };
+
         const fetchProfiles = async (offset = 0) => {
             if (!supabaseClient) {
                 throw new Error('Supabase client failed to initialize.');
@@ -621,9 +684,19 @@ Rules:
             });
 
             if (error) {
+                if (isMissingSearchRpcError(error)) {
+                    usingRpcFallback = true;
+                    if (activePrompt) {
+                        await fetchProfilesClientFiltered(offset);
+                    } else {
+                        await fetchProfilesDirect(offset);
+                    }
+                    return;
+                }
                 throw error;
             }
 
+            usingRpcFallback = false;
             const rows = Array.isArray(data?.rows) ? data.rows : [];
             totalCount = Number(data?.count || 0);
             currentOffset = Number(data?.offset || offset || 0);
@@ -651,7 +724,13 @@ Rules:
                 }
 
                 await fetchProfiles(0);
-                setStatus(`Loaded ${lastRowsLength} profile${lastRowsLength === 1 ? '' : 's'}.`);
+                if (usingRpcFallback && activePrompt) {
+                    setStatus(`Loaded ${lastRowsLength} profile${lastRowsLength === 1 ? '' : 's'} with fallback search.`);
+                } else if (usingRpcFallback) {
+                    setStatus(`Loaded ${lastRowsLength} latest profile${lastRowsLength === 1 ? '' : 's'}.`);
+                } else {
+                    setStatus(`Loaded ${lastRowsLength} profile${lastRowsLength === 1 ? '' : 's'}.`);
+                }
             } finally {
                 searchButton.disabled = false;
                 updatePagination();
@@ -697,8 +776,8 @@ Rules:
             try {
                 await runSearch(false);
             } catch (error) {
-                setStatus(`${error.message || 'Initial load failed.'} Apply the latest SQL schema so the search_profiles_sql RPC exists.`, true);
-                resultsEl.innerHTML = '<div class="empty">The page is ready, but the Supabase RPC is missing. Apply the updated schema and reload.</div>';
+                setStatus(error.message || 'Initial load failed.', true);
+                resultsEl.innerHTML = '<div class="empty">The page could not load profiles.</div>';
             }
         })();
     </script>
