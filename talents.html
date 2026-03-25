@@ -574,6 +574,12 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         const renderValueHtml = (key, value) => {
             if (isEmptyValue(value)) return '';
 
+            if (key === 'email') {
+                const email = String(value).trim();
+                const label = escapeHtml(email);
+                return `<a href="mailto:${escapeHtml(email)}">${label}</a>`;
+            }
+
             if (key === 'bio_link') {
                 const href = normalizeLink(value);
                 const label = escapeHtml(String(value).trim());
