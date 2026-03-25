@@ -447,6 +447,16 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         const statusEl = document.getElementById('status');
         const resultsMetaEl = document.getElementById('results-meta');
         const resultsEl = document.getElementById('results');
+        const HIDDEN_PROFILE_FIELDS = new Set([
+            'id',
+            'agent_type',
+            'timezone',
+            'availability',
+            'delivery_route',
+            'status',
+            'created_at',
+            'updated_at'
+        ]);
 
         let activePrompt = '';
         let currentOffset = 0;
@@ -565,7 +575,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             }
 
             resultsEl.innerHTML = rows.map((profile) => {
-                const keys = Object.keys(profile);
+                const keys = Object.keys(profile).filter((key) => !HIDDEN_PROFILE_FIELDS.has(key));
                 const metaItems = keys.map((key) => {
                     const renderedValue = renderValueHtml(key, profile[key]);
                     if (!renderedValue) return '';
