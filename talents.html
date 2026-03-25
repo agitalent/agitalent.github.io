@@ -587,11 +587,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         };
 
         const badgeForProfile = (profile) => {
-            if (profile.domain_focus) return profile.domain_focus;
-            if (profile.agent_type && String(profile.agent_type).toLowerCase() !== 'job_seeker') {
-                return profile.agent_type;
-            }
-            return '';
+            return profile.agent_type || profile.domain_focus || 'profile';
         };
 
         const renderRows = (rows) => {
@@ -617,7 +613,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                     <article class="card">
                         <div class="card-head">
                             <h3 class="card-title">${escapeHtml(titleForProfile(profile))}</h3>
-                            ${badgeForProfile(profile) ? `<div class="pill">${escapeHtml(badgeForProfile(profile))}</div>` : ''}
+                            <div class="pill">${escapeHtml(badgeForProfile(profile))}</div>
                         </div>
                         <div class="field-grid">${metaItems}</div>
                     </article>
