@@ -1,0 +1,9 @@
+.DS_Store
+README-ai-job-ingest.md
+launchd/com.agitalent.ai-job-ingest.plist
+scripts/ai-job-ingest.service.sh
+scripts/ai-job-sources.example.json
+scripts/ai-job-sources.json
+scripts/ai_job_ingest.py
+scripts/install-ai-job-ingest.sh
+scripts/normalize_talentsearch_urls.py
