@@ -446,10 +446,8 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
         const modelSelect = document.getElementById('model-select');
         const customModelInput = document.getElementById('custom-model');
-        const apiKeyInput = document.getElementById('api-key');
         const searchInput = document.getElementById('search-input');
         const searchButton = document.getElementById('search-button');
-        const apiKeyField = document.getElementById('api-key-field');
         const prevButton = document.getElementById('prev-button');
         const nextButton = document.getElementById('next-button');
         const pageInput = document.getElementById('page-input');
@@ -492,19 +490,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
 
         modelSelect.addEventListener('change', () => {
             customModelInput.value = modelSelect.value;
-            syncApiKeyVisibility();
         });
-
-        const syncApiKeyVisibility = () => {
-            const model = customModelInput.value.trim() || modelSelect.value;
-            const isDefaultQwen = model === 'qwen/qwen-plus';
-            apiKeyField.style.display = isDefaultQwen ? 'none' : '';
-            if (isDefaultQwen) {
-                apiKeyInput.value = '';
-            }
-        };
-
-        customModelInput.addEventListener('input', syncApiKeyVisibility);
 
         const setStatus = (message, isError = false) => {
             statusEl.textContent = message;
@@ -824,7 +810,6 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         });
 
         (async () => {
-            syncApiKeyVisibility();
             try {
                 await runSearch(false);
             } catch (error) {
