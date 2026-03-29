@@ -438,8 +438,8 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
     <script>
         const SUPABASE_URL = 'https://zocovvewzpqxspysanyy.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvY292dmV3enBxeHNweXNhbnl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwODYwNTgsImV4cCI6MjA4OTY2MjA1OH0.8ekfJ3bcvG-AbLD39xUINwXrpO7RiH9PVgy-xMzeHbE';
-        const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
         const PAGE_SIZE = 20;
+        const FETCH_BATCH_SIZE = 1000;
 
         const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
         const modelSelect = document.getElementById('model-select');
@@ -470,6 +470,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         let totalCount = 0;
         let lastRowsLength = 0;
         let searchMode = 'latest';
+        let allProfilesCache = null;
 
         const MODEL_LABELS = {
             'qwen/qwen-plus': 'Qwen3.5 / Qwen3.5-Plus',
@@ -652,18 +653,6 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             nextButton.disabled = currentOffset + PAGE_SIZE >= totalCount;
         };
 
-        const normalizeGeneratedSql = (rawText) => {
-            const trimmed = String(rawText || '').trim();
-            const fenced = trimmed.match(/```(?:sql)?\s*([\s\S]*?)```/i);
-            const candidate = fenced ? fenced[1].trim() : trimmed;
-            return candidate.replace(/;+$/g, '').trim();
-        };
-
-        const isLlmAuthError = (error) => {
-            const message = String(error?.message || error || '');
-            return message.includes('401') || message.includes('Missing Authentication header');
-        };
-
         const promptTerms = (prompt) => String(prompt || '')
             .toLowerCase()
             .split(/[^a-z0-9]+/i)
@@ -674,69 +663,6 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             .map((value) => typeof value === 'object' ? JSON.stringify(value) : String(value || ''))
             .join(' ')
             .toLowerCase();
-
-        const buildSystemPrompt = () => `
-You translate user search requests into PostgreSQL queries for Supabase.
-
-Rules:
-- Output only SQL. No markdown. No explanation.
-- Query only the table profiles.
-- Always start with SELECT.
-- Do not use LIMIT or OFFSET.
-- Do not mutate data.
-- Prefer case-insensitive matching with ILIKE.
-- You may read any column from profiles, including:
-  id, agent_type, name_or_handle, email, bio_link, location, timezone, domain_focus, seniority, skills, needs, recent_evidence, availability, delivery_route, status, created_at, updated_at.
-- JSONB columns skills, needs, recent_evidence can be cast to text for keyword search when useful.
-- Order results by strongest relevance you can infer, then by created_at desc nulls last.
-- If the request is broad or empty, return:
-  select * from profiles order by created_at desc nulls last, updated_at desc nulls last
-        `.trim();
-
-        const generateSqlFromPrompt = async (prompt) => {
-            const apiKey = apiKeyInput.value.trim();
-            const model = customModelInput.value.trim() || modelSelect.value;
-            const effectiveApiKey = model === 'qwen/qwen-plus'
-                ? 'sk-2d4b0be0ff394cef84e04960212d3eab'
-                : apiKey;
-
-            if (!effectiveApiKey) {
-                throw new Error('Missing LLM API key.');
-            }
-
-            const response = await fetch(OPENROUTER_URL, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${effectiveApiKey}`,
-                    'Content-Type': 'application/json',
-                    'HTTP-Referer': window.location.href,
-                    'X-Title': 'AGI Talent Search'
-                },
-                body: JSON.stringify({
-                    model,
-                    messages: [
-                        { role: 'system', content: buildSystemPrompt() },
-                        { role: 'user', content: prompt || 'Show the latest AI talent profiles.' }
-                    ],
-                    temperature: 0.1
-                })
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`LLM request failed: ${response.status} ${errorText}`);
-            }
-
-            const payload = await response.json();
-            const content = payload?.choices?.[0]?.message?.content || '';
-            const sql = normalizeGeneratedSql(content);
-
-            if (!/^select\b/i.test(sql) || !/\bfrom\s+profiles\b/i.test(sql)) {
-                throw new Error('The LLM returned SQL outside the allowed profiles query shape.');
-            }
-
-            return sql;
-        };
 
         const fetchProfilesDirect = async (offset = 0) => {
             const query = supabaseClient
@@ -757,17 +683,39 @@ Rules:
             updatePagination();
         };
 
+        const fetchAllProfiles = async () => {
+            if (allProfilesCache) {
+                return allProfilesCache;
+            }
+
+            const allRows = [];
+            let offset = 0;
+
+            while (true) {
+                const { data, error } = await supabaseClient
+                    .from('profiles')
+                    .select('*')
+                    .order('created_at', { ascending: false, nullsFirst: false })
+                    .order('updated_at', { ascending: false, nullsFirst: false })
+                    .range(offset, offset + FETCH_BATCH_SIZE - 1);
+
+                if (error) throw error;
+
+                const batch = Array.isArray(data) ? data : [];
+                allRows.push(...batch);
+
+                if (batch.length < FETCH_BATCH_SIZE) {
+                    break;
+                }
+                offset += FETCH_BATCH_SIZE;
+            }
+
+            allProfilesCache = allRows;
+            return allRows;
+        };
+
         const fetchProfilesClientFiltered = async (offset = 0, promptOverride = activePrompt) => {
-            const { data, error } = await supabaseClient
-                .from('profiles')
-                .select('*')
-                .order('created_at', { ascending: false, nullsFirst: false })
-                .order('updated_at', { ascending: false, nullsFirst: false })
-                .limit(500);
-
-            if (error) throw error;
-
-            const rows = Array.isArray(data) ? data : [];
+            const rows = await fetchAllProfiles();
             const terms = promptTerms(promptOverride);
             const filtered = !terms.length
                 ? rows
@@ -803,18 +751,8 @@ Rules:
             try {
                 if (usePrompt) {
                     activePrompt = searchInput.value.trim();
-                    const model = customModelInput.value.trim() || modelSelect.value;
-                    const modelLabel = MODEL_LABELS[model] || model;
-                    setStatus(`Searching with ${modelLabel}...`);
+                    setStatus('Searching profiles...');
                     searchMode = 'prompt';
-                    try {
-                        await generateSqlFromPrompt(activePrompt);
-                    } catch (error) {
-                        if (!isLlmAuthError(error)) {
-                            // Treat the LLM as optional and continue with direct prompt filtering.
-                            console.warn('LLM search assist failed, using direct prompt filtering instead.', error);
-                        }
-                    }
                 } else {
                     activePrompt = '';
                     searchMode = 'latest';
