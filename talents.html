@@ -428,6 +428,9 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                     <div class="results" id="results"></div>
                     <div class="pagination">
                         <button class="button-secondary" id="prev-button" type="button">Previous</button>
+                        <label class="copy" for="page-input">Page</label>
+                        <input id="page-input" type="number" min="1" value="1" style="width:88px;border:1px solid rgba(255,255,255,0.08);border-radius:12px;background:rgba(255,255,255,0.04);color:var(--text);padding:10px 12px;font:inherit;">
+                        <button class="button-secondary" id="page-go-button" type="button">Go</button>
                         <button class="button-secondary" id="next-button" type="button">Next</button>
                     </div>
                 </section>
@@ -439,7 +442,6 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         const SUPABASE_URL = 'https://zocovvewzpqxspysanyy.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvY292dmV3enBxeHNweXNhbnl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwODYwNTgsImV4cCI6MjA4OTY2MjA1OH0.8ekfJ3bcvG-AbLD39xUINwXrpO7RiH9PVgy-xMzeHbE';
         const PAGE_SIZE = 20;
-        const FETCH_BATCH_SIZE = 1000;
 
         const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
         const modelSelect = document.getElementById('model-select');
@@ -450,6 +452,8 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         const apiKeyField = document.getElementById('api-key-field');
         const prevButton = document.getElementById('prev-button');
         const nextButton = document.getElementById('next-button');
+        const pageInput = document.getElementById('page-input');
+        const pageGoButton = document.getElementById('page-go-button');
         const statusEl = document.getElementById('status');
         const resultsMetaEl = document.getElementById('results-meta');
         const resultsEl = document.getElementById('results');
@@ -470,7 +474,6 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         let totalCount = 0;
         let lastRowsLength = 0;
         let searchMode = 'latest';
-        let allProfilesCache = null;
 
         const MODEL_LABELS = {
             'qwen/qwen-plus': 'Qwen3.5 / Qwen3.5-Plus',
@@ -643,6 +646,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
 
         const updatePagination = () => {
             const page = Math.floor(currentOffset / PAGE_SIZE) + 1;
+            const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
             const showingStart = totalCount === 0 ? 0 : currentOffset + 1;
             const showingEnd = totalCount === 0 ? 0 : currentOffset + lastRowsLength;
             const summary = activePrompt
@@ -651,6 +655,10 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             resultsMetaEl.textContent = summary;
             prevButton.disabled = currentOffset === 0;
             nextButton.disabled = currentOffset + PAGE_SIZE >= totalCount;
+            pageInput.value = String(page);
+            pageInput.max = String(totalPages);
+            pageInput.disabled = totalCount === 0;
+            pageGoButton.disabled = totalCount === 0;
         };
 
         const promptTerms = (prompt) => String(prompt || '')
@@ -658,11 +666,6 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             .split(/[^a-z0-9]+/i)
             .map((term) => term.trim())
             .filter((term) => term && term.length > 1);
-
-        const rowText = (profile) => Object.values(profile || {})
-            .map((value) => typeof value === 'object' ? JSON.stringify(value) : String(value || ''))
-            .join(' ')
-            .toLowerCase();
 
         const fetchProfilesDirect = async (offset = 0) => {
             const query = supabaseClient
@@ -681,55 +684,46 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             lastRowsLength = rows.length;
             renderRows(rows);
             updatePagination();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         };
 
-        const fetchAllProfiles = async () => {
-            if (allProfilesCache) {
-                return allProfilesCache;
+        const applyPromptFilters = (query, promptOverride = activePrompt) => {
+            const terms = promptTerms(promptOverride);
+            let filteredQuery = query;
+            for (const term of terms) {
+                const safeTerm = term.replace(/[%,'()]/g, ' ').trim();
+                if (!safeTerm) continue;
+                filteredQuery = filteredQuery.or([
+                    `name_or_handle.ilike.%${safeTerm}%`,
+                    `email.ilike.%${safeTerm}%`,
+                    `bio_link.ilike.%${safeTerm}%`,
+                    `location.ilike.%${safeTerm}%`,
+                    `domain_focus.ilike.%${safeTerm}%`,
+                    `seniority.ilike.%${safeTerm}%`
+                ].join(','));
             }
-
-            const allRows = [];
-            let offset = 0;
-
-            while (true) {
-                const { data, error } = await supabaseClient
-                    .from('profiles')
-                    .select('*')
-                    .order('created_at', { ascending: false, nullsFirst: false })
-                    .order('updated_at', { ascending: false, nullsFirst: false })
-                    .range(offset, offset + FETCH_BATCH_SIZE - 1);
-
-                if (error) throw error;
-
-                const batch = Array.isArray(data) ? data : [];
-                allRows.push(...batch);
-
-                if (batch.length < FETCH_BATCH_SIZE) {
-                    break;
-                }
-                offset += FETCH_BATCH_SIZE;
-            }
-
-            allProfilesCache = allRows;
-            return allRows;
+            return filteredQuery;
         };
 
         const fetchProfilesClientFiltered = async (offset = 0, promptOverride = activePrompt) => {
-            const rows = await fetchAllProfiles();
-            const terms = promptTerms(promptOverride);
-            const filtered = !terms.length
-                ? rows
-                : rows.filter((profile) => {
-                    const haystack = rowText(profile);
-                    return terms.every((term) => haystack.includes(term));
-                });
+            let query = supabaseClient
+                .from('profiles')
+                .select('*', { count: 'exact' })
+                .order('created_at', { ascending: false, nullsFirst: false })
+                .order('updated_at', { ascending: false, nullsFirst: false });
 
-            totalCount = filtered.length;
+            query = applyPromptFilters(query, promptOverride).range(offset, offset + PAGE_SIZE - 1);
+
+            const { data, error, count } = await query;
+            if (error) throw error;
+
+            const rows = Array.isArray(data) ? data : [];
+            totalCount = Number(count || 0);
             currentOffset = offset;
-            const pagedRows = filtered.slice(offset, offset + PAGE_SIZE);
-            lastRowsLength = pagedRows.length;
-            renderRows(pagedRows);
+            lastRowsLength = rows.length;
+            renderRows(rows);
             updatePagination();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         };
 
         const fetchProfiles = async (offset = 0) => {
@@ -789,6 +783,30 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                 setStatus(`Loaded ${lastRowsLength} profile${lastRowsLength === 1 ? '' : 's'}.`);
             } catch (error) {
                 setStatus(error.message || 'Pagination failed.', true);
+            }
+        });
+
+        pageGoButton.addEventListener('click', async () => {
+            const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+            const requestedPage = Number(pageInput.value || '1');
+            const page = Math.min(totalPages, Math.max(1, requestedPage));
+            const offset = (page - 1) * PAGE_SIZE;
+            try {
+                setStatus(`Loading page ${page}...`);
+                prevButton.disabled = true;
+                nextButton.disabled = true;
+                pageGoButton.disabled = true;
+                await fetchProfiles(offset);
+                setStatus(`Loaded ${lastRowsLength} profile${lastRowsLength === 1 ? '' : 's'}.`);
+            } catch (error) {
+                setStatus(error.message || 'Pagination failed.', true);
+            }
+        });
+
+        pageInput.addEventListener('keydown', async (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                pageGoButton.click();
             }
         });
 
