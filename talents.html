@@ -467,8 +467,8 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                             <strong>Admin Login</strong>
                             <div class="admin-grid">
                                 <div class="field">
-                                    <label for="admin-email">Email</label>
-                                    <input id="admin-email" type="email" autocomplete="username" placeholder="admin@agitalent.tech">
+                                    <label for="admin-username">Username</label>
+                                    <input id="admin-username" type="text" autocomplete="username" placeholder="owenheisenberg">
                                 </div>
                                 <div class="field">
                                     <label for="admin-password">Password</label>
@@ -522,7 +522,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         const pageInput = document.getElementById('page-input');
         const pageGoButton = document.getElementById('page-go-button');
         const statusEl = document.getElementById('status');
-        const adminEmailInput = document.getElementById('admin-email');
+        const adminUsernameInput = document.getElementById('admin-username');
         const adminPasswordInput = document.getElementById('admin-password');
         const adminLoginButton = document.getElementById('admin-login-button');
         const adminLogoutButton = document.getElementById('admin-logout-button');
@@ -569,7 +569,8 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         let lastRowsLength = 0;
         let searchMode = 'latest';
         let currentRows = [];
-        let adminSession = null;
+        let adminUser = null;
+        let adminPassword = '';
         let editingProfileId = null;
         let savingProfileId = null;
         let deletingProfileId = null;
@@ -644,17 +645,17 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             return `https://${text}`;
         };
 
-        const isAdminLoggedIn = () => Boolean(adminSession?.user);
+        const isAdminLoggedIn = () => Boolean(adminUser?.username && adminUser?.rights === 'admin');
 
         const updateAdminUi = () => {
-            const email = adminSession?.user?.email || '';
+            const username = adminUser?.username || '';
             adminLoginButton.disabled = isAdminLoggedIn();
             adminLogoutButton.disabled = !isAdminLoggedIn();
-            adminEmailInput.disabled = isAdminLoggedIn();
+            adminUsernameInput.disabled = isAdminLoggedIn();
             adminPasswordInput.disabled = isAdminLoggedIn();
             setAdminStatus(
                 isAdminLoggedIn()
-                    ? `Signed in as ${email}. You can now edit, save, and delete profile records.`
+                    ? `Signed in as ${username}. You can now edit, save, and delete profile records.`
                     : 'Signed out. Admin login enables edit, save, and delete.',
                 false
             );
@@ -967,6 +968,16 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             await fetchProfiles(currentOffset);
         };
 
+        const adminRpcCredentials = () => {
+            if (!isAdminLoggedIn() || !adminPassword) {
+                throw new Error('Admin login is required.');
+            }
+            return {
+                p_username: adminUser.username,
+                p_password: adminPassword
+            };
+        };
+
         const runSearch = async (usePrompt) => {
             searchButton.disabled = true;
             prevButton.disabled = true;
@@ -1058,18 +1069,25 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                 setAdminStatus('Supabase client failed to initialize.', true);
                 return;
             }
-            const email = adminEmailInput.value.trim();
+            const username = adminUsernameInput.value.trim();
             const password = adminPasswordInput.value;
-            if (!email || !password) {
-                setAdminStatus('Enter the admin email and password.', true);
+            if (!username || !password) {
+                setAdminStatus('Enter the admin username and password.', true);
                 return;
             }
 
             adminLoginButton.disabled = true;
             try {
-                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                const { data, error } = await supabaseClient.rpc('authenticate_app_user', {
+                    p_username: username,
+                    p_password: password
+                });
                 if (error) throw error;
-                adminSession = data.session || null;
+                if (!data || data.rights !== 'admin') {
+                    throw new Error('This user does not have admin rights.');
+                }
+                adminUser = data;
+                adminPassword = password;
                 adminPasswordInput.value = '';
                 updateAdminUi();
                 renderRows(currentRows);
@@ -1082,18 +1100,14 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             }
         });
 
-        adminLogoutButton.addEventListener('click', async () => {
-            if (!supabaseClient) return;
-            try {
-                const { error } = await supabaseClient.auth.signOut();
-                if (error) throw error;
-                adminSession = null;
-                editingProfileId = null;
-                updateAdminUi();
-                renderRows(currentRows);
-            } catch (error) {
-                setAdminStatus(error.message || 'Logout failed.', true);
-            }
+        adminLogoutButton.addEventListener('click', () => {
+            adminUser = null;
+            adminPassword = '';
+            editingProfileId = null;
+            adminUsernameInput.disabled = false;
+            adminPasswordInput.disabled = false;
+            updateAdminUi();
+            renderRows(currentRows);
         });
 
         resultsEl.addEventListener('click', async (event) => {
@@ -1126,10 +1140,11 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                     renderRows(currentRows);
                     setStatus('Saving profile...');
                     const payload = parseProfileForm(profileId);
-                    const { error } = await supabaseClient
-                        .from('profiles')
-                        .update(payload)
-                        .eq('id', profileId);
+                    const { error } = await supabaseClient.rpc('admin_update_profile', {
+                        ...adminRpcCredentials(),
+                        p_profile_id: profileId,
+                        p_profile: payload
+                    });
                     if (error) throw error;
                     editingProfileId = null;
                     await refreshCurrentPage();
@@ -1150,10 +1165,10 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                     deletingProfileId = profileId;
                     renderRows(currentRows);
                     setStatus('Deleting profile...');
-                    const { error } = await supabaseClient
-                        .from('profiles')
-                        .delete()
-                        .eq('id', profileId);
+                    const { error } = await supabaseClient.rpc('admin_delete_profile', {
+                        ...adminRpcCredentials(),
+                        p_profile_id: profileId
+                    });
                     if (error) throw error;
                     editingProfileId = null;
                     if (currentOffset > 0 && lastRowsLength === 1) {
@@ -1173,19 +1188,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         (async () => {
             syncApiKeyVisibility();
             try {
-                if (supabaseClient) {
-                    const { data } = await supabaseClient.auth.getSession();
-                    adminSession = data.session || null;
-                    updateAdminUi();
-                    supabaseClient.auth.onAuthStateChange((_event, session) => {
-                        adminSession = session;
-                        if (!session) {
-                            editingProfileId = null;
-                        }
-                        updateAdminUi();
-                        renderRows(currentRows);
-                    });
-                }
+                updateAdminUi();
                 await runSearch(false);
             } catch (error) {
                 setStatus(error.message || 'Initial load failed.', true);
