@@ -1136,17 +1136,21 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
 
             if (action === 'save-profile') {
                 try {
+                    const payload = parseProfileForm(profileId);
                     savingProfileId = profileId;
                     renderRows(currentRows);
                     setStatus('Saving profile...');
-                    const payload = parseProfileForm(profileId);
-                    const { error } = await supabaseClient.rpc('admin_update_profile', {
+                    const { data, error } = await supabaseClient.rpc('admin_update_profile', {
                         ...adminRpcCredentials(),
                         p_profile_id: profileId,
                         p_profile: payload
                     });
                     if (error) throw error;
+                    if (data) {
+                        currentRows = currentRows.map((row) => row.id === profileId ? data : row);
+                    }
                     editingProfileId = null;
+                    renderRows(currentRows);
                     await refreshCurrentPage();
                     setStatus('Profile saved.');
                 } catch (error) {
