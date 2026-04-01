@@ -333,6 +333,53 @@
             gap: 12px;
             margin-top: 20px;
         }
+        .admin-box {
+            margin-top: 18px;
+            padding: 16px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.03);
+        }
+        .admin-box strong {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 13px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.82);
+        }
+        .admin-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .admin-status {
+            margin-top: 10px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+        .card-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 16px;
+        }
+        .button-danger {
+            border: 1px solid rgba(255, 139, 139, 0.25);
+            color: #ffd7d7;
+            background: rgba(255, 139, 139, 0.08);
+        }
+        .editor-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .editor-grid .field {
+            margin: 0;
+        }
+        .editor-grid .field.wide {
+            grid-column: 1 / -1;
+        }
         @media (max-width: 1040px) {
             .layout {
                 grid-template-columns: 1fr;
@@ -350,7 +397,9 @@
             .panel {
                 padding: 22px 20px;
             }
-            .field-grid {
+            .field-grid,
+            .admin-grid,
+            .editor-grid {
                 grid-template-columns: 1fr;
             }
         }
@@ -414,6 +463,24 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                         <div class="actions">
                             <button class="button" id="search-button" type="button">Search</button>
                         </div>
+                        <div class="admin-box">
+                            <strong>Admin Login</strong>
+                            <div class="admin-grid">
+                                <div class="field">
+                                    <label for="admin-email">Email</label>
+                                    <input id="admin-email" type="email" autocomplete="username" placeholder="admin@agitalent.tech">
+                                </div>
+                                <div class="field">
+                                    <label for="admin-password">Password</label>
+                                    <input id="admin-password" type="password" autocomplete="current-password" placeholder="Password">
+                                </div>
+                            </div>
+                            <div class="actions">
+                                <button class="button-secondary" id="admin-login-button" type="button">Login</button>
+                                <button class="button-secondary" id="admin-logout-button" type="button" disabled>Logout</button>
+                            </div>
+                            <div class="admin-status" id="admin-auth-status">Signed out. Admin login enables edit, save, and delete.</div>
+                        </div>
                         <div class="status" id="status">Loading the first 20 profiles...</div>
                     </div>
                 </section>
@@ -446,13 +513,20 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
         const modelSelect = document.getElementById('model-select');
         const customModelInput = document.getElementById('custom-model');
+        const apiKeyInput = document.getElementById('api-key');
         const searchInput = document.getElementById('search-input');
         const searchButton = document.getElementById('search-button');
+        const apiKeyField = document.getElementById('api-key-field');
         const prevButton = document.getElementById('prev-button');
         const nextButton = document.getElementById('next-button');
         const pageInput = document.getElementById('page-input');
         const pageGoButton = document.getElementById('page-go-button');
         const statusEl = document.getElementById('status');
+        const adminEmailInput = document.getElementById('admin-email');
+        const adminPasswordInput = document.getElementById('admin-password');
+        const adminLoginButton = document.getElementById('admin-login-button');
+        const adminLogoutButton = document.getElementById('admin-logout-button');
+        const adminAuthStatusEl = document.getElementById('admin-auth-status');
         const resultsMetaEl = document.getElementById('results-meta');
         const resultsEl = document.getElementById('results');
         const HIDDEN_PROFILE_FIELDS = new Set([
@@ -466,12 +540,39 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             'created_at',
             'updated_at'
         ]);
+        const EDITABLE_PROFILE_FIELDS = [
+            'agent_type',
+            'name_or_handle',
+            'email',
+            'bio_link',
+            'location',
+            'timezone',
+            'domain_focus',
+            'seniority',
+            'skills',
+            'needs',
+            'recent_evidence',
+            'availability',
+            'delivery_route',
+            'status'
+        ];
+        const JSON_PROFILE_FIELDS = new Set(['skills', 'needs', 'recent_evidence']);
+        const SELECT_FIELDS = {
+            agent_type: ['job_seeker', 'recruiter', 'hiring_manager'],
+            status: ['active', 'paused', 'archived']
+        };
+        const REQUIRED_FIELDS = new Set(['agent_type', 'name_or_handle', 'status']);
 
         let activePrompt = '';
         let currentOffset = 0;
         let totalCount = 0;
         let lastRowsLength = 0;
         let searchMode = 'latest';
+        let currentRows = [];
+        let adminSession = null;
+        let editingProfileId = null;
+        let savingProfileId = null;
+        let deletingProfileId = null;
 
         const MODEL_LABELS = {
             'qwen/qwen-plus': 'Qwen3.5 / Qwen3.5-Plus',
@@ -490,11 +591,28 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
 
         modelSelect.addEventListener('change', () => {
             customModelInput.value = modelSelect.value;
+            syncApiKeyVisibility();
         });
+
+        const syncApiKeyVisibility = () => {
+            const model = customModelInput.value.trim() || modelSelect.value;
+            const isDefaultQwen = model === 'qwen/qwen-plus';
+            apiKeyField.style.display = isDefaultQwen ? 'none' : '';
+            if (isDefaultQwen) {
+                apiKeyInput.value = '';
+            }
+        };
+
+        customModelInput.addEventListener('input', syncApiKeyVisibility);
 
         const setStatus = (message, isError = false) => {
             statusEl.textContent = message;
             statusEl.classList.toggle('error', isError);
+        };
+
+        const setAdminStatus = (message, isError = false) => {
+            adminAuthStatusEl.textContent = message;
+            adminAuthStatusEl.classList.toggle('error', isError);
         };
 
         const escapeHtml = (value) => String(value)
@@ -524,6 +642,22 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             if (!text) return '';
             if (/^https?:\/\//i.test(text)) return text;
             return `https://${text}`;
+        };
+
+        const isAdminLoggedIn = () => Boolean(adminSession?.user);
+
+        const updateAdminUi = () => {
+            const email = adminSession?.user?.email || '';
+            adminLoginButton.disabled = isAdminLoggedIn();
+            adminLogoutButton.disabled = !isAdminLoggedIn();
+            adminEmailInput.disabled = isAdminLoggedIn();
+            adminPasswordInput.disabled = isAdminLoggedIn();
+            setAdminStatus(
+                isAdminLoggedIn()
+                    ? `Signed in as ${email}. You can now edit, save, and delete profile records.`
+                    : 'Signed out. Admin login enables edit, save, and delete.',
+                false
+            );
         };
 
         const formatStructuredValue = (value) => {
@@ -599,24 +733,97 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             return profile.agent_type || profile.domain_focus || 'profile';
         };
 
+        const formatEditorValue = (key, value) => {
+            if (JSON_PROFILE_FIELDS.has(key)) {
+                return isEmptyValue(value) ? '[]' : JSON.stringify(value, null, 2);
+            }
+            if (value === null || value === undefined) return '';
+            return String(value);
+        };
+
+        const renderEditorField = (profile, key) => {
+            const value = formatEditorValue(key, profile[key]);
+            const escapedValue = escapeHtml(value);
+            const wide = JSON_PROFILE_FIELDS.has(key) || key === 'bio_link';
+            const wrapperClass = wide ? 'field wide' : 'field';
+
+            if (SELECT_FIELDS[key]) {
+                const options = SELECT_FIELDS[key].map((option) => {
+                    const selected = String(profile[key] || '') === option ? ' selected' : '';
+                    return `<option value="${escapeHtml(option)}"${selected}>${escapeHtml(option)}</option>`;
+                }).join('');
+                return `
+                    <div class="${wrapperClass}">
+                        <label for="edit-${escapeHtml(profile.id)}-${escapeHtml(key)}">${escapeHtml(key)}</label>
+                        <select id="edit-${escapeHtml(profile.id)}-${escapeHtml(key)}" name="${escapeHtml(key)}">${options}</select>
+                    </div>
+                `;
+            }
+
+            if (JSON_PROFILE_FIELDS.has(key)) {
+                return `
+                    <div class="${wrapperClass}">
+                        <label for="edit-${escapeHtml(profile.id)}-${escapeHtml(key)}">${escapeHtml(key)}</label>
+                        <textarea id="edit-${escapeHtml(profile.id)}-${escapeHtml(key)}" name="${escapeHtml(key)}">${escapedValue}</textarea>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="${wrapperClass}">
+                    <label for="edit-${escapeHtml(profile.id)}-${escapeHtml(key)}">${escapeHtml(key)}</label>
+                    <input id="edit-${escapeHtml(profile.id)}-${escapeHtml(key)}" name="${escapeHtml(key)}" type="text" value="${escapedValue}">
+                </div>
+            `;
+        };
+
+        const renderProfileEditor = (profile) => {
+            const fields = EDITABLE_PROFILE_FIELDS.map((key) => renderEditorField(profile, key)).join('');
+            const disabledAttr = savingProfileId === profile.id || deletingProfileId === profile.id ? ' disabled' : '';
+            return `
+                <form class="editor-grid" data-edit-form="${escapeHtml(profile.id)}">
+                    ${fields}
+                </form>
+                <div class="card-actions">
+                    <button class="button-secondary" type="button" data-action="cancel-edit" data-id="${escapeHtml(profile.id)}"${disabledAttr}>Cancel</button>
+                    <button class="button" type="button" data-action="save-profile" data-id="${escapeHtml(profile.id)}"${disabledAttr}>Save</button>
+                    <button class="button-secondary button-danger" type="button" data-action="delete-profile" data-id="${escapeHtml(profile.id)}"${disabledAttr}>Delete</button>
+                </div>
+            `;
+        };
+
         const renderRows = (rows) => {
+            currentRows = rows;
             if (!rows.length) {
                 resultsEl.innerHTML = '<div class="empty">No profiles matched this query.</div>';
                 return;
             }
 
             resultsEl.innerHTML = rows.map((profile) => {
-                const keys = Object.keys(profile).filter((key) => !HIDDEN_PROFILE_FIELDS.has(key));
-                const metaItems = keys.map((key) => {
-                    const renderedValue = renderValueHtml(key, profile[key]);
-                    if (!renderedValue) return '';
-                    return `
-                        <div class="meta">
-                            <div class="meta-key">${escapeHtml(key)}</div>
-                            <div class="meta-value">${renderedValue}</div>
+                const isEditing = isAdminLoggedIn() && editingProfileId === profile.id;
+                const contentHtml = isEditing
+                    ? renderProfileEditor(profile)
+                    : Object.keys(profile)
+                        .filter((key) => !HIDDEN_PROFILE_FIELDS.has(key))
+                        .map((key) => {
+                            const renderedValue = renderValueHtml(key, profile[key]);
+                            if (!renderedValue) return '';
+                            return `
+                                <div class="meta">
+                                    <div class="meta-key">${escapeHtml(key)}</div>
+                                    <div class="meta-value">${renderedValue}</div>
+                                </div>
+                            `;
+                        })
+                        .filter(Boolean)
+                        .join('');
+                const adminActionsHtml = isAdminLoggedIn() && !isEditing
+                    ? `
+                        <div class="card-actions">
+                            <button class="button-secondary" type="button" data-action="edit-profile" data-id="${escapeHtml(profile.id)}">Edit</button>
                         </div>
-                    `;
-                }).filter(Boolean).join('');
+                    `
+                    : '';
 
                 return `
                     <article class="card">
@@ -624,7 +831,8 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                             <h3 class="card-title">${escapeHtml(titleForProfile(profile))}</h3>
                             <div class="pill">${escapeHtml(badgeForProfile(profile))}</div>
                         </div>
-                        <div class="field-grid">${metaItems}</div>
+                        <div class="field-grid">${contentHtml}</div>
+                        ${adminActionsHtml}
                     </article>
                 `;
             }).join('');
@@ -723,6 +931,42 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             await fetchProfilesDirect(offset);
         };
 
+        const parseProfileForm = (profileId) => {
+            const form = resultsEl.querySelector(`[data-edit-form="${CSS.escape(profileId)}"]`);
+            if (!form) {
+                throw new Error('The edit form could not be found.');
+            }
+            const formData = new FormData(form);
+            const payload = {};
+
+            for (const key of EDITABLE_PROFILE_FIELDS) {
+                const rawValue = String(formData.get(key) ?? '').trim();
+                if (JSON_PROFILE_FIELDS.has(key)) {
+                    if (!rawValue) {
+                        payload[key] = [];
+                    } else {
+                        try {
+                            payload[key] = JSON.parse(rawValue);
+                        } catch (error) {
+                            throw new Error(`Invalid JSON for ${key}.`);
+                        }
+                    }
+                    continue;
+                }
+
+                if (REQUIRED_FIELDS.has(key) && !rawValue) {
+                    throw new Error(`${key} is required.`);
+                }
+                payload[key] = rawValue || null;
+            }
+
+            return payload;
+        };
+
+        const refreshCurrentPage = async () => {
+            await fetchProfiles(currentOffset);
+        };
+
         const runSearch = async (usePrompt) => {
             searchButton.disabled = true;
             prevButton.disabled = true;
@@ -809,8 +1053,139 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             }
         });
 
-        (async () => {
+        adminLoginButton.addEventListener('click', async () => {
+            if (!supabaseClient) {
+                setAdminStatus('Supabase client failed to initialize.', true);
+                return;
+            }
+            const email = adminEmailInput.value.trim();
+            const password = adminPasswordInput.value;
+            if (!email || !password) {
+                setAdminStatus('Enter the admin email and password.', true);
+                return;
+            }
+
+            adminLoginButton.disabled = true;
             try {
+                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+                adminSession = data.session || null;
+                adminPasswordInput.value = '';
+                updateAdminUi();
+                renderRows(currentRows);
+            } catch (error) {
+                setAdminStatus(error.message || 'Login failed.', true);
+            } finally {
+                if (!isAdminLoggedIn()) {
+                    adminLoginButton.disabled = false;
+                }
+            }
+        });
+
+        adminLogoutButton.addEventListener('click', async () => {
+            if (!supabaseClient) return;
+            try {
+                const { error } = await supabaseClient.auth.signOut();
+                if (error) throw error;
+                adminSession = null;
+                editingProfileId = null;
+                updateAdminUi();
+                renderRows(currentRows);
+            } catch (error) {
+                setAdminStatus(error.message || 'Logout failed.', true);
+            }
+        });
+
+        resultsEl.addEventListener('click', async (event) => {
+            const button = event.target.closest('button[data-action]');
+            if (!button) return;
+            const action = button.dataset.action;
+            const profileId = button.dataset.id;
+            if (!profileId) return;
+
+            if (action === 'edit-profile') {
+                editingProfileId = profileId;
+                renderRows(currentRows);
+                return;
+            }
+
+            if (action === 'cancel-edit') {
+                editingProfileId = null;
+                renderRows(currentRows);
+                return;
+            }
+
+            if (!isAdminLoggedIn()) {
+                setAdminStatus('Log in as admin before editing records.', true);
+                return;
+            }
+
+            if (action === 'save-profile') {
+                try {
+                    savingProfileId = profileId;
+                    renderRows(currentRows);
+                    setStatus('Saving profile...');
+                    const payload = parseProfileForm(profileId);
+                    const { error } = await supabaseClient
+                        .from('profiles')
+                        .update(payload)
+                        .eq('id', profileId);
+                    if (error) throw error;
+                    editingProfileId = null;
+                    await refreshCurrentPage();
+                    setStatus('Profile saved.');
+                } catch (error) {
+                    setStatus(error.message || 'Save failed.', true);
+                } finally {
+                    savingProfileId = null;
+                    renderRows(currentRows);
+                }
+                return;
+            }
+
+            if (action === 'delete-profile') {
+                const confirmed = window.confirm('Delete this profile record? This cannot be undone.');
+                if (!confirmed) return;
+                try {
+                    deletingProfileId = profileId;
+                    renderRows(currentRows);
+                    setStatus('Deleting profile...');
+                    const { error } = await supabaseClient
+                        .from('profiles')
+                        .delete()
+                        .eq('id', profileId);
+                    if (error) throw error;
+                    editingProfileId = null;
+                    if (currentOffset > 0 && lastRowsLength === 1) {
+                        currentOffset = Math.max(0, currentOffset - PAGE_SIZE);
+                    }
+                    await refreshCurrentPage();
+                    setStatus('Profile deleted.');
+                } catch (error) {
+                    setStatus(error.message || 'Delete failed.', true);
+                } finally {
+                    deletingProfileId = null;
+                    renderRows(currentRows);
+                }
+            }
+        });
+
+        (async () => {
+            syncApiKeyVisibility();
+            try {
+                if (supabaseClient) {
+                    const { data } = await supabaseClient.auth.getSession();
+                    adminSession = data.session || null;
+                    updateAdminUi();
+                    supabaseClient.auth.onAuthStateChange((_event, session) => {
+                        adminSession = session;
+                        if (!session) {
+                            editingProfileId = null;
+                        }
+                        updateAdminUi();
+                        renderRows(currentRows);
+                    });
+                }
                 await runSearch(false);
             } catch (error) {
                 setStatus(error.message || 'Initial load failed.', true);
