@@ -899,7 +899,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                         <button class="button-secondary" type="button" data-action="cancel-schedule" data-id="${escapeHtml(profile.id)}"${disabledAttr}>Cancel</button>
                         <button class="button" type="button" data-action="send-schedule" data-id="${escapeHtml(profile.id)}"${sendDisabledAttr}>Send</button>
                     </div>
-                    <div class="schedule-status">This queues a Google Calendar invitation through the online worker in the private repo.</div>
+                    <div class="schedule-status">This queues a Google Calendar invitation now. The selected date and time are the meeting time.</div>
                 </div>
             `;
         };
@@ -1385,7 +1385,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                     });
                     if (error) throw error;
                     schedulingProfileId = null;
-                    setStatus(data?.scheduled_for ? `Invitation queued for ${data.scheduled_for}. The online worker sends it within about 5-10 minutes of the target time.` : 'Invitation queued for Google Calendar delivery.');
+                    setStatus(data?.scheduled_for ? `Invitation queued. The online worker should send it within about 5-10 minutes; the selected time remains the meeting time (${data.scheduled_for}).` : 'Invitation queued for Google Calendar delivery.');
                     renderRows(currentRows);
                 } catch (error) {
                     setStatus(error.message || 'Scheduling failed.', true);
