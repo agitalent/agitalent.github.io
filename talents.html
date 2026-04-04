@@ -530,7 +530,6 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         const SUPABASE_URL = 'https://zocovvewzpqxspysanyy.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvY292dmV3enBxeHNweXNhbnl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwODYwNTgsImV4cCI6MjA4OTY2MjA1OH0.8ekfJ3bcvG-AbLD39xUINwXrpO7RiH9PVgy-xMzeHbE';
         const PAGE_SIZE = 20;
-        const SCHEDULE_SERVICE_URL = 'http://127.0.0.1:8765';
 
         const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
         const modelSelect = document.getElementById('model-select');
@@ -900,7 +899,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                         <button class="button-secondary" type="button" data-action="cancel-schedule" data-id="${escapeHtml(profile.id)}"${disabledAttr}>Cancel</button>
                         <button class="button" type="button" data-action="send-schedule" data-id="${escapeHtml(profile.id)}"${sendDisabledAttr}>Send</button>
                     </div>
-                    <div class="schedule-status">This sends the schedule request to your local scheduling service on this Mac.</div>
+                    <div class="schedule-status">This queues a Google Calendar invitation through the online worker in the private repo.</div>
                 </div>
             `;
         };
@@ -1377,29 +1376,16 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                     const profile = currentRows.find((row) => row.id === profileId);
                     if (!profile) throw new Error('Profile not found.');
                     sendingScheduleProfileId = profileId;
-                    setStatus('Sending schedule to the local service...');
+                    setStatus('Queueing Google Calendar invitation...');
                     renderRows(currentRows);
-                    const response = await fetch(`${SCHEDULE_SERVICE_URL}/schedule`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            admin_username: adminUser.username,
-                            candidate: {
-                                id: profile.id,
-                                name: profile.name_or_handle || profile.name || 'Candidate',
-                                seniority: profile.seniority || '',
-                                email: profile.email || '',
-                                timezone: profile.timezone || ''
-                            },
-                            schedule: payload
-                        })
+                    const { data, error } = await supabaseClient.rpc('admin_enqueue_schedule_invite', {
+                        ...adminRpcCredentials(),
+                        p_profile_id: profileId,
+                        p_schedule: payload
                     });
-                    const data = await response.json().catch(() => ({}));
-                    if (!response.ok) {
-                        throw new Error(data.error || 'The local scheduling service rejected the request.');
-                    }
+                    if (error) throw error;
                     schedulingProfileId = null;
-                    setStatus(data.message || 'Schedule queued locally.');
+                    setStatus(data?.scheduled_for ? `Invitation queued for ${data.scheduled_for}. The online worker sends it within about 5-10 minutes of the target time.` : 'Invitation queued for Google Calendar delivery.');
                     renderRows(currentRows);
                 } catch (error) {
                     setStatus(error.message || 'Scheduling failed.', true);
