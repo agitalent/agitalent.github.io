@@ -380,6 +380,26 @@
         .editor-grid .field.wide {
             grid-column: 1 / -1;
         }
+        .schedule-panel {
+            margin-top: 16px;
+            padding: 16px;
+            border-radius: 18px;
+            border: 1px solid rgba(127, 255, 212, 0.12);
+            background: rgba(255, 255, 255, 0.025);
+        }
+        .schedule-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .schedule-grid .field.wide {
+            grid-column: 1 / -1;
+        }
+        .schedule-status {
+            margin-top: 10px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
         @media (max-width: 1040px) {
             .layout {
                 grid-template-columns: 1fr;
@@ -399,7 +419,8 @@
             }
             .field-grid,
             .admin-grid,
-            .editor-grid {
+            .editor-grid,
+            .schedule-grid {
                 grid-template-columns: 1fr;
             }
         }
@@ -509,6 +530,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         const SUPABASE_URL = 'https://zocovvewzpqxspysanyy.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvY292dmV3enBxeHNweXNhbnl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwODYwNTgsImV4cCI6MjA4OTY2MjA1OH0.8ekfJ3bcvG-AbLD39xUINwXrpO7RiH9PVgy-xMzeHbE';
         const PAGE_SIZE = 20;
+        const SCHEDULE_SERVICE_URL = 'http://127.0.0.1:8765';
 
         const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
         const modelSelect = document.getElementById('model-select');
@@ -572,8 +594,10 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         let adminUser = null;
         let adminPassword = '';
         let editingProfileId = null;
+        let schedulingProfileId = null;
         let savingProfileId = null;
         let deletingProfileId = null;
+        let sendingScheduleProfileId = null;
 
         const MODEL_LABELS = {
             'qwen/qwen-plus': 'Qwen3.5 / Qwen3.5-Plus',
@@ -660,6 +684,17 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                 false
             );
         };
+
+        const timeZoneOptions = (() => {
+            if (typeof Intl.supportedValuesOf === 'function') {
+                try {
+                    return Intl.supportedValuesOf('timeZone');
+                } catch (error) {
+                    return ['Asia/Shanghai', 'America/Los_Angeles', 'America/New_York', 'Europe/London', 'UTC'];
+                }
+            }
+            return ['Asia/Shanghai', 'America/Los_Angeles', 'America/New_York', 'Europe/London', 'UTC'];
+        })();
 
         const formatStructuredValue = (value) => {
             if (isEmptyValue(value)) return '';
@@ -781,14 +816,91 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         const renderProfileEditor = (profile) => {
             const fields = EDITABLE_PROFILE_FIELDS.map((key) => renderEditorField(profile, key)).join('');
             const disabledAttr = savingProfileId === profile.id || deletingProfileId === profile.id ? ' disabled' : '';
-            return `
+            return {
+                bodyHtml: `
                 <form class="editor-grid" data-edit-form="${escapeHtml(profile.id)}">
                     ${fields}
                 </form>
+                `,
+                actionsHtml: `
                 <div class="card-actions">
                     <button class="button-secondary" type="button" data-action="cancel-edit" data-id="${escapeHtml(profile.id)}"${disabledAttr}>Cancel</button>
                     <button class="button" type="button" data-action="save-profile" data-id="${escapeHtml(profile.id)}"${disabledAttr}>Save</button>
                     <button class="button-secondary button-danger" type="button" data-action="delete-profile" data-id="${escapeHtml(profile.id)}"${disabledAttr}>Delete</button>
+                </div>
+                `
+            };
+        };
+
+        const isScheduleComplete = (values) => {
+            if (!values) return false;
+            if (!values.date || !values.timezone || values.hour === '' || values.minute === '' || !values.company || !values.role || !values.contact) {
+                return false;
+            }
+            const hour = Number(values.hour);
+            const minute = Number(values.minute);
+            return Number.isInteger(hour) && hour >= 0 && hour <= 23 && Number.isInteger(minute) && minute >= 0 && minute <= 59;
+        };
+
+        const scheduleDefaults = (profile) => {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() + 60);
+            return {
+                date: now.toISOString().slice(0, 10),
+                hour: String(now.getHours()).padStart(2, '0'),
+                minute: String(now.getMinutes()).padStart(2, '0'),
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Shanghai',
+                company: '',
+                role: '',
+                contact: profile.email || ''
+            };
+        };
+
+        const renderSchedulePanel = (profile) => {
+            const values = profile._scheduleDraft || scheduleDefaults(profile);
+            const timezoneOptionsHtml = timeZoneOptions.map((zone) => {
+                const selected = zone === values.timezone ? ' selected' : '';
+                return `<option value="${escapeHtml(zone)}"${selected}>${escapeHtml(zone)}</option>`;
+            }).join('');
+            const disabledAttr = sendingScheduleProfileId === profile.id ? ' disabled' : '';
+            const sendDisabledAttr = !isScheduleComplete(values) || sendingScheduleProfileId === profile.id ? ' disabled' : '';
+            return `
+                <div class="schedule-panel">
+                    <div class="schedule-grid" data-schedule-form="${escapeHtml(profile.id)}">
+                        <div class="field">
+                            <label for="schedule-date-${escapeHtml(profile.id)}">Date</label>
+                            <input id="schedule-date-${escapeHtml(profile.id)}" name="date" type="date" value="${escapeHtml(values.date)}">
+                        </div>
+                        <div class="field">
+                            <label for="schedule-timezone-${escapeHtml(profile.id)}">Time Zone</label>
+                            <select id="schedule-timezone-${escapeHtml(profile.id)}" name="timezone">${timezoneOptionsHtml}</select>
+                        </div>
+                        <div class="field">
+                            <label for="schedule-hour-${escapeHtml(profile.id)}">Hour</label>
+                            <input id="schedule-hour-${escapeHtml(profile.id)}" name="hour" type="number" min="0" max="23" value="${escapeHtml(values.hour)}">
+                        </div>
+                        <div class="field">
+                            <label for="schedule-minute-${escapeHtml(profile.id)}">Minute</label>
+                            <input id="schedule-minute-${escapeHtml(profile.id)}" name="minute" type="number" min="0" max="59" value="${escapeHtml(values.minute)}">
+                        </div>
+                        <div class="field">
+                            <label for="schedule-company-${escapeHtml(profile.id)}">Company</label>
+                            <input id="schedule-company-${escapeHtml(profile.id)}" name="company" type="text" value="${escapeHtml(values.company)}" placeholder="OpenAI">
+                        </div>
+                        <div class="field">
+                            <label for="schedule-role-${escapeHtml(profile.id)}">Role</label>
+                            <input id="schedule-role-${escapeHtml(profile.id)}" name="role" type="text" value="${escapeHtml(values.role)}" placeholder="Research Engineer">
+                        </div>
+                        <div class="field wide">
+                            <label for="schedule-contact-${escapeHtml(profile.id)}">Preferred Contact Means</label>
+                            <input id="schedule-contact-${escapeHtml(profile.id)}" name="contact" type="text" value="${escapeHtml(values.contact)}" placeholder="email@example.com or WeChat: agitalent">
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="button-secondary" type="button" data-action="cancel-schedule" data-id="${escapeHtml(profile.id)}"${disabledAttr}>Cancel</button>
+                        <button class="button" type="button" data-action="send-schedule" data-id="${escapeHtml(profile.id)}"${sendDisabledAttr}>Send</button>
+                    </div>
+                    <div class="schedule-status">This sends the schedule request to your local scheduling service on this Mac.</div>
                 </div>
             `;
         };
@@ -802,9 +914,16 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
 
             resultsEl.innerHTML = rows.map((profile) => {
                 const isEditing = isAdminLoggedIn() && editingProfileId === profile.id;
-                const contentHtml = isEditing
-                    ? renderProfileEditor(profile)
-                    : Object.keys(profile)
+                const isScheduling = isAdminLoggedIn() && schedulingProfileId === profile.id;
+                let bodyHtml = '';
+                let actionsHtml = '';
+
+                if (isEditing) {
+                    const editor = renderProfileEditor(profile);
+                    bodyHtml = editor.bodyHtml;
+                    actionsHtml = editor.actionsHtml;
+                } else {
+                    bodyHtml = Object.keys(profile)
                         .filter((key) => !HIDDEN_PROFILE_FIELDS.has(key))
                         .map((key) => {
                             const renderedValue = renderValueHtml(key, profile[key]);
@@ -818,13 +937,15 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                         })
                         .filter(Boolean)
                         .join('');
-                const adminActionsHtml = isAdminLoggedIn() && !isEditing
+                    actionsHtml = isAdminLoggedIn()
                     ? `
                         <div class="card-actions">
                             <button class="button-secondary" type="button" data-action="edit-profile" data-id="${escapeHtml(profile.id)}">Edit</button>
+                            <button class="button-secondary" type="button" data-action="open-schedule" data-id="${escapeHtml(profile.id)}">Schedule</button>
                         </div>
                     `
                     : '';
+                }
 
                 return `
                     <article class="card">
@@ -832,8 +953,9 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                             <h3 class="card-title">${escapeHtml(titleForProfile(profile))}</h3>
                             <div class="pill">${escapeHtml(badgeForProfile(profile))}</div>
                         </div>
-                        <div class="field-grid">${contentHtml}</div>
-                        ${adminActionsHtml}
+                        <div class="${isEditing ? 'editor-shell' : 'field-grid'}">${bodyHtml}</div>
+                        ${actionsHtml}
+                        ${isScheduling && !isEditing ? renderSchedulePanel(profile) : ''}
                     </article>
                 `;
             }).join('');
@@ -962,6 +1084,53 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             }
 
             return payload;
+        };
+
+        const parseScheduleForm = (profileId) => {
+            const form = resultsEl.querySelector(`[data-schedule-form="${CSS.escape(profileId)}"]`);
+            if (!form) {
+                throw new Error('The schedule form could not be found.');
+            }
+            const fields = {};
+            form.querySelectorAll('[name]').forEach((input) => {
+                fields[input.name] = String(input.value || '').trim();
+            });
+            if (!fields.date || !fields.timezone || fields.hour === '' || fields.minute === '' || !fields.company || !fields.role || !fields.contact) {
+                throw new Error('Complete all schedule fields before sending.');
+            }
+            const hour = Number(fields.hour);
+            const minute = Number(fields.minute);
+            if (!Number.isInteger(hour) || hour < 0 || hour > 23) {
+                throw new Error('Hour must be between 0 and 23.');
+            }
+            if (!Number.isInteger(minute) || minute < 0 || minute > 59) {
+                throw new Error('Minute must be between 0 and 59.');
+            }
+            return {
+                date: fields.date,
+                timezone: fields.timezone,
+                hour: String(hour).padStart(2, '0'),
+                minute: String(minute).padStart(2, '0'),
+                company: fields.company,
+                role: fields.role,
+                contact: fields.contact
+            };
+        };
+
+        const syncScheduleDraft = (profileId) => {
+            const form = resultsEl.querySelector(`[data-schedule-form="${CSS.escape(profileId)}"]`);
+            if (!form) return;
+            const profile = currentRows.find((row) => row.id === profileId);
+            if (!profile) return;
+            const values = {};
+            form.querySelectorAll('[name]').forEach((input) => {
+                values[input.name] = String(input.value || '').trim();
+            });
+            profile._scheduleDraft = values;
+            const sendButton = resultsEl.querySelector(`button[data-action="send-schedule"][data-id="${CSS.escape(profileId)}"]`);
+            if (sendButton) {
+                sendButton.disabled = !isScheduleComplete(values) || sendingScheduleProfileId === profileId;
+            }
         };
 
         const refreshCurrentPage = async () => {
@@ -1119,12 +1288,26 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
 
             if (action === 'edit-profile') {
                 editingProfileId = profileId;
+                schedulingProfileId = null;
                 renderRows(currentRows);
                 return;
             }
 
             if (action === 'cancel-edit') {
                 editingProfileId = null;
+                renderRows(currentRows);
+                return;
+            }
+
+            if (action === 'open-schedule') {
+                schedulingProfileId = profileId;
+                editingProfileId = null;
+                renderRows(currentRows);
+                return;
+            }
+
+            if (action === 'cancel-schedule') {
+                schedulingProfileId = null;
                 renderRows(currentRows);
                 return;
             }
@@ -1187,6 +1370,60 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                     renderRows(currentRows);
                 }
             }
+
+            if (action === 'send-schedule') {
+                try {
+                    const payload = parseScheduleForm(profileId);
+                    const profile = currentRows.find((row) => row.id === profileId);
+                    if (!profile) throw new Error('Profile not found.');
+                    sendingScheduleProfileId = profileId;
+                    setStatus('Sending schedule to the local service...');
+                    renderRows(currentRows);
+                    const response = await fetch(`${SCHEDULE_SERVICE_URL}/schedule`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            admin_username: adminUser.username,
+                            candidate: {
+                                id: profile.id,
+                                name: profile.name_or_handle || profile.name || 'Candidate',
+                                seniority: profile.seniority || '',
+                                email: profile.email || '',
+                                timezone: profile.timezone || ''
+                            },
+                            schedule: payload
+                        })
+                    });
+                    const data = await response.json().catch(() => ({}));
+                    if (!response.ok) {
+                        throw new Error(data.error || 'The local scheduling service rejected the request.');
+                    }
+                    schedulingProfileId = null;
+                    setStatus(data.message || 'Schedule queued locally.');
+                    renderRows(currentRows);
+                } catch (error) {
+                    setStatus(error.message || 'Scheduling failed.', true);
+                } finally {
+                    sendingScheduleProfileId = null;
+                    renderRows(currentRows);
+                }
+            }
+        });
+
+        resultsEl.addEventListener('input', (event) => {
+            const form = event.target.closest('[data-schedule-form]');
+            if (!form) return;
+            const profileId = form.getAttribute('data-schedule-form');
+            if (!profileId) return;
+            syncScheduleDraft(profileId);
+        });
+
+        resultsEl.addEventListener('change', (event) => {
+            const form = event.target.closest('[data-schedule-form]');
+            if (!form) return;
+            const profileId = form.getAttribute('data-schedule-form');
+            if (!profileId) return;
+            syncScheduleDraft(profileId);
         });
 
         (async () => {
