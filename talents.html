@@ -597,6 +597,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         let savingProfileId = null;
         let deletingProfileId = null;
         let sendingScheduleProfileId = null;
+        const ADMIN_SESSION_KEY = 'talentsAdminSession';
 
         const MODEL_LABELS = {
             'qwen/qwen-plus': 'Qwen3.5 / Qwen3.5-Plus',
@@ -669,6 +670,21 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         };
 
         const isAdminLoggedIn = () => Boolean(adminUser?.username && adminUser?.rights === 'admin');
+
+        const persistAdminSession = () => {
+            if (!isAdminLoggedIn() || !adminPassword) {
+                window.localStorage.removeItem(ADMIN_SESSION_KEY);
+                return;
+            }
+            window.localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify({
+                username: adminUser.username,
+                password: adminPassword
+            }));
+        };
+
+        const clearAdminSession = () => {
+            window.localStorage.removeItem(ADMIN_SESSION_KEY);
+        };
 
         const updateAdminUi = () => {
             const username = adminUser?.username || '';
@@ -983,7 +999,8 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             .map((term) => term.trim())
             .filter((term) => term && term.length > 1);
 
-        const fetchProfilesDirect = async (offset = 0) => {
+        const fetchProfilesDirect = async (offset = 0, options = {}) => {
+            const { scrollToTop = true } = options;
             const query = supabaseClient
                 .from('profiles')
                 .select('*', { count: 'exact' })
@@ -1000,7 +1017,9 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             lastRowsLength = rows.length;
             renderRows(rows);
             updatePagination();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if (scrollToTop) {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
         };
 
         const applyPromptFilters = (query, promptOverride = activePrompt) => {
@@ -1021,7 +1040,8 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             return filteredQuery;
         };
 
-        const fetchProfilesClientFiltered = async (offset = 0, promptOverride = activePrompt) => {
+        const fetchProfilesClientFiltered = async (offset = 0, promptOverride = activePrompt, options = {}) => {
+            const { scrollToTop = true } = options;
             let query = supabaseClient
                 .from('profiles')
                 .select('*', { count: 'exact' })
@@ -1039,18 +1059,20 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             lastRowsLength = rows.length;
             renderRows(rows);
             updatePagination();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if (scrollToTop) {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
         };
 
-        const fetchProfiles = async (offset = 0) => {
+        const fetchProfiles = async (offset = 0, options = {}) => {
             if (!supabaseClient) {
                 throw new Error('Supabase client failed to initialize.');
             }
             if (searchMode === 'prompt') {
-                await fetchProfilesClientFiltered(offset);
+                await fetchProfilesClientFiltered(offset, activePrompt, options);
                 return;
             }
-            await fetchProfilesDirect(offset);
+            await fetchProfilesDirect(offset, options);
         };
 
         const parseProfileForm = (profileId) => {
@@ -1132,8 +1154,38 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             }
         };
 
-        const refreshCurrentPage = async () => {
-            await fetchProfiles(currentOffset);
+        const refreshCurrentPage = async (options = {}) => {
+            await fetchProfiles(currentOffset, options);
+        };
+
+        const restoreAdminSession = async () => {
+            const raw = window.localStorage.getItem(ADMIN_SESSION_KEY);
+            if (!raw || !supabaseClient) return;
+            try {
+                const session = JSON.parse(raw);
+                const username = String(session?.username || '').trim();
+                const password = String(session?.password || '');
+                if (!username || !password) {
+                    clearAdminSession();
+                    return;
+                }
+                const { data, error } = await supabaseClient.rpc('authenticate_app_user', {
+                    p_username: username,
+                    p_password: password
+                });
+                if (error) throw error;
+                if (!data || data.rights !== 'admin') {
+                    throw new Error('Stored session no longer has admin rights.');
+                }
+                adminUser = data;
+                adminPassword = password;
+                adminUsernameInput.value = username;
+                adminPasswordInput.value = '';
+            } catch (_error) {
+                adminUser = null;
+                adminPassword = '';
+                clearAdminSession();
+            }
         };
 
         const adminRpcCredentials = () => {
@@ -1256,6 +1308,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                 }
                 adminUser = data;
                 adminPassword = password;
+                persistAdminSession();
                 adminPasswordInput.value = '';
                 updateAdminUi();
                 renderRows(currentRows);
@@ -1274,6 +1327,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             editingProfileId = null;
             adminUsernameInput.disabled = false;
             adminPasswordInput.disabled = false;
+            clearAdminSession();
             updateAdminUi();
             renderRows(currentRows);
         });
@@ -1333,7 +1387,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                     }
                     editingProfileId = null;
                     renderRows(currentRows);
-                    await refreshCurrentPage();
+                    await refreshCurrentPage({ scrollToTop: false });
                     setStatus('Profile saved.');
                 } catch (error) {
                     setStatus(error.message || 'Save failed.', true);
@@ -1415,6 +1469,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         (async () => {
             syncApiKeyVisibility();
             try {
+                await restoreAdminSession();
                 updateAdminUi();
                 await runSearch(false);
             } catch (error) {
