@@ -1414,7 +1414,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                     if (currentOffset > 0 && lastRowsLength === 1) {
                         currentOffset = Math.max(0, currentOffset - PAGE_SIZE);
                     }
-                    await refreshCurrentPage();
+                    await refreshCurrentPage({ scrollToTop: false });
                     setStatus('Profile deleted.');
                 } catch (error) {
                     setStatus(error.message || 'Delete failed.', true);
