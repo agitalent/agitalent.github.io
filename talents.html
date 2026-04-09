@@ -500,9 +500,9 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                                 <button class="button-secondary" id="admin-login-button" type="button">Login</button>
                                 <button class="button-secondary" id="admin-logout-button" type="button" disabled>Logout</button>
                             </div>
-                            <div class="admin-status" id="admin-auth-status">Signed out. Admin login enables edit, save, and delete.</div>
+                            <div class="admin-status" id="admin-auth-status">Signed out. Login is required to browse candidate records. Admin login also enables edit, save, and delete.</div>
                         </div>
-                        <div class="status" id="status">Loading the first 20 profiles...</div>
+                        <div class="status" id="status">Login is required to browse candidate records.</div>
                     </div>
                 </section>
 
@@ -694,10 +694,24 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             adminPasswordInput.disabled = isAdminLoggedIn();
             setAdminStatus(
                 isAdminLoggedIn()
-                    ? `Signed in as ${username}. You can now edit, save, and delete profile records.`
-                    : 'Signed out. Admin login enables edit, save, and delete.',
+                    ? `Signed in as ${username}. You can now browse, edit, save, and delete profile records.`
+                    : 'Signed out. Login is required to browse candidate records. Admin login also enables edit, save, and delete.',
                 false
             );
+        };
+
+        const clearResultsForSignedOutState = () => {
+            currentRows = [];
+            activePrompt = '';
+            currentOffset = 0;
+            totalCount = 0;
+            lastRowsLength = 0;
+            searchMode = 'latest';
+            editingProfileId = null;
+            schedulingProfileId = null;
+            resultsMetaEl.textContent = 'Login required to view candidate records.';
+            resultsEl.innerHTML = '<div class="empty">Log in to browse candidate records.</div>';
+            updatePagination();
         };
 
         const timeZoneOptions = (() => {
@@ -1068,6 +1082,10 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             if (!supabaseClient) {
                 throw new Error('Supabase client failed to initialize.');
             }
+            if (!isAdminLoggedIn()) {
+                clearResultsForSignedOutState();
+                throw new Error('Login is required to browse candidate records.');
+            }
             if (searchMode === 'prompt') {
                 await fetchProfilesClientFiltered(offset, activePrompt, options);
                 return;
@@ -1311,7 +1329,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                 persistAdminSession();
                 adminPasswordInput.value = '';
                 updateAdminUi();
-                renderRows(currentRows);
+                await runSearch(false);
             } catch (error) {
                 setAdminStatus(error.message || 'Login failed.', true);
             } finally {
@@ -1329,7 +1347,8 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             adminPasswordInput.disabled = false;
             clearAdminSession();
             updateAdminUi();
-            renderRows(currentRows);
+            clearResultsForSignedOutState();
+            setStatus('Login is required to browse candidate records.');
         });
 
         resultsEl.addEventListener('click', async (event) => {
@@ -1471,7 +1490,12 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             try {
                 await restoreAdminSession();
                 updateAdminUi();
-                await runSearch(false);
+                if (isAdminLoggedIn()) {
+                    await runSearch(false);
+                } else {
+                    clearResultsForSignedOutState();
+                    setStatus('Login is required to browse candidate records.');
+                }
             } catch (error) {
                 setStatus(error.message || 'Initial load failed.', true);
                 resultsEl.innerHTML = '<div class="empty">The page could not load profiles.</div>';
