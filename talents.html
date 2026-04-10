@@ -498,7 +498,22 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                             </div>
                             <div class="actions">
                                 <button class="button-secondary" id="admin-login-button" type="button">Login</button>
+                                <button class="button-secondary" id="admin-reset-password-toggle" type="button">Reset Password</button>
                                 <button class="button-secondary" id="admin-logout-button" type="button" disabled>Logout</button>
+                            </div>
+                            <div class="admin-grid" id="admin-reset-password-panel" style="display:none; margin-top:12px;">
+                                <div class="field">
+                                    <label for="admin-reset-current-password">Current Password</label>
+                                    <input id="admin-reset-current-password" type="password" autocomplete="current-password" placeholder="Current password">
+                                </div>
+                                <div class="field">
+                                    <label for="admin-reset-new-password">New Password</label>
+                                    <input id="admin-reset-new-password" type="password" autocomplete="new-password" placeholder="New password">
+                                </div>
+                            </div>
+                            <div class="actions" id="admin-reset-password-actions" style="display:none;">
+                                <button class="button-secondary" id="admin-reset-password-submit" type="button">Confirm Reset</button>
+                                <button class="button-secondary" id="admin-reset-password-cancel" type="button">Cancel</button>
                             </div>
                             <div class="admin-status" id="admin-auth-status">Signed out. Login is required to browse candidate records. Admin login also enables edit, save, and delete.</div>
                         </div>
@@ -546,6 +561,13 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         const adminUsernameInput = document.getElementById('admin-username');
         const adminPasswordInput = document.getElementById('admin-password');
         const adminLoginButton = document.getElementById('admin-login-button');
+        const adminResetPasswordToggleButton = document.getElementById('admin-reset-password-toggle');
+        const adminResetPasswordPanel = document.getElementById('admin-reset-password-panel');
+        const adminResetCurrentPasswordInput = document.getElementById('admin-reset-current-password');
+        const adminResetNewPasswordInput = document.getElementById('admin-reset-new-password');
+        const adminResetPasswordSubmitButton = document.getElementById('admin-reset-password-submit');
+        const adminResetPasswordCancelButton = document.getElementById('admin-reset-password-cancel');
+        const adminResetPasswordActions = document.getElementById('admin-reset-password-actions');
         const adminLogoutButton = document.getElementById('admin-logout-button');
         const adminAuthStatusEl = document.getElementById('admin-auth-status');
         const resultsMetaEl = document.getElementById('results-meta');
@@ -598,6 +620,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         let deletingProfileId = null;
         let sendingScheduleProfileId = null;
         let selectedScheduleProfileIds = [];
+        let resetPasswordOpen = false;
         const ADMIN_SESSION_KEY = 'talentsAdminSession';
 
         const MODEL_LABELS = {
@@ -690,6 +713,12 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             window.localStorage.removeItem(ADMIN_SESSION_KEY);
         };
 
+        const updateResetPasswordUi = () => {
+            const visible = resetPasswordOpen;
+            adminResetPasswordPanel.style.display = visible ? '' : 'none';
+            adminResetPasswordActions.style.display = visible ? '' : 'none';
+        };
+
         const updateAdminUi = () => {
             const username = adminUser?.username || '';
             adminLoginButton.disabled = isAdminLoggedIn();
@@ -702,6 +731,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                     : 'Signed out. Login is required to browse candidate records. Admin login also enables edit, save, and delete.',
                 false
             );
+            updateResetPasswordUi();
         };
 
         const clearResultsForSignedOutState = () => {
@@ -1352,12 +1382,67 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             adminUser = null;
             adminPassword = '';
             editingProfileId = null;
+            resetPasswordOpen = false;
             adminUsernameInput.disabled = false;
             adminPasswordInput.disabled = false;
             clearAdminSession();
             updateAdminUi();
             clearResultsForSignedOutState();
             setStatus('Login is required to browse candidate records.');
+        });
+
+        adminResetPasswordToggleButton.addEventListener('click', () => {
+            resetPasswordOpen = !resetPasswordOpen;
+            if (!resetPasswordOpen) {
+                adminResetCurrentPasswordInput.value = '';
+                adminResetNewPasswordInput.value = '';
+            }
+            updateResetPasswordUi();
+        });
+
+        adminResetPasswordCancelButton.addEventListener('click', () => {
+            resetPasswordOpen = false;
+            adminResetCurrentPasswordInput.value = '';
+            adminResetNewPasswordInput.value = '';
+            updateResetPasswordUi();
+        });
+
+        adminResetPasswordSubmitButton.addEventListener('click', async () => {
+            if (!supabaseClient) {
+                setAdminStatus('Supabase client failed to initialize.', true);
+                return;
+            }
+            const username = adminUsernameInput.value.trim() || adminUser?.username || '';
+            const currentPassword = adminResetCurrentPasswordInput.value;
+            const newPassword = adminResetNewPasswordInput.value;
+            if (!username || !currentPassword || !newPassword) {
+                setAdminStatus('Enter username, current password, and new password.', true);
+                return;
+            }
+
+            adminResetPasswordSubmitButton.disabled = true;
+            try {
+                const { data, error } = await supabaseClient.rpc('reset_app_user_password', {
+                    p_username: username,
+                    p_current_password: currentPassword,
+                    p_new_password: newPassword
+                });
+                if (error) throw error;
+                adminUser = data;
+                adminPassword = newPassword;
+                adminUsernameInput.value = username;
+                adminPasswordInput.value = '';
+                adminResetCurrentPasswordInput.value = '';
+                adminResetNewPasswordInput.value = '';
+                resetPasswordOpen = false;
+                persistAdminSession();
+                updateAdminUi();
+                setAdminStatus('Password reset successful.');
+            } catch (error) {
+                setAdminStatus(error.message || 'Password reset failed.', true);
+            } finally {
+                adminResetPasswordSubmitButton.disabled = false;
+            }
         });
 
         resultsEl.addEventListener('click', async (event) => {
