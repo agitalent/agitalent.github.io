@@ -1480,6 +1480,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                         lastScheduledFor = data?.scheduled_for || lastScheduledFor;
                     }
                     schedulingProfileId = null;
+                    selectedScheduleProfileIds = [];
                     if (profiles.length > 1) {
                         setStatus(lastScheduledFor ? `${profiles.length} invitations queued. The online worker should send them within about 5-10 minutes; the selected time remains the meeting time (${lastScheduledFor}).` : `${profiles.length} invitations queued for Google Calendar delivery.`);
                     } else {
