@@ -485,7 +485,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                             <button class="button" id="search-button" type="button">Search</button>
                         </div>
                         <div class="admin-box">
-                            <strong>Admin Login</strong>
+                            <strong>User Login</strong>
                             <div class="admin-grid">
                                 <div class="field">
                                     <label for="admin-username">Username</label>
@@ -515,7 +515,10 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                                 <button class="button-secondary" id="admin-reset-password-submit" type="button">Confirm Reset</button>
                                 <button class="button-secondary" id="admin-reset-password-cancel" type="button">Cancel</button>
                             </div>
-                            <div class="admin-status" id="admin-auth-status">Signed out. Login is required to browse candidate records. Admin login also enables edit, save, and delete.</div>
+                            <div class="admin-status" id="admin-auth-status">Signed out. Login is required to browse candidate records. User login with admin rights also enables edit, save, and delete.</div>
+                            <div class="admin-status" style="margin-top:12px;">
+                                <a href="https://calendly.com/mctalentmm/30min" target="_blank" rel="noopener noreferrer">Book a meeting with our sales to access top-notched AI candidates</a>
+                            </div>
                         </div>
                         <div class="status" id="status">Login is required to browse candidate records.</div>
                     </div>
@@ -728,7 +731,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             setAdminStatus(
                 isAdminLoggedIn()
                     ? `Signed in as ${username}. You can now browse, edit, save, and delete profile records.`
-                    : 'Signed out. Login is required to browse candidate records. Admin login also enables edit, save, and delete.',
+                    : 'Signed out. Login is required to browse candidate records. User login with admin rights also enables edit, save, and delete.',
                 false
             );
             updateResetPasswordUi();
@@ -1247,7 +1250,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
 
         const adminRpcCredentials = () => {
             if (!isAdminLoggedIn() || !adminPassword) {
-                throw new Error('Admin login is required.');
+                throw new Error('User login with admin rights is required.');
             }
             return {
                 p_username: adminUser.username,
@@ -1487,7 +1490,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             }
 
             if (!isAdminLoggedIn()) {
-                setAdminStatus('Log in as admin before editing records.', true);
+                setAdminStatus('Log in with admin rights before editing records.', true);
                 return;
             }
 
