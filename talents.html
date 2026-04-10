@@ -597,6 +597,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         let savingProfileId = null;
         let deletingProfileId = null;
         let sendingScheduleProfileId = null;
+        let selectedScheduleProfileIds = [];
         const ADMIN_SESSION_KEY = 'talentsAdminSession';
 
         const MODEL_LABELS = {
@@ -670,6 +671,9 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         };
 
         const isAdminLoggedIn = () => Boolean(adminUser?.username && adminUser?.rights === 'admin');
+        const isProfileSelectedForSchedule = (profileId) => selectedScheduleProfileIds.includes(profileId);
+        const selectedScheduleProfilesInOrder = () => currentRows.filter((row) => isProfileSelectedForSchedule(row.id));
+        const firstSelectedScheduleProfile = () => selectedScheduleProfilesInOrder()[0] || null;
 
         const persistAdminSession = () => {
             if (!isAdminLoggedIn() || !adminPassword) {
@@ -887,6 +891,8 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
 
         const renderSchedulePanel = (profile) => {
             const values = profile._scheduleDraft || scheduleDefaults(profile);
+            const selectedProfiles = selectedScheduleProfilesInOrder();
+            const selectionCount = selectedProfiles.length;
             const timezoneOptionsHtml = timeZoneOptions.map((zone) => {
                 const selected = zone === values.timezone ? ' selected' : '';
                 return `<option value="${escapeHtml(zone)}"${selected}>${escapeHtml(zone)}</option>`;
@@ -927,9 +933,9 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                     </div>
                     <div class="card-actions">
                         <button class="button-secondary" type="button" data-action="cancel-schedule" data-id="${escapeHtml(profile.id)}"${disabledAttr}>Cancel</button>
-                        <button class="button" type="button" data-action="send-schedule" data-id="${escapeHtml(profile.id)}"${sendDisabledAttr}>Send</button>
+                        <button class="button" type="button" data-action="send-schedule" data-id="${escapeHtml(profile.id)}"${sendDisabledAttr}>${selectionCount > 1 ? `Send to ${selectionCount} selected` : 'Send'}</button>
                     </div>
-                    <div class="schedule-status">This queues a Google Calendar invitation now. The selected date and time are the meeting time.</div>
+                    <div class="schedule-status">This queues a Google Calendar invitation now. The selected date and time are the meeting time.${selectionCount > 1 ? ` The same schedule will be used for ${selectionCount} selected records on this page.` : ''}</div>
                 </div>
             `;
         };
@@ -979,7 +985,10 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                 return `
                     <article class="card">
                         <div class="card-head">
-                            <h3 class="card-title">${escapeHtml(titleForProfile(profile))}</h3>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                ${isAdminLoggedIn() && !isEditing ? `<input type="checkbox" data-action="toggle-schedule-select" data-id="${escapeHtml(profile.id)}" ${isProfileSelectedForSchedule(profile.id) ? 'checked' : ''}>` : ''}
+                                <h3 class="card-title">${escapeHtml(titleForProfile(profile))}</h3>
+                            </div>
                             <div class="pill">${escapeHtml(badgeForProfile(profile))}</div>
                         </div>
                         <div class="${isEditing ? 'editor-shell' : 'field-grid'}">${bodyHtml}</div>
@@ -1372,7 +1381,11 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             }
 
             if (action === 'open-schedule') {
-                schedulingProfileId = profileId;
+                if (!isProfileSelectedForSchedule(profileId)) {
+                    selectedScheduleProfileIds = [profileId];
+                }
+                const firstSelected = firstSelectedScheduleProfile();
+                schedulingProfileId = firstSelected ? firstSelected.id : profileId;
                 editingProfileId = null;
                 renderRows(currentRows);
                 return;
@@ -1381,6 +1394,10 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             if (action === 'cancel-schedule') {
                 schedulingProfileId = null;
                 renderRows(currentRows);
+                return;
+            }
+
+            if (action === 'toggle-schedule-select') {
                 return;
             }
 
@@ -1446,19 +1463,28 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             if (action === 'send-schedule') {
                 try {
                     const payload = parseScheduleForm(profileId);
-                    const profile = currentRows.find((row) => row.id === profileId);
-                    if (!profile) throw new Error('Profile not found.');
+                    const targets = selectedScheduleProfilesInOrder();
+                    const profiles = targets.length ? targets : currentRows.filter((row) => row.id === profileId);
+                    if (!profiles.length) throw new Error('Profile not found.');
                     sendingScheduleProfileId = profileId;
-                    setStatus('Queueing Google Calendar invitation...');
+                    setStatus(profiles.length > 1 ? `Queueing ${profiles.length} Google Calendar invitations...` : 'Queueing Google Calendar invitation...');
                     renderRows(currentRows);
-                    const { data, error } = await supabaseClient.rpc('admin_enqueue_schedule_invite', {
-                        ...adminRpcCredentials(),
-                        p_profile_id: profileId,
-                        p_schedule: payload
-                    });
-                    if (error) throw error;
+                    let lastScheduledFor = '';
+                    for (const profile of profiles) {
+                        const { data, error } = await supabaseClient.rpc('admin_enqueue_schedule_invite', {
+                            ...adminRpcCredentials(),
+                            p_profile_id: profile.id,
+                            p_schedule: payload
+                        });
+                        if (error) throw error;
+                        lastScheduledFor = data?.scheduled_for || lastScheduledFor;
+                    }
                     schedulingProfileId = null;
-                    setStatus(data?.scheduled_for ? `Invitation queued. The online worker should send it within about 5-10 minutes; the selected time remains the meeting time (${data.scheduled_for}).` : 'Invitation queued for Google Calendar delivery.');
+                    if (profiles.length > 1) {
+                        setStatus(lastScheduledFor ? `${profiles.length} invitations queued. The online worker should send them within about 5-10 minutes; the selected time remains the meeting time (${lastScheduledFor}).` : `${profiles.length} invitations queued for Google Calendar delivery.`);
+                    } else {
+                        setStatus(lastScheduledFor ? `Invitation queued. The online worker should send it within about 5-10 minutes; the selected time remains the meeting time (${lastScheduledFor}).` : 'Invitation queued for Google Calendar delivery.');
+                    }
                     renderRows(currentRows);
                 } catch (error) {
                     setStatus(error.message || 'Scheduling failed.', true);
@@ -1478,6 +1504,24 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         });
 
         resultsEl.addEventListener('change', (event) => {
+            const checkbox = event.target.closest('input[data-action="toggle-schedule-select"]');
+            if (checkbox) {
+                const profileId = checkbox.getAttribute('data-id');
+                if (!profileId) return;
+                if (checkbox.checked) {
+                    if (!isProfileSelectedForSchedule(profileId)) {
+                        selectedScheduleProfileIds = [...selectedScheduleProfileIds, profileId];
+                    }
+                } else {
+                    selectedScheduleProfileIds = selectedScheduleProfileIds.filter((id) => id !== profileId);
+                    if (schedulingProfileId === profileId) {
+                        const firstSelected = firstSelectedScheduleProfile();
+                        schedulingProfileId = firstSelected ? firstSelected.id : null;
+                    }
+                }
+                renderRows(currentRows);
+                return;
+            }
             const form = event.target.closest('[data-schedule-form]');
             if (!form) return;
             const profileId = form.getAttribute('data-schedule-form');
