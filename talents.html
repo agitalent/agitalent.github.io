@@ -343,10 +343,12 @@
         .admin-box strong {
             display: block;
             margin-bottom: 10px;
-            font-size: 13px;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            color: rgba(255, 255, 255, 0.82);
+            font-size: 24px;
+            line-height: 1.15;
+            font-weight: 600;
+            letter-spacing: normal;
+            text-transform: none;
+            color: var(--text);
         }
         .admin-grid {
             display: grid;
@@ -439,7 +441,6 @@
         <section class="hero">
             <div class="hero-head">
                 <div class="eyebrow">Dashboard</div>
-                <h1>Activity Dashboard</h1>
                 <div class="field-grid">
                     <div class="meta">
                         <div class="meta-key">New records in last 24 hours</div>
@@ -485,10 +486,7 @@
                         </div>
                         <div class="field">
                             <label for="search-input">Natural language search</label>
-                            <textarea id="search-input" placeholder="Examples:
-Find senior AI researchers in China with LLM, agents, and publications.
-Show recruiter profiles in North America focused on AI hiring.
-Find active job seekers who mention robotics, computer vision, or multimodal systems."></textarea>
+                            <textarea id="search-input" placeholder=""></textarea>
                         </div>
                         <div class="actions">
                             <button class="button" id="search-button" type="button">Search</button>
