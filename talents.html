@@ -438,9 +438,18 @@
 
         <section class="hero">
             <div class="hero-head">
-                <div class="eyebrow">AI Talent Search</div>
-                <h1>AI Talent Search</h1>
-                <p>Describe the talent you want and search the latest profiles with natural language. Each page shows at most 20 profiles.</p>
+                <div class="eyebrow">Dashboard</div>
+                <h1>Activity Dashboard</h1>
+                <div class="field-grid">
+                    <div class="meta">
+                        <div class="meta-key">New records in last 24 hours</div>
+                        <div class="meta-value" id="dashboard-new-records">-</div>
+                    </div>
+                    <div class="meta">
+                        <div class="meta-key">Schedules sent by you in last 24 hours</div>
+                        <div class="meta-value" id="dashboard-sent-schedules">-</div>
+                    </div>
+                </div>
             </div>
             <div class="layout">
                 <section class="panel">
@@ -516,7 +525,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                                 <button class="button-secondary" id="admin-reset-password-cancel" type="button">Cancel</button>
                             </div>
                             <div class="admin-status" id="admin-auth-status">Signed out. Login is required to browse candidate records. User login with admin rights also enables edit, save, and delete.</div>
-                            <div class="admin-status" style="margin-top:12px;">
+                            <div class="admin-status" id="sales-cta" style="margin-top:12px;">
                                 <a href="https://calendly.com/mctalentmm/30min" target="_blank" rel="noopener noreferrer">Book a meeting with our sales to access top-notched AI candidates</a>
                             </div>
                         </div>
@@ -573,6 +582,9 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         const adminResetPasswordActions = document.getElementById('admin-reset-password-actions');
         const adminLogoutButton = document.getElementById('admin-logout-button');
         const adminAuthStatusEl = document.getElementById('admin-auth-status');
+        const salesCtaEl = document.getElementById('sales-cta');
+        const dashboardNewRecordsEl = document.getElementById('dashboard-new-records');
+        const dashboardSentSchedulesEl = document.getElementById('dashboard-sent-schedules');
         const resultsMetaEl = document.getElementById('results-meta');
         const resultsEl = document.getElementById('results');
         const HIDDEN_PROFILE_FIELDS = new Set([
@@ -729,6 +741,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             adminLogoutButton.disabled = !isAdminLoggedIn();
             adminUsernameInput.disabled = isAdminLoggedIn();
             adminPasswordInput.disabled = isAdminLoggedIn();
+            salesCtaEl.style.display = isAdminLoggedIn() ? 'none' : '';
             setAdminStatus(
                 isAdminLoggedIn()
                     ? `Signed in as ${username}. You can now browse, edit, save, and delete profile records.`
@@ -749,7 +762,23 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             schedulingProfileId = null;
             resultsMetaEl.textContent = 'Login required to view candidate records.';
             resultsEl.innerHTML = '<div class="empty">Log in to browse candidate records.</div>';
+            dashboardNewRecordsEl.textContent = '-';
+            dashboardSentSchedulesEl.textContent = '-';
             updatePagination();
+        };
+
+        const loadDashboardMetrics = async () => {
+            if (!supabaseClient || !isAdminLoggedIn() || !adminPassword) {
+                dashboardNewRecordsEl.textContent = '-';
+                dashboardSentSchedulesEl.textContent = '-';
+                return;
+            }
+            const { data, error } = await supabaseClient.rpc('admin_dashboard_metrics', {
+                ...adminRpcCredentials()
+            });
+            if (error) throw error;
+            dashboardNewRecordsEl.textContent = String(data?.new_records_last_24h ?? 0);
+            dashboardSentSchedulesEl.textContent = String(data?.sent_schedules_last_24h ?? 0);
         };
 
         const applyRecentContactFlags = async (rows) => {
@@ -1393,6 +1422,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                 persistAdminSession();
                 adminPasswordInput.value = '';
                 updateAdminUi();
+                await loadDashboardMetrics();
                 await runSearch(false);
             } catch (error) {
                 setAdminStatus(error.message || 'Login failed.', true);
@@ -1462,6 +1492,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                 resetPasswordOpen = false;
                 persistAdminSession();
                 updateAdminUi();
+                await loadDashboardMetrics();
                 setAdminStatus('Password reset successful.');
             } catch (error) {
                 setAdminStatus(error.message || 'Password reset failed.', true);
@@ -1595,6 +1626,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                     ));
                     schedulingProfileId = null;
                     selectedScheduleProfileIds = [];
+                    await loadDashboardMetrics();
                     if (profiles.length > 1) {
                         setStatus(lastScheduledFor ? `${profiles.length} invitations queued. The online worker should send them within about 5-10 minutes; the selected time remains the meeting time (${lastScheduledFor}).` : `${profiles.length} invitations queued for Google Calendar delivery.`);
                     } else {
@@ -1650,6 +1682,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                 await restoreAdminSession();
                 updateAdminUi();
                 if (isAdminLoggedIn()) {
+                    await loadDashboardMetrics();
                     await runSearch(false);
                 } else {
                     clearResultsForSignedOutState();
