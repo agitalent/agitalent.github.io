@@ -700,6 +700,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
         const isProfileSelectedForSchedule = (profileId) => selectedScheduleProfileIds.includes(profileId);
         const selectedScheduleProfilesInOrder = () => currentRows.filter((row) => isProfileSelectedForSchedule(row.id));
         const firstSelectedScheduleProfile = () => selectedScheduleProfilesInOrder()[0] || null;
+        const recentlyContactedCutoffIso = () => new Date(Date.now() - (7 * 24 * 60 * 60 * 1000)).toISOString();
 
         const persistAdminSession = () => {
             if (!isAdminLoggedIn() || !adminPassword) {
@@ -749,6 +750,26 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             resultsMetaEl.textContent = 'Login required to view candidate records.';
             resultsEl.innerHTML = '<div class="empty">Log in to browse candidate records.</div>';
             updatePagination();
+        };
+
+        const applyRecentContactFlags = async (rows) => {
+            if (!supabaseClient || !isAdminLoggedIn() || !adminPassword || !Array.isArray(rows) || !rows.length) return rows;
+            const profileIds = rows.map((row) => row.id).filter(Boolean);
+            if (!profileIds.length) return rows;
+
+            const { data, error } = await supabaseClient.rpc('recently_contacted_profile_ids', {
+                ...adminRpcCredentials(),
+                p_profile_ids: profileIds,
+                p_since: recentlyContactedCutoffIso()
+            });
+
+            if (error) throw error;
+
+            const recentProfileIds = new Set(Array.isArray(data) ? data.filter(Boolean) : []);
+            return rows.map((row) => ({
+                ...row,
+                _recentlyContacted: recentProfileIds.has(row.id),
+            }));
         };
 
         const timeZoneOptions = (() => {
@@ -1021,6 +1042,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                             <div style="display:flex; align-items:center; gap:10px;">
                                 ${isAdminLoggedIn() && !isEditing ? `<input type="checkbox" data-action="toggle-schedule-select" data-id="${escapeHtml(profile.id)}" ${isProfileSelectedForSchedule(profile.id) ? 'checked' : ''}>` : ''}
                                 <h3 class="card-title">${escapeHtml(titleForProfile(profile))}</h3>
+                                ${profile._recentlyContacted ? '<div class="pill">Recently contacted</div>' : ''}
                             </div>
                             <div class="pill">${escapeHtml(badgeForProfile(profile))}</div>
                         </div>
@@ -1067,7 +1089,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             const { data, error, count } = await query;
             if (error) throw error;
 
-            const rows = Array.isArray(data) ? data : [];
+            const rows = await applyRecentContactFlags(Array.isArray(data) ? data : []);
             totalCount = Number(count || 0);
             currentOffset = offset;
             lastRowsLength = rows.length;
@@ -1109,7 +1131,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             const { data, error, count } = await query;
             if (error) throw error;
 
-            const rows = Array.isArray(data) ? data : [];
+            const rows = await applyRecentContactFlags(Array.isArray(data) ? data : []);
             totalCount = Number(count || 0);
             currentOffset = offset;
             lastRowsLength = rows.length;
@@ -1472,8 +1494,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                 if (!isProfileSelectedForSchedule(profileId)) {
                     selectedScheduleProfileIds = [profileId];
                 }
-                const firstSelected = firstSelectedScheduleProfile();
-                schedulingProfileId = firstSelected ? firstSelected.id : profileId;
+                schedulingProfileId = profileId;
                 editingProfileId = null;
                 renderRows(currentRows);
                 return;
@@ -1567,6 +1588,11 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                         if (error) throw error;
                         lastScheduledFor = data?.scheduled_for || lastScheduledFor;
                     }
+                    currentRows = currentRows.map((row) => (
+                        profiles.some((profile) => profile.id === row.id)
+                            ? { ...row, _recentlyContacted: true }
+                            : row
+                    ));
                     schedulingProfileId = null;
                     selectedScheduleProfileIds = [];
                     if (profiles.length > 1) {
