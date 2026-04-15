@@ -768,7 +768,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
             const recentProfileIds = new Set(Array.isArray(data) ? data.filter(Boolean) : []);
             return rows.map((row) => ({
                 ...row,
-                _recentlyContacted: recentProfileIds.has(row.id),
+                Recently_Contacted: recentProfileIds.has(row.id),
             }));
         };
 
@@ -1042,7 +1042,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                             <div style="display:flex; align-items:center; gap:10px;">
                                 ${isAdminLoggedIn() && !isEditing ? `<input type="checkbox" data-action="toggle-schedule-select" data-id="${escapeHtml(profile.id)}" ${isProfileSelectedForSchedule(profile.id) ? 'checked' : ''}>` : ''}
                                 <h3 class="card-title">${escapeHtml(titleForProfile(profile))}</h3>
-                                ${profile._recentlyContacted ? '<div class="pill">Recently contacted</div>' : ''}
+                                ${profile.Recently_Contacted ? '<div class="pill">Alert: Recently_Contacted</div>' : ''}
                             </div>
                             <div class="pill">${escapeHtml(badgeForProfile(profile))}</div>
                         </div>
@@ -1590,7 +1590,7 @@ Find active job seekers who mention robotics, computer vision, or multimodal sys
                     }
                     currentRows = currentRows.map((row) => (
                         profiles.some((profile) => profile.id === row.id)
-                            ? { ...row, _recentlyContacted: true }
+                            ? { ...row, Recently_Contacted: true }
                             : row
                     ));
                     schedulingProfileId = null;
