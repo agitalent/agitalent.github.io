@@ -141,6 +141,58 @@
             color: var(--muted);
             line-height: 1.7;
         }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+            width: 100%;
+        }
+        .dashboard-card {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 16px;
+        }
+        .dashboard-card h3 {
+            margin: 0 0 12px;
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        .bar-chart {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            align-items: end;
+            gap: 10px;
+            min-height: 180px;
+        }
+        .bar-chart.empty {
+            display: flex;
+            min-height: 120px;
+            align-items: center;
+            justify-content: center;
+            color: var(--muted);
+        }
+        .bar-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+        .bar-value {
+            font-size: 12px;
+            color: var(--muted);
+        }
+        .bar-column {
+            width: 100%;
+            min-height: 10px;
+            border-radius: 12px 12px 4px 4px;
+            background: linear-gradient(180deg, #7fffd4, #47e5a5);
+        }
+        .bar-label {
+            font-size: 11px;
+            color: var(--muted);
+        }
         .stack {
             display: grid;
             gap: 14px;
@@ -425,6 +477,9 @@
             .schedule-grid {
                 grid-template-columns: 1fr;
             }
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -441,14 +496,14 @@
         <section class="hero">
             <div class="hero-head">
                 <div class="eyebrow">Dashboard</div>
-                <div class="field-grid">
-                    <div class="meta">
-                        <div class="meta-key">New records in last 24 hours</div>
-                        <div class="meta-value" id="dashboard-new-records">-</div>
+                <div class="dashboard-grid">
+                    <div class="dashboard-card">
+                        <h3>New records, last 7 days</h3>
+                        <div class="bar-chart empty" id="dashboard-new-records-chart">-</div>
                     </div>
-                    <div class="meta">
-                        <div class="meta-key">Schedules sent by you in last 24 hours</div>
-                        <div class="meta-value" id="dashboard-sent-schedules">-</div>
+                    <div class="dashboard-card">
+                        <h3>New schedules, last 7 days</h3>
+                        <div class="bar-chart empty" id="dashboard-sent-schedules-chart">-</div>
                     </div>
                 </div>
             </div>
@@ -581,8 +636,8 @@
         const adminLogoutButton = document.getElementById('admin-logout-button');
         const adminAuthStatusEl = document.getElementById('admin-auth-status');
         const salesCtaEl = document.getElementById('sales-cta');
-        const dashboardNewRecordsEl = document.getElementById('dashboard-new-records');
-        const dashboardSentSchedulesEl = document.getElementById('dashboard-sent-schedules');
+        const dashboardNewRecordsChartEl = document.getElementById('dashboard-new-records-chart');
+        const dashboardSentSchedulesChartEl = document.getElementById('dashboard-sent-schedules-chart');
         const resultsMetaEl = document.getElementById('results-meta');
         const resultsEl = document.getElementById('results');
         const HIDDEN_PROFILE_FIELDS = new Set([
@@ -760,23 +815,54 @@
             schedulingProfileId = null;
             resultsMetaEl.textContent = 'Login required to view candidate records.';
             resultsEl.innerHTML = '<div class="empty">Log in to browse candidate records.</div>';
-            dashboardNewRecordsEl.textContent = '-';
-            dashboardSentSchedulesEl.textContent = '-';
+            dashboardNewRecordsChartEl.textContent = '-';
+            dashboardNewRecordsChartEl.className = 'bar-chart empty';
+            dashboardSentSchedulesChartEl.textContent = '-';
+            dashboardSentSchedulesChartEl.className = 'bar-chart empty';
             updatePagination();
+        };
+
+        const formatChartDayLabel = (isoDate) => {
+            const date = new Date(`${isoDate}T00:00:00`);
+            return new Intl.DateTimeFormat(undefined, { month: 'numeric', day: 'numeric' }).format(date);
+        };
+
+        const renderDashboardChart = (element, points) => {
+            if (!element) return;
+            if (!Array.isArray(points) || !points.length) {
+                element.className = 'bar-chart empty';
+                element.textContent = '-';
+                return;
+            }
+            const maxValue = Math.max(...points.map((point) => Number(point.count || 0)), 1);
+            element.className = 'bar-chart';
+            element.innerHTML = points.map((point) => {
+                const count = Number(point.count || 0);
+                const height = Math.max(10, Math.round((count / maxValue) * 120));
+                return `
+                    <div class="bar-item">
+                        <div class="bar-value">${count}</div>
+                        <div class="bar-column" style="height:${height}px;"></div>
+                        <div class="bar-label">${escapeHtml(formatChartDayLabel(point.day))}</div>
+                    </div>
+                `;
+            }).join('');
         };
 
         const loadDashboardMetrics = async () => {
             if (!supabaseClient || !isAdminLoggedIn() || !adminPassword) {
-                dashboardNewRecordsEl.textContent = '-';
-                dashboardSentSchedulesEl.textContent = '-';
+                dashboardNewRecordsChartEl.textContent = '-';
+                dashboardNewRecordsChartEl.className = 'bar-chart empty';
+                dashboardSentSchedulesChartEl.textContent = '-';
+                dashboardSentSchedulesChartEl.className = 'bar-chart empty';
                 return;
             }
             const { data, error } = await supabaseClient.rpc('admin_dashboard_metrics', {
                 ...adminRpcCredentials()
             });
             if (error) throw error;
-            dashboardNewRecordsEl.textContent = String(data?.new_records_last_24h ?? 0);
-            dashboardSentSchedulesEl.textContent = String(data?.sent_schedules_last_24h ?? 0);
+            renderDashboardChart(dashboardNewRecordsChartEl, data?.new_records_last_7d || []);
+            renderDashboardChart(dashboardSentSchedulesChartEl, data?.sent_schedules_last_7d || []);
         };
 
         const applyRecentContactFlags = async (rows) => {
