@@ -609,6 +609,9 @@
     <script>
         const SUPABASE_URL = 'https://zocovvewzpqxspysanyy.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvY292dmV3enBxeHNweXNhbnl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwODYwNTgsImV4cCI6MjA4OTY2MjA1OH0.8ekfJ3bcvG-AbLD39xUINwXrpO7RiH9PVgy-xMzeHbE';
+        const BAILIAN_BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
+        const BAILIAN_API_KEY = 'sk-2d4b0be0ff394cef84e04960212d3eab';
+        const BAILIAN_MODEL = 'qwen3-vl-30b-a3b-thinking';
         const PAGE_SIZE = 20;
 
         const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
@@ -684,9 +687,11 @@
         let adminPassword = '';
         let editingProfileId = null;
         let schedulingProfileId = null;
+        let emailingProfileId = null;
         let savingProfileId = null;
         let deletingProfileId = null;
         let sendingScheduleProfileId = null;
+        let sendingEmailProfileId = null;
         let selectedScheduleProfileIds = [];
         let resetPasswordOpen = false;
         const ADMIN_SESSION_KEY = 'talentsAdminSession';
@@ -813,6 +818,7 @@
             searchMode = 'latest';
             editingProfileId = null;
             schedulingProfileId = null;
+            emailingProfileId = null;
             resultsMetaEl.textContent = 'Login required to view candidate records.';
             resultsEl.innerHTML = '<div class="empty">Log in to browse candidate records.</div>';
             dashboardNewRecordsChartEl.textContent = '-';
@@ -825,6 +831,113 @@
         const formatChartDayLabel = (isoDate) => {
             const date = new Date(`${isoDate}T00:00:00`);
             return new Intl.DateTimeFormat(undefined, { month: 'numeric', day: 'numeric' }).format(date);
+        };
+
+        const emailDefaults = (profile) => ({
+            company: '',
+            role: '',
+            contact: profile.email || ''
+        });
+
+        const isEmailComplete = (values) => {
+            if (!values) return false;
+            return Boolean(values.company && values.role && values.contact);
+        };
+
+        const escapeMailto = (value) => encodeURIComponent(String(value || ''));
+
+        const buildOpportunityParagraph = (company, role) => `${String(company || '').trim()} is currently hiring ${String(role || '').trim()}.`;
+
+        const replaceInvitePlaceholders = (text, { candidateName, company, role, contact }) => {
+            let normalized = String(text || '');
+            const replacements = {
+                '[candidate]': candidateName,
+                '[candidate name]': candidateName,
+                '[name]': candidateName,
+                '[company]': company,
+                '[role]': role,
+                '[contact]': contact,
+                '{candidate}': candidateName,
+                '{candidate_name}': candidateName,
+                '{name}': candidateName,
+                '{company}': company,
+                '{role}': role,
+                '{contact}': contact,
+            };
+            Object.entries(replacements).forEach(([placeholder, value]) => {
+                normalized = normalized.replaceAll(placeholder, value);
+                normalized = normalized.replaceAll(placeholder.toUpperCase(), value);
+            });
+            return normalized.trim();
+        };
+
+        const bailianJson = async (messages) => {
+            const response = await fetch(`${BAILIAN_BASE_URL}/chat/completions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${BAILIAN_API_KEY}`
+                },
+                body: JSON.stringify({
+                    model: BAILIAN_MODEL,
+                    messages,
+                    temperature: 0.4,
+                    response_format: { type: 'json_object' }
+                })
+            });
+            if (!response.ok) {
+                const detail = await response.text();
+                throw new Error(`Bailian request failed: ${response.status} ${detail}`);
+            }
+            const payload = await response.json();
+            const content = payload?.choices?.[0]?.message?.content;
+            if (typeof content === 'string') return JSON.parse(content);
+            if (content && typeof content === 'object') return content;
+            throw new Error('Unexpected Bailian response.');
+        };
+
+        const generateEmailDraft = async (profile, values) => {
+            const candidateName = String(profile.name_or_handle || profile.name || 'Candidate').trim();
+            const seniority = String(profile.seniority || 'background').trim();
+            const company = String(values.company || '').trim();
+            const role = String(values.role || '').trim();
+            const contact = String(values.contact || '').trim();
+            const context = { candidateName, company, role, contact };
+            try {
+                const payload = await bailianJson([
+                    { role: 'system', content: 'Return JSON only: {"title":"", "paragraph2":""}.' },
+                    {
+                        role: 'user',
+                        content: (
+                            `Candidate name: ${candidateName}. Seniority: ${seniority}. Company: ${company}. Role: ${role}. Preferred contact: ${contact}. ` +
+                            'Title attractive, max 15 words. ' +
+                            'Paragraph2 only: praise education/corporate background and expertise from seniority, under 30 words.'
+                        )
+                    }
+                ]);
+                const title = replaceInvitePlaceholders(String(payload?.title || `${company} ${role} invitation`).trim(), context);
+                const paragraph2 = replaceInvitePlaceholders(String(payload?.paragraph2 || `Your ${seniority} background and expertise stand out.`).trim(), context);
+                const body = [
+                    `Hi ${candidateName},`,
+                    paragraph2,
+                    buildOpportunityParagraph(company, role),
+                    `Feel free to reach out via ${contact}.`
+                ].join('\n\n');
+                return {
+                    subject: title,
+                    body: replaceInvitePlaceholders(body, context)
+                };
+            } catch (_error) {
+                return {
+                    subject: `${company} ${role} invitation`.trim(),
+                    body: [
+                        `Hi ${candidateName},`,
+                        `Your ${seniority} background and expertise stand out.`,
+                        buildOpportunityParagraph(company, role),
+                        `Feel free to reach out via ${contact}.`
+                    ].join('\n\n')
+                };
+            }
         };
 
         const renderDashboardChart = (element, points) => {
@@ -1056,6 +1169,35 @@
             };
         };
 
+        const renderEmailPanel = (profile) => {
+            const values = profile._emailDraft || emailDefaults(profile);
+            const disabledAttr = sendingEmailProfileId === profile.id ? ' disabled' : '';
+            const sendDisabledAttr = !isEmailComplete(values) || sendingEmailProfileId === profile.id ? ' disabled' : '';
+            return `
+                <div class="schedule-panel">
+                    <div class="schedule-grid" data-email-form="${escapeHtml(profile.id)}">
+                        <div class="field">
+                            <label for="email-company-${escapeHtml(profile.id)}">Company</label>
+                            <input id="email-company-${escapeHtml(profile.id)}" name="company" type="text" value="${escapeHtml(values.company)}" placeholder="OpenAI">
+                        </div>
+                        <div class="field">
+                            <label for="email-role-${escapeHtml(profile.id)}">Role</label>
+                            <input id="email-role-${escapeHtml(profile.id)}" name="role" type="text" value="${escapeHtml(values.role)}" placeholder="Research Engineer">
+                        </div>
+                        <div class="field wide">
+                            <label for="email-contact-${escapeHtml(profile.id)}">Preferred Contact Means</label>
+                            <input id="email-contact-${escapeHtml(profile.id)}" name="contact" type="text" value="${escapeHtml(values.contact)}" placeholder="email@example.com or WeChat: agitalent">
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="button-secondary" type="button" data-action="cancel-email" data-id="${escapeHtml(profile.id)}"${disabledAttr}>Cancel</button>
+                        <button class="button" type="button" data-action="send-email" data-id="${escapeHtml(profile.id)}"${sendDisabledAttr}>Send</button>
+                    </div>
+                    <div class="schedule-status">This creates an email draft in your default mail handler. You can review it there and decide whether to send it.</div>
+                </div>
+            `;
+        };
+
         const renderSchedulePanel = (profile) => {
             const values = profile._scheduleDraft || scheduleDefaults(profile);
             const selectedProfiles = selectedScheduleProfilesInOrder();
@@ -1117,6 +1259,7 @@
             resultsEl.innerHTML = rows.map((profile) => {
                 const isEditing = isAdminLoggedIn() && editingProfileId === profile.id;
                 const isScheduling = isAdminLoggedIn() && schedulingProfileId === profile.id;
+                const isEmailing = isAdminLoggedIn() && emailingProfileId === profile.id;
                 let bodyHtml = '';
                 let actionsHtml = '';
 
@@ -1144,6 +1287,7 @@
                         <div class="card-actions">
                             <button class="button-secondary" type="button" data-action="edit-profile" data-id="${escapeHtml(profile.id)}">Edit</button>
                             <button class="button-secondary" type="button" data-action="open-schedule" data-id="${escapeHtml(profile.id)}">Schedule</button>
+                            <button class="button-secondary" type="button" data-action="open-email" data-id="${escapeHtml(profile.id)}">Email</button>
                         </div>
                     `
                     : '';
@@ -1162,6 +1306,7 @@
                         <div class="${isEditing ? 'editor-shell' : 'field-grid'}">${bodyHtml}</div>
                         ${actionsHtml}
                         ${isScheduling && !isEditing ? renderSchedulePanel(profile) : ''}
+                        ${isEmailing && !isEditing ? renderEmailPanel(profile) : ''}
                     </article>
                 `;
             }).join('');
@@ -1333,6 +1478,25 @@
             };
         };
 
+        const parseEmailForm = (profileId) => {
+            const form = resultsEl.querySelector(`[data-email-form="${CSS.escape(profileId)}"]`);
+            if (!form) {
+                throw new Error('The email form could not be found.');
+            }
+            const fields = {};
+            form.querySelectorAll('[name]').forEach((input) => {
+                fields[input.name] = String(input.value || '').trim();
+            });
+            if (!fields.company || !fields.role || !fields.contact) {
+                throw new Error('Complete company, role, and preferred contact before sending.');
+            }
+            return {
+                company: fields.company,
+                role: fields.role,
+                contact: fields.contact
+            };
+        };
+
         const syncScheduleDraft = (profileId) => {
             const form = resultsEl.querySelector(`[data-schedule-form="${CSS.escape(profileId)}"]`);
             if (!form) return;
@@ -1346,6 +1510,22 @@
             const sendButton = resultsEl.querySelector(`button[data-action="send-schedule"][data-id="${CSS.escape(profileId)}"]`);
             if (sendButton) {
                 sendButton.disabled = !isScheduleComplete(values) || sendingScheduleProfileId === profileId;
+            }
+        };
+
+        const syncEmailDraft = (profileId) => {
+            const form = resultsEl.querySelector(`[data-email-form="${CSS.escape(profileId)}"]`);
+            if (!form) return;
+            const profile = currentRows.find((row) => row.id === profileId);
+            if (!profile) return;
+            const values = {};
+            form.querySelectorAll('[name]').forEach((input) => {
+                values[input.name] = String(input.value || '').trim();
+            });
+            profile._emailDraft = values;
+            const sendButton = resultsEl.querySelector(`button[data-action="send-email"][data-id="${CSS.escape(profileId)}"]`);
+            if (sendButton) {
+                sendButton.disabled = !isEmailComplete(values) || sendingEmailProfileId === profileId;
             }
         };
 
@@ -1595,6 +1775,7 @@
             if (action === 'edit-profile') {
                 editingProfileId = profileId;
                 schedulingProfileId = null;
+                emailingProfileId = null;
                 renderRows(currentRows);
                 return;
             }
@@ -1610,6 +1791,7 @@
                     selectedScheduleProfileIds = [profileId];
                 }
                 schedulingProfileId = profileId;
+                emailingProfileId = null;
                 editingProfileId = null;
                 renderRows(currentRows);
                 return;
@@ -1617,6 +1799,20 @@
 
             if (action === 'cancel-schedule') {
                 schedulingProfileId = null;
+                renderRows(currentRows);
+                return;
+            }
+
+            if (action === 'open-email') {
+                emailingProfileId = profileId;
+                schedulingProfileId = null;
+                editingProfileId = null;
+                renderRows(currentRows);
+                return;
+            }
+
+            if (action === 'cancel-email') {
+                emailingProfileId = null;
                 renderRows(currentRows);
                 return;
             }
@@ -1724,14 +1920,46 @@
                     renderRows(currentRows);
                 }
             }
+
+            if (action === 'send-email') {
+                try {
+                    const profile = currentRows.find((row) => row.id === profileId);
+                    if (!profile) throw new Error('Profile not found.');
+                    if (!String(profile.email || '').trim()) {
+                        throw new Error('Candidate email is required.');
+                    }
+                    const payload = parseEmailForm(profileId);
+                    sendingEmailProfileId = profileId;
+                    setStatus('Generating email draft...');
+                    renderRows(currentRows);
+                    const draft = await generateEmailDraft(profile, payload);
+                    const mailtoUrl = `mailto:${escapeMailto(profile.email)}?subject=${escapeMailto(draft.subject)}&body=${escapeMailto(draft.body)}`;
+                    window.location.href = mailtoUrl;
+                    emailingProfileId = null;
+                    setStatus('Email draft opened in your default mail handler. Review it there and decide whether to send.');
+                    renderRows(currentRows);
+                } catch (error) {
+                    setStatus(error.message || 'Email draft generation failed.', true);
+                } finally {
+                    sendingEmailProfileId = null;
+                    renderRows(currentRows);
+                }
+            }
         });
 
         resultsEl.addEventListener('input', (event) => {
             const form = event.target.closest('[data-schedule-form]');
-            if (!form) return;
-            const profileId = form.getAttribute('data-schedule-form');
+            if (form) {
+                const profileId = form.getAttribute('data-schedule-form');
+                if (!profileId) return;
+                syncScheduleDraft(profileId);
+                return;
+            }
+            const emailForm = event.target.closest('[data-email-form]');
+            if (!emailForm) return;
+            const profileId = emailForm.getAttribute('data-email-form');
             if (!profileId) return;
-            syncScheduleDraft(profileId);
+            syncEmailDraft(profileId);
         });
 
         resultsEl.addEventListener('change', (event) => {
@@ -1754,10 +1982,17 @@
                 return;
             }
             const form = event.target.closest('[data-schedule-form]');
-            if (!form) return;
-            const profileId = form.getAttribute('data-schedule-form');
+            if (form) {
+                const profileId = form.getAttribute('data-schedule-form');
+                if (!profileId) return;
+                syncScheduleDraft(profileId);
+                return;
+            }
+            const emailForm = event.target.closest('[data-email-form]');
+            if (!emailForm) return;
+            const profileId = emailForm.getAttribute('data-email-form');
             if (!profileId) return;
-            syncScheduleDraft(profileId);
+            syncEmailDraft(profileId);
         });
 
         (async () => {
