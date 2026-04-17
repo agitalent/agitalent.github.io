@@ -494,7 +494,7 @@
         </div>
 
         <section class="hero">
-            <div class="hero-head">
+            <div class="hero-head" id="dashboard-section">
                 <div class="eyebrow">Dashboard</div>
                 <div class="dashboard-grid">
                     <div class="dashboard-card">
@@ -577,6 +577,26 @@
                                 <button class="button-secondary" id="admin-reset-password-submit" type="button">Confirm Reset</button>
                                 <button class="button-secondary" id="admin-reset-password-cancel" type="button">Cancel</button>
                             </div>
+                            <div id="admin-add-user-panel" style="display:none; margin-top:12px;">
+                                <div class="admin-grid">
+                                    <div class="field">
+                                        <label for="admin-add-user-username">Add A User</label>
+                                        <input id="admin-add-user-username" type="text" autocomplete="off" placeholder="new_username">
+                                    </div>
+                                    <div class="field">
+                                        <label for="admin-add-user-valid-from">Valid From</label>
+                                        <input id="admin-add-user-valid-from" type="date">
+                                    </div>
+                                    <div class="field">
+                                        <label for="admin-add-user-expires-on">Expire Date</label>
+                                        <input id="admin-add-user-expires-on" type="date">
+                                    </div>
+                                </div>
+                                <div class="actions">
+                                    <button class="button-secondary" id="admin-add-user-button" type="button">Create User</button>
+                                </div>
+                                <div class="admin-status" id="admin-add-user-status"></div>
+                            </div>
                             <div class="admin-status" id="admin-auth-status">Signed out. Login is required to browse candidate records. User login with admin rights also enables edit, save, and delete.</div>
                             <div class="admin-status" id="sales-cta" style="margin-top:12px;">
                                 <a href="https://calendly.com/mctalentmm/30min" target="_blank" rel="noopener noreferrer">Book a meeting with our sales to access top-notched AI candidates</a>
@@ -636,8 +656,15 @@
         const adminResetPasswordSubmitButton = document.getElementById('admin-reset-password-submit');
         const adminResetPasswordCancelButton = document.getElementById('admin-reset-password-cancel');
         const adminResetPasswordActions = document.getElementById('admin-reset-password-actions');
+        const adminAddUserPanel = document.getElementById('admin-add-user-panel');
+        const adminAddUserUsernameInput = document.getElementById('admin-add-user-username');
+        const adminAddUserValidFromInput = document.getElementById('admin-add-user-valid-from');
+        const adminAddUserExpiresOnInput = document.getElementById('admin-add-user-expires-on');
+        const adminAddUserButton = document.getElementById('admin-add-user-button');
+        const adminAddUserStatusEl = document.getElementById('admin-add-user-status');
         const adminLogoutButton = document.getElementById('admin-logout-button');
         const adminAuthStatusEl = document.getElementById('admin-auth-status');
+        const dashboardSectionEl = document.getElementById('dashboard-section');
         const salesCtaEl = document.getElementById('sales-cta');
         const dashboardNewRecordsChartEl = document.getElementById('dashboard-new-records-chart');
         const dashboardSentSchedulesChartEl = document.getElementById('dashboard-sent-schedules-chart');
@@ -766,14 +793,21 @@
             return `https://${text}`;
         };
 
+        const isLoggedIn = () => Boolean(adminUser?.username);
         const isAdminLoggedIn = () => Boolean(adminUser?.username && adminUser?.rights === 'admin');
         const isProfileSelectedForSchedule = (profileId) => selectedScheduleProfileIds.includes(profileId);
         const selectedScheduleProfilesInOrder = () => currentRows.filter((row) => isProfileSelectedForSchedule(row.id));
         const firstSelectedScheduleProfile = () => selectedScheduleProfilesInOrder()[0] || null;
         const recentlyContactedCutoffIso = () => new Date(Date.now() - (7 * 24 * 60 * 60 * 1000)).toISOString();
+        const todayIsoDate = () => new Date().toISOString().slice(0, 10);
+        const plusDaysIsoDate = (days) => {
+            const value = new Date();
+            value.setDate(value.getDate() + days);
+            return value.toISOString().slice(0, 10);
+        };
 
         const persistAdminSession = () => {
-            if (!isAdminLoggedIn() || !adminPassword) {
+            if (!isLoggedIn() || !adminPassword) {
                 window.localStorage.removeItem(ADMIN_SESSION_KEY);
                 return;
             }
@@ -787,6 +821,14 @@
             window.localStorage.removeItem(ADMIN_SESSION_KEY);
         };
 
+        const setAddUserStatus = (message, isError = false) => {
+            adminAddUserStatusEl.textContent = message;
+            adminAddUserStatusEl.classList.toggle('error', isError);
+        };
+
+        adminAddUserValidFromInput.value = todayIsoDate();
+        adminAddUserExpiresOnInput.value = plusDaysIsoDate(365);
+
         const updateResetPasswordUi = () => {
             const visible = resetPasswordOpen;
             adminResetPasswordPanel.style.display = visible ? '' : 'none';
@@ -795,17 +837,24 @@
 
         const updateAdminUi = () => {
             const username = adminUser?.username || '';
-            adminLoginButton.disabled = isAdminLoggedIn();
-            adminLogoutButton.disabled = !isAdminLoggedIn();
-            adminUsernameInput.disabled = isAdminLoggedIn();
-            adminPasswordInput.disabled = isAdminLoggedIn();
-            salesCtaEl.style.display = isAdminLoggedIn() ? 'none' : '';
+            adminLoginButton.disabled = isLoggedIn();
+            adminLogoutButton.disabled = !isLoggedIn();
+            adminUsernameInput.disabled = isLoggedIn();
+            adminPasswordInput.disabled = isLoggedIn();
+            salesCtaEl.style.display = isLoggedIn() ? 'none' : '';
+            dashboardSectionEl.style.display = isAdminLoggedIn() ? '' : 'none';
+            adminAddUserPanel.style.display = isAdminLoggedIn() ? '' : 'none';
             setAdminStatus(
-                isAdminLoggedIn()
-                    ? `Signed in as ${username}. You can now browse, edit, save, and delete profile records.`
-                    : 'Signed out. Login is required to browse candidate records. User login with admin rights also enables edit, save, and delete.',
+                isLoggedIn()
+                    ? (isAdminLoggedIn()
+                        ? `Signed in as ${username}. You can now browse, edit, schedule, email, and manage users.`
+                        : `Signed in as ${username}. You can now browse candidate records.`)
+                    : 'Signed out. Login is required to browse candidate records. Admin rights also enable edit, schedule, email, and user management.',
                 false
             );
+            if (!isAdminLoggedIn()) {
+                setAddUserStatus('', false);
+            }
             updateResetPasswordUi();
         };
 
@@ -847,6 +896,11 @@
         const escapeMailto = (value) => encodeURIComponent(String(value || ''));
 
         const buildOpportunityParagraph = (company, role) => `${String(company || '').trim()} is currently hiring ${String(role || '').trim()}.`;
+        const truncateWords = (text, maxWords) => String(text || '').trim().split(/\s+/).filter(Boolean).slice(0, maxWords).join(' ');
+        const buildInvitationSubject = (summary) => {
+            const normalizedSummary = truncateWords(summary || 'background', 12) || 'background';
+            return truncateWords(`Superb opportunity matching your ${normalizedSummary}`, 20);
+        };
 
         const replaceInvitePlaceholders = (text, { candidateName, company, role, contact }) => {
             let normalized = String(text || '');
@@ -905,17 +959,17 @@
             const context = { candidateName, company, role, contact };
             try {
                 const payload = await bailianJson([
-                    { role: 'system', content: 'Return JSON only: {"title":"", "paragraph2":""}.' },
+                    { role: 'system', content: 'Return JSON only: {"background_summary":"", "paragraph2":""}.' },
                     {
                         role: 'user',
                         content: (
                             `Candidate name: ${candidateName}. Seniority: ${seniority}. Company: ${company}. Role: ${role}. Preferred contact: ${contact}. ` +
-                            'Title attractive, max 15 words. ' +
+                            'Background_summary only: summarize the seniority/background in 4 to 10 words. ' +
                             'Paragraph2 only: praise education/corporate background and expertise from seniority, under 30 words.'
                         )
                     }
                 ]);
-                const title = replaceInvitePlaceholders(String(payload?.title || `${company} ${role} invitation`).trim(), context);
+                const title = buildInvitationSubject(replaceInvitePlaceholders(String(payload?.background_summary || seniority).trim(), context));
                 const paragraph2 = replaceInvitePlaceholders(String(payload?.paragraph2 || `Your ${seniority} background and expertise stand out.`).trim(), context);
                 const body = [
                     `Hi ${candidateName},`,
@@ -929,7 +983,7 @@
                 };
             } catch (_error) {
                 return {
-                    subject: `${company} ${role} invitation`.trim(),
+                    subject: buildInvitationSubject(seniority),
                     body: [
                         `Hi ${candidateName},`,
                         `Your ${seniority} background and expertise stand out.`,
@@ -1404,7 +1458,7 @@
             if (!supabaseClient) {
                 throw new Error('Supabase client failed to initialize.');
             }
-            if (!isAdminLoggedIn()) {
+            if (!isLoggedIn()) {
                 clearResultsForSignedOutState();
                 throw new Error('Login is required to browse candidate records.');
             }
@@ -1549,8 +1603,8 @@
                     p_password: password
                 });
                 if (error) throw error;
-                if (!data || data.rights !== 'admin') {
-                    throw new Error('Stored session no longer has admin rights.');
+                if (!data || !data.username) {
+                    throw new Error('Stored session is no longer valid.');
                 }
                 adminUser = data;
                 adminPassword = password;
@@ -1667,7 +1721,7 @@
             const username = adminUsernameInput.value.trim();
             const password = adminPasswordInput.value;
             if (!username || !password) {
-                setAdminStatus('Enter the admin username and password.', true);
+                setAdminStatus('Enter username and password.', true);
                 return;
             }
 
@@ -1678,8 +1732,8 @@
                     p_password: password
                 });
                 if (error) throw error;
-                if (!data || data.rights !== 'admin') {
-                    throw new Error('This user does not have admin rights.');
+                if (!data || !data.username) {
+                    throw new Error('Login failed.');
                 }
                 adminUser = data;
                 adminPassword = password;
@@ -1691,7 +1745,7 @@
             } catch (error) {
                 setAdminStatus(error.message || 'Login failed.', true);
             } finally {
-                if (!isAdminLoggedIn()) {
+                if (!isLoggedIn()) {
                     adminLoginButton.disabled = false;
                 }
             }
@@ -1708,6 +1762,43 @@
             updateAdminUi();
             clearResultsForSignedOutState();
             setStatus('Login is required to browse candidate records.');
+        });
+
+        adminAddUserButton.addEventListener('click', async () => {
+            if (!supabaseClient) {
+                setAddUserStatus('Supabase client failed to initialize.', true);
+                return;
+            }
+            if (!isAdminLoggedIn()) {
+                setAddUserStatus('Admin rights are required.', true);
+                return;
+            }
+            const newUsername = adminAddUserUsernameInput.value.trim();
+            const validFrom = adminAddUserValidFromInput.value || todayIsoDate();
+            const expiresOn = adminAddUserExpiresOnInput.value || plusDaysIsoDate(365);
+            if (!newUsername) {
+                setAddUserStatus('Enter a username.', true);
+                return;
+            }
+            adminAddUserButton.disabled = true;
+            try {
+                const { data, error } = await supabaseClient.rpc('admin_create_app_user', {
+                    p_admin_username: adminUser.username,
+                    p_admin_password: adminPassword,
+                    p_new_username: newUsername,
+                    p_valid_from: validFrom,
+                    p_expires_on: expiresOn
+                });
+                if (error) throw error;
+                adminAddUserValidFromInput.value = data?.valid_from || validFrom;
+                adminAddUserExpiresOnInput.value = data?.expires_on || expiresOn;
+                setAddUserStatus(`User ${data?.username || newUsername} created. Initial password: ${data?.initial_password || ''}. Valid ${data?.valid_from || validFrom} to ${data?.expires_on || expiresOn}.`);
+                adminAddUserUsernameInput.value = '';
+            } catch (error) {
+                setAddUserStatus(error.message || 'User creation failed.', true);
+            } finally {
+                adminAddUserButton.disabled = false;
+            }
         });
 
         adminResetPasswordToggleButton.addEventListener('click', () => {
