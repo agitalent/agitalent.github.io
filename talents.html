@@ -859,7 +859,7 @@
 
         const isLoggedIn = () => Boolean(adminUser?.username);
         const isAdminLoggedIn = () => Boolean(adminUser?.username && adminUser?.rights === 'admin');
-        const canUseOutreachTools = () => isLoggedIn();
+        const canUseEmailTools = () => isLoggedIn();
         const isProfileSelectedForSchedule = (profileId) => selectedScheduleProfileIds.includes(profileId);
         const selectedScheduleProfilesInOrder = () => currentRows.filter((row) => isProfileSelectedForSchedule(row.id));
         const firstSelectedScheduleProfile = () => selectedScheduleProfilesInOrder()[0] || null;
@@ -1468,8 +1468,8 @@
 
             resultsEl.innerHTML = rows.map((profile) => {
                 const isEditing = isAdminLoggedIn() && editingProfileId === profile.id;
-                const isScheduling = canUseOutreachTools() && schedulingProfileId === profile.id;
-                const isEmailing = canUseOutreachTools() && emailingProfileId === profile.id;
+                const isScheduling = isAdminLoggedIn() && schedulingProfileId === profile.id;
+                const isEmailing = canUseEmailTools() && emailingProfileId === profile.id;
                 let bodyHtml = '';
                 let actionsHtml = '';
 
@@ -1492,11 +1492,11 @@
                         })
                         .filter(Boolean)
                         .join('');
-                    actionsHtml = canUseOutreachTools()
+                    actionsHtml = (isAdminLoggedIn() || canUseEmailTools())
                     ? `
                         <div class="card-actions">
                             ${isAdminLoggedIn() ? `<button class="button-secondary" type="button" data-action="edit-profile" data-id="${escapeHtml(profile.id)}">Edit</button>` : ''}
-                            <button class="button-secondary" type="button" data-action="open-schedule" data-id="${escapeHtml(profile.id)}">Schedule</button>
+                            ${isAdminLoggedIn() ? `<button class="button-secondary" type="button" data-action="open-schedule" data-id="${escapeHtml(profile.id)}">Schedule</button>` : ''}
                             <button class="button-secondary" type="button" data-action="open-email" data-id="${escapeHtml(profile.id)}">Email</button>
                         </div>
                     `
@@ -1507,7 +1507,7 @@
                     <article class="card">
                         <div class="card-head">
                             <div style="display:flex; align-items:center; gap:10px;">
-                                ${canUseOutreachTools() && !isEditing ? `<input type="checkbox" data-action="toggle-schedule-select" data-id="${escapeHtml(profile.id)}" ${isProfileSelectedForSchedule(profile.id) ? 'checked' : ''}>` : ''}
+                                ${isAdminLoggedIn() && !isEditing ? `<input type="checkbox" data-action="toggle-schedule-select" data-id="${escapeHtml(profile.id)}" ${isProfileSelectedForSchedule(profile.id) ? 'checked' : ''}>` : ''}
                                 <h3 class="card-title">${escapeHtml(titleForProfile(profile))}</h3>
                                 ${profile.Recently_Contacted ? '<div class="pill">Alert: Recently_Contacted</div>' : ''}
                             </div>
@@ -2117,6 +2117,10 @@
             }
 
             if (action === 'open-schedule') {
+                if (!isAdminLoggedIn()) {
+                    setAdminStatus('Log in with admin rights to use scheduling.', true);
+                    return;
+                }
                 if (!isProfileSelectedForSchedule(profileId)) {
                     selectedScheduleProfileIds = [profileId];
                 }
