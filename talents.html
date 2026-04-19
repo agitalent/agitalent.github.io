@@ -147,6 +147,12 @@
             gap: 18px;
             width: 100%;
         }
+        .dashboard-grid.user-mode {
+            grid-template-columns: 1fr;
+        }
+        .dashboard-grid.user-mode #dashboard-primary-card {
+            display: none;
+        }
         .dashboard-card {
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 18px;
@@ -385,14 +391,14 @@
             gap: 12px;
             margin-top: 20px;
         }
-        .admin-box {
+        .control-box {
             margin-top: 18px;
             padding: 16px;
             border-radius: 18px;
             border: 1px solid rgba(255, 255, 255, 0.08);
             background: rgba(255, 255, 255, 0.03);
         }
-        .admin-box strong {
+        .control-box strong {
             display: block;
             margin-bottom: 10px;
             font-size: 24px;
@@ -409,6 +415,40 @@
         }
         .admin-status {
             margin-top: 10px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+        .default-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+        .default-toggle input {
+            width: auto;
+            margin: 0;
+            accent-color: var(--accent);
+        }
+        .field-label-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        .field-label-row label:first-child {
+            margin-bottom: 0;
+        }
+        .user-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .dashboard-note {
+            margin-top: 14px;
             color: var(--muted);
             line-height: 1.5;
         }
@@ -496,57 +536,60 @@
         <section class="hero">
             <div class="hero-head" id="dashboard-section">
                 <div class="eyebrow">Dashboard</div>
-                <div class="dashboard-grid">
-                    <div class="dashboard-card">
-                        <h3>New records, last 7 days</h3>
+                <div class="dashboard-grid" id="dashboard-grid">
+                    <div class="dashboard-card" id="dashboard-primary-card">
+                        <h3 id="dashboard-primary-title">New records, last 7 days</h3>
                         <div class="bar-chart empty" id="dashboard-new-records-chart">-</div>
                     </div>
-                    <div class="dashboard-card">
-                        <h3>New schedules, last 7 days</h3>
+                    <div class="dashboard-card" id="dashboard-secondary-card">
+                        <h3 id="dashboard-secondary-title">New schedules, last 7 days</h3>
                         <div class="bar-chart empty" id="dashboard-sent-schedules-chart">-</div>
                     </div>
                 </div>
             </div>
             <div class="layout">
                 <section class="panel">
-                    <h2>Search</h2>
-                    <div class="copy">Default model is Qwen Plus. If you switch to another model, you can provide your own API key.</div>
+                    <h2>Workspace</h2>
+                    <div class="copy">Search candidates, sign in, and manage user access from the same control rail.</div>
                     <div class="stack">
-                        <div class="field">
-                            <label for="model-select">LLM</label>
-                            <select id="model-select">
-                                <option value="qwen/qwen-plus" selected>Qwen3.5 / Qwen3.5-Plus</option>
-                                <option value="openai/gpt-5.4-pro">GPT-5.4 Pro</option>
-                                <option value="openai/gpt-5.4">GPT-5.4</option>
-                                <option value="openai/gpt-5.4-mini">GPT-5.4 Mini</option>
-                                <option value="openai/gpt-5.3-codex">GPT-5.3 Codex / GPT-5.3 (coding-focused)</option>
-                                <option value="anthropic/claude-opus-4.6">Claude Opus 4.6</option>
-                                <option value="anthropic/claude-sonnet-4.6">Claude Sonnet 4.6</option>
-                                <option value="anthropic/claude-opus-4.5">Claude Opus 4.5</option>
-                                <option value="anthropic/claude-sonnet-4.5">Claude Sonnet 4.5</option>
-                                <option value="qwen/qwen3.5-max">Qwen3.5-Max</option>
-                                <option value="qwen/qwen3-max-thinking">Qwen3-Max-Thinking</option>
-                                <option value="qwen/qwen3-omni">Qwen3-Omni</option>
-                            </select>
+                        <div class="control-box">
+                            <strong>Search</strong>
+                            <div class="field">
+                                <label for="model-select">LLM</label>
+                                <select id="model-select">
+                                    <option value="qwen/qwen-plus" selected>Qwen3.5 / Qwen3.5-Plus</option>
+                                    <option value="openai/gpt-5.4-pro">GPT-5.4 Pro</option>
+                                    <option value="openai/gpt-5.4">GPT-5.4</option>
+                                    <option value="openai/gpt-5.4-mini">GPT-5.4 Mini</option>
+                                    <option value="openai/gpt-5.3-codex">GPT-5.3 Codex / GPT-5.3 (coding-focused)</option>
+                                    <option value="anthropic/claude-opus-4.6">Claude Opus 4.6</option>
+                                    <option value="anthropic/claude-sonnet-4.6">Claude Sonnet 4.6</option>
+                                    <option value="anthropic/claude-opus-4.5">Claude Opus 4.5</option>
+                                    <option value="anthropic/claude-sonnet-4.5">Claude Sonnet 4.5</option>
+                                    <option value="qwen/qwen3.5-max">Qwen3.5-Max</option>
+                                    <option value="qwen/qwen3-max-thinking">Qwen3-Max-Thinking</option>
+                                    <option value="qwen/qwen3-omni">Qwen3-Omni</option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label for="custom-model">Custom model id</label>
+                                <input id="custom-model" type="text" value="qwen/qwen-plus" placeholder="provider/model">
+                                <small>Used directly for the LLM request. Change it if your provider expects a different model id.</small>
+                            </div>
+                            <div class="field" id="api-key-field" style="display:none;">
+                                <label for="api-key">LLM API key</label>
+                                <input id="api-key" type="password" value="" autocomplete="off">
+                                <small>This page keeps the key in the browser only.</small>
+                            </div>
+                            <div class="field">
+                                <label for="search-input">Natural language search</label>
+                                <textarea id="search-input" placeholder=""></textarea>
+                            </div>
+                            <div class="actions">
+                                <button class="button" id="search-button" type="button">Search</button>
+                            </div>
                         </div>
-                        <div class="field">
-                            <label for="custom-model">Custom model id</label>
-                            <input id="custom-model" type="text" value="qwen/qwen-plus" placeholder="provider/model">
-                            <small>Used directly for the LLM request. Change it if your provider expects a different model id.</small>
-                        </div>
-                        <div class="field" id="api-key-field" style="display:none;">
-                            <label for="api-key">LLM API key</label>
-                            <input id="api-key" type="password" value="" autocomplete="off">
-                            <small>This page keeps the key in the browser only.</small>
-                        </div>
-                        <div class="field">
-                            <label for="search-input">Natural language search</label>
-                            <textarea id="search-input" placeholder=""></textarea>
-                        </div>
-                        <div class="actions">
-                            <button class="button" id="search-button" type="button">Search</button>
-                        </div>
-                        <div class="admin-box">
+                        <div class="control-box">
                             <strong>User Login</strong>
                             <div class="admin-grid">
                                 <div class="field">
@@ -577,30 +620,35 @@
                                 <button class="button-secondary" id="admin-reset-password-submit" type="button">Confirm Reset</button>
                                 <button class="button-secondary" id="admin-reset-password-cancel" type="button">Cancel</button>
                             </div>
-                            <div id="admin-add-user-panel" style="display:none; margin-top:12px;">
-                                <div class="admin-grid">
-                                    <div class="field">
-                                        <label for="admin-add-user-username">Add A User</label>
-                                        <input id="admin-add-user-username" type="text" autocomplete="off" placeholder="new_username">
-                                    </div>
-                                    <div class="field">
-                                        <label for="admin-add-user-valid-from">Valid From</label>
-                                        <input id="admin-add-user-valid-from" type="date">
-                                    </div>
-                                    <div class="field">
-                                        <label for="admin-add-user-expires-on">Expire Date</label>
-                                        <input id="admin-add-user-expires-on" type="date">
-                                    </div>
-                                </div>
-                                <div class="actions">
-                                    <button class="button-secondary" id="admin-add-user-button" type="button">Create User</button>
-                                </div>
-                                <div class="admin-status" id="admin-add-user-status"></div>
-                            </div>
-                            <div class="admin-status" id="admin-auth-status">Signed out. Login is required to browse candidate records. User login with admin rights also enables edit, save, and delete.</div>
+                            <div class="admin-status" id="admin-auth-status">Signed out. Login is required to browse candidate records. Admin rights also enable edit, schedule, email, and user management.</div>
                             <div class="admin-status" id="sales-cta" style="margin-top:12px;">
                                 <a href="https://calendly.com/mctalentmm/30min" target="_blank" rel="noopener noreferrer">Book a meeting with our sales to access top-notched AI candidates</a>
                             </div>
+                        </div>
+                        <div class="control-box" id="admin-add-user-panel" style="display:none;">
+                            <strong>Add User</strong>
+                            <div class="admin-grid">
+                                <div class="field">
+                                    <label for="admin-add-user-username">Username</label>
+                                    <input id="admin-add-user-username" type="text" autocomplete="off" placeholder="new_username">
+                                </div>
+                                <div class="field">
+                                    <label for="admin-add-user-valid-from">Valid From</label>
+                                    <input id="admin-add-user-valid-from" type="date">
+                                </div>
+                                <div class="field">
+                                    <label for="admin-add-user-expires-on">Expire Date</label>
+                                    <input id="admin-add-user-expires-on" type="date">
+                                </div>
+                            </div>
+                            <div class="actions">
+                                <button class="button-secondary" id="admin-add-user-button" type="button">Create User</button>
+                            </div>
+                            <div class="user-actions">
+                                <button class="button-secondary button-danger" id="admin-delete-user-button" type="button">Delete User</button>
+                                <button class="button-secondary" id="admin-renew-user-button" type="button">Renew 1 Year</button>
+                            </div>
+                            <div class="admin-status" id="admin-add-user-status"></div>
                         </div>
                         <div class="status" id="status">Login is required to browse candidate records.</div>
                     </div>
@@ -661,10 +709,15 @@
         const adminAddUserValidFromInput = document.getElementById('admin-add-user-valid-from');
         const adminAddUserExpiresOnInput = document.getElementById('admin-add-user-expires-on');
         const adminAddUserButton = document.getElementById('admin-add-user-button');
+        const adminDeleteUserButton = document.getElementById('admin-delete-user-button');
+        const adminRenewUserButton = document.getElementById('admin-renew-user-button');
         const adminAddUserStatusEl = document.getElementById('admin-add-user-status');
         const adminLogoutButton = document.getElementById('admin-logout-button');
         const adminAuthStatusEl = document.getElementById('admin-auth-status');
         const dashboardSectionEl = document.getElementById('dashboard-section');
+        const dashboardGridEl = document.getElementById('dashboard-grid');
+        const dashboardPrimaryTitleEl = document.getElementById('dashboard-primary-title');
+        const dashboardSecondaryTitleEl = document.getElementById('dashboard-secondary-title');
         const salesCtaEl = document.getElementById('sales-cta');
         const dashboardNewRecordsChartEl = document.getElementById('dashboard-new-records-chart');
         const dashboardSentSchedulesChartEl = document.getElementById('dashboard-sent-schedules-chart');
@@ -698,11 +751,17 @@
             'status'
         ];
         const JSON_PROFILE_FIELDS = new Set(['skills', 'needs', 'recent_evidence']);
+        const AGENT_TYPE_LABELS = {
+            job_seeker: 'Candidate',
+            recruiter: 'Recruiter',
+            hiring_manager: 'Hiring Manager'
+        };
         const SELECT_FIELDS = {
             agent_type: ['job_seeker', 'recruiter', 'hiring_manager'],
             status: ['active', 'paused', 'archived']
         };
         const REQUIRED_FIELDS = new Set(['agent_type', 'name_or_handle', 'status']);
+        const PUBLIC_PROFILE_SELECT = 'id, agent_type, name_or_handle, location, domain_focus, seniority, skills, needs, recent_evidence, status, created_at, updated_at';
 
         let activePrompt = '';
         let currentOffset = 0;
@@ -721,6 +780,11 @@
         let sendingEmailProfileId = null;
         let selectedScheduleProfileIds = [];
         let resetPasswordOpen = false;
+        let outreachDefaults = {
+            company: '',
+            role: '',
+            contact: ''
+        };
         const ADMIN_SESSION_KEY = 'talentsAdminSession';
 
         const MODEL_LABELS = {
@@ -795,6 +859,7 @@
 
         const isLoggedIn = () => Boolean(adminUser?.username);
         const isAdminLoggedIn = () => Boolean(adminUser?.username && adminUser?.rights === 'admin');
+        const canUseOutreachTools = () => isLoggedIn();
         const isProfileSelectedForSchedule = (profileId) => selectedScheduleProfileIds.includes(profileId);
         const selectedScheduleProfilesInOrder = () => currentRows.filter((row) => isProfileSelectedForSchedule(row.id));
         const firstSelectedScheduleProfile = () => selectedScheduleProfilesInOrder()[0] || null;
@@ -804,6 +869,59 @@
             const value = new Date();
             value.setDate(value.getDate() + days);
             return value.toISOString().slice(0, 10);
+        };
+        const normalizedOutreachDefaults = () => ({
+            company: String(outreachDefaults.company || '').trim(),
+            role: String(outreachDefaults.role || '').trim(),
+            contact: String(outreachDefaults.contact || '').trim()
+        });
+        const profileSelectColumns = () => isAdminLoggedIn() ? '*' : PUBLIC_PROFILE_SELECT;
+        const searchableProfileFields = () => (
+            isAdminLoggedIn()
+                ? ['name_or_handle', 'email', 'bio_link', 'location', 'domain_focus', 'seniority']
+                : ['name_or_handle', 'location', 'domain_focus', 'seniority']
+        );
+        const displayAgentType = (value) => AGENT_TYPE_LABELS[String(value || '').trim()] || String(value || '').trim();
+        const buildDefaultToggleState = () => {
+            const defaults = normalizedOutreachDefaults();
+            return {
+                save_company_default: Boolean(defaults.company),
+                save_role_default: Boolean(defaults.role),
+                save_contact_default: Boolean(defaults.contact)
+            };
+        };
+        const resetDashboardCharts = () => {
+            dashboardNewRecordsChartEl.textContent = '-';
+            dashboardNewRecordsChartEl.className = 'bar-chart empty';
+            dashboardSentSchedulesChartEl.textContent = '-';
+            dashboardSentSchedulesChartEl.className = 'bar-chart empty';
+        };
+        const applyOutreachDefaultsLocally = (values) => {
+            if (!values || typeof values !== 'object') return;
+            if (values.save_company_default && values.company) {
+                outreachDefaults.company = String(values.company).trim();
+            }
+            if (values.save_role_default && values.role) {
+                outreachDefaults.role = String(values.role).trim();
+            }
+            if (values.save_contact_default && values.contact) {
+                outreachDefaults.contact = String(values.contact).trim();
+            }
+        };
+        const stripPrivateProfileFields = (rows) => {
+            if (isAdminLoggedIn()) return rows;
+            return rows.map(({ email, bio_link, ...rest }) => rest);
+        };
+        const collectNamedFields = (form) => {
+            const fields = {};
+            form.querySelectorAll('[name]').forEach((input) => {
+                if (input instanceof HTMLInputElement && input.type === 'checkbox') {
+                    fields[input.name] = Boolean(input.checked);
+                    return;
+                }
+                fields[input.name] = String(input.value || '').trim();
+            });
+            return fields;
         };
 
         const persistAdminSession = () => {
@@ -842,13 +960,16 @@
             adminUsernameInput.disabled = isLoggedIn();
             adminPasswordInput.disabled = isLoggedIn();
             salesCtaEl.style.display = isLoggedIn() ? 'none' : '';
-            dashboardSectionEl.style.display = isAdminLoggedIn() ? '' : 'none';
+            dashboardSectionEl.style.display = isLoggedIn() ? '' : 'none';
             adminAddUserPanel.style.display = isAdminLoggedIn() ? '' : 'none';
+            dashboardGridEl.classList.toggle('user-mode', isLoggedIn() && !isAdminLoggedIn());
+            dashboardPrimaryTitleEl.textContent = 'New records, last 7 days';
+            dashboardSecondaryTitleEl.textContent = isAdminLoggedIn() ? 'New schedules, last 7 days' : 'Email outreach, last 7 days';
             setAdminStatus(
                 isLoggedIn()
                     ? (isAdminLoggedIn()
                         ? `Signed in as ${username}. You can now browse, edit, schedule, email, and manage users.`
-                        : `Signed in as ${username}. You can now browse candidate records.`)
+                        : `Signed in as ${username}. You can now browse, schedule, and email candidates.`)
                     : 'Signed out. Login is required to browse candidate records. Admin rights also enable edit, schedule, email, and user management.',
                 false
             );
@@ -868,12 +989,10 @@
             editingProfileId = null;
             schedulingProfileId = null;
             emailingProfileId = null;
+            selectedScheduleProfileIds = [];
             resultsMetaEl.textContent = 'Login required to view candidate records.';
             resultsEl.innerHTML = '<div class="empty">Log in to browse candidate records.</div>';
-            dashboardNewRecordsChartEl.textContent = '-';
-            dashboardNewRecordsChartEl.className = 'bar-chart empty';
-            dashboardSentSchedulesChartEl.textContent = '-';
-            dashboardSentSchedulesChartEl.className = 'bar-chart empty';
+            resetDashboardCharts();
             updatePagination();
         };
 
@@ -882,10 +1001,9 @@
             return new Intl.DateTimeFormat(undefined, { month: 'numeric', day: 'numeric' }).format(date);
         };
 
-        const emailDefaults = (profile) => ({
-            company: '',
-            role: '',
-            contact: profile.email || ''
+        const emailDefaults = () => ({
+            ...normalizedOutreachDefaults(),
+            ...buildDefaultToggleState()
         });
 
         const isEmailComplete = (values) => {
@@ -1017,28 +1135,30 @@
         };
 
         const loadDashboardMetrics = async () => {
-            if (!supabaseClient || !isAdminLoggedIn() || !adminPassword) {
-                dashboardNewRecordsChartEl.textContent = '-';
-                dashboardNewRecordsChartEl.className = 'bar-chart empty';
-                dashboardSentSchedulesChartEl.textContent = '-';
-                dashboardSentSchedulesChartEl.className = 'bar-chart empty';
+            if (!supabaseClient || !isLoggedIn() || !adminPassword) {
+                resetDashboardCharts();
                 return;
             }
-            const { data, error } = await supabaseClient.rpc('admin_dashboard_metrics', {
-                ...adminRpcCredentials()
+            const { data, error } = await supabaseClient.rpc('app_user_dashboard_metrics', {
+                ...authRpcCredentials()
             });
             if (error) throw error;
-            renderDashboardChart(dashboardNewRecordsChartEl, data?.new_records_last_7d || []);
-            renderDashboardChart(dashboardSentSchedulesChartEl, data?.sent_schedules_last_7d || []);
+            if (isAdminLoggedIn()) {
+                renderDashboardChart(dashboardNewRecordsChartEl, data?.new_records_last_7d || []);
+                renderDashboardChart(dashboardSentSchedulesChartEl, data?.sent_schedules_last_7d || []);
+                return;
+            }
+            renderDashboardChart(dashboardNewRecordsChartEl, []);
+            renderDashboardChart(dashboardSentSchedulesChartEl, data?.email_outreach_last_7d || []);
         };
 
         const applyRecentContactFlags = async (rows) => {
-            if (!supabaseClient || !isAdminLoggedIn() || !adminPassword || !Array.isArray(rows) || !rows.length) return rows;
+            if (!supabaseClient || !isLoggedIn() || !adminPassword || !Array.isArray(rows) || !rows.length) return rows;
             const profileIds = rows.map((row) => row.id).filter(Boolean);
             if (!profileIds.length) return rows;
 
             const { data, error } = await supabaseClient.rpc('recently_contacted_profile_ids', {
-                ...adminRpcCredentials(),
+                ...authRpcCredentials(),
                 p_profile_ids: profileIds,
                 p_since: recentlyContactedCutoffIso()
             });
@@ -1129,11 +1249,11 @@
         };
 
         const titleForProfile = (profile) => {
-            return profile.name_or_handle || profile.name || profile.email || profile.id || 'Profile';
+            return profile.name_or_handle || profile.name || profile.id || 'Profile';
         };
 
         const badgeForProfile = (profile) => {
-            return profile.agent_type || profile.domain_focus || 'profile';
+            return displayAgentType(profile.agent_type) || profile.domain_focus || 'profile';
         };
 
         const formatEditorValue = (key, value) => {
@@ -1153,7 +1273,8 @@
             if (SELECT_FIELDS[key]) {
                 const options = SELECT_FIELDS[key].map((option) => {
                     const selected = String(profile[key] || '') === option ? ' selected' : '';
-                    return `<option value="${escapeHtml(option)}"${selected}>${escapeHtml(option)}</option>`;
+                    const label = key === 'agent_type' ? displayAgentType(option) : option;
+                    return `<option value="${escapeHtml(option)}"${selected}>${escapeHtml(label)}</option>`;
                 }).join('');
                 return `
                     <div class="${wrapperClass}">
@@ -1209,7 +1330,7 @@
             return Number.isInteger(hour) && hour >= 0 && hour <= 23 && Number.isInteger(minute) && minute >= 0 && minute <= 59;
         };
 
-        const scheduleDefaults = (profile) => {
+        const scheduleDefaults = () => {
             const now = new Date();
             now.setMinutes(now.getMinutes() + 60);
             return {
@@ -1217,29 +1338,46 @@
                 hour: String(now.getHours()).padStart(2, '0'),
                 minute: String(now.getMinutes()).padStart(2, '0'),
                 timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Shanghai',
-                company: '',
-                role: '',
-                contact: profile.email || ''
+                ...normalizedOutreachDefaults(),
+                ...buildDefaultToggleState()
             };
         };
 
         const renderEmailPanel = (profile) => {
-            const values = profile._emailDraft || emailDefaults(profile);
+            const values = profile._emailDraft || emailDefaults();
             const disabledAttr = sendingEmailProfileId === profile.id ? ' disabled' : '';
             const sendDisabledAttr = !isEmailComplete(values) || sendingEmailProfileId === profile.id ? ' disabled' : '';
             return `
                 <div class="schedule-panel">
                     <div class="schedule-grid" data-email-form="${escapeHtml(profile.id)}">
                         <div class="field">
-                            <label for="email-company-${escapeHtml(profile.id)}">Company</label>
+                            <div class="field-label-row">
+                                <label for="email-company-${escapeHtml(profile.id)}">Company</label>
+                                <label class="default-toggle" for="email-save-company-${escapeHtml(profile.id)}">
+                                    <input id="email-save-company-${escapeHtml(profile.id)}" name="save_company_default" type="checkbox" ${values.save_company_default ? 'checked' : ''}>
+                                    Save as default
+                                </label>
+                            </div>
                             <input id="email-company-${escapeHtml(profile.id)}" name="company" type="text" value="${escapeHtml(values.company)}" placeholder="OpenAI">
                         </div>
                         <div class="field">
-                            <label for="email-role-${escapeHtml(profile.id)}">Role</label>
+                            <div class="field-label-row">
+                                <label for="email-role-${escapeHtml(profile.id)}">Role</label>
+                                <label class="default-toggle" for="email-save-role-${escapeHtml(profile.id)}">
+                                    <input id="email-save-role-${escapeHtml(profile.id)}" name="save_role_default" type="checkbox" ${values.save_role_default ? 'checked' : ''}>
+                                    Save as default
+                                </label>
+                            </div>
                             <input id="email-role-${escapeHtml(profile.id)}" name="role" type="text" value="${escapeHtml(values.role)}" placeholder="Research Engineer">
                         </div>
                         <div class="field wide">
-                            <label for="email-contact-${escapeHtml(profile.id)}">Preferred Contact Means</label>
+                            <div class="field-label-row">
+                                <label for="email-contact-${escapeHtml(profile.id)}">Preferred Contact Means</label>
+                                <label class="default-toggle" for="email-save-contact-${escapeHtml(profile.id)}">
+                                    <input id="email-save-contact-${escapeHtml(profile.id)}" name="save_contact_default" type="checkbox" ${values.save_contact_default ? 'checked' : ''}>
+                                    Save as default
+                                </label>
+                            </div>
                             <input id="email-contact-${escapeHtml(profile.id)}" name="contact" type="text" value="${escapeHtml(values.contact)}" placeholder="email@example.com or WeChat: agitalent">
                         </div>
                     </div>
@@ -1253,7 +1391,7 @@
         };
 
         const renderSchedulePanel = (profile) => {
-            const values = profile._scheduleDraft || scheduleDefaults(profile);
+            const values = profile._scheduleDraft || scheduleDefaults();
             const selectedProfiles = selectedScheduleProfilesInOrder();
             const selectionCount = selectedProfiles.length;
             const timezoneOptionsHtml = timeZoneOptions.map((zone) => {
@@ -1282,15 +1420,33 @@
                             <input id="schedule-minute-${escapeHtml(profile.id)}" name="minute" type="number" min="0" max="59" value="${escapeHtml(values.minute)}">
                         </div>
                         <div class="field">
-                            <label for="schedule-company-${escapeHtml(profile.id)}">Company</label>
+                            <div class="field-label-row">
+                                <label for="schedule-company-${escapeHtml(profile.id)}">Company</label>
+                                <label class="default-toggle" for="schedule-save-company-${escapeHtml(profile.id)}">
+                                    <input id="schedule-save-company-${escapeHtml(profile.id)}" name="save_company_default" type="checkbox" ${values.save_company_default ? 'checked' : ''}>
+                                    Save as default
+                                </label>
+                            </div>
                             <input id="schedule-company-${escapeHtml(profile.id)}" name="company" type="text" value="${escapeHtml(values.company)}" placeholder="OpenAI">
                         </div>
                         <div class="field">
-                            <label for="schedule-role-${escapeHtml(profile.id)}">Role</label>
+                            <div class="field-label-row">
+                                <label for="schedule-role-${escapeHtml(profile.id)}">Role</label>
+                                <label class="default-toggle" for="schedule-save-role-${escapeHtml(profile.id)}">
+                                    <input id="schedule-save-role-${escapeHtml(profile.id)}" name="save_role_default" type="checkbox" ${values.save_role_default ? 'checked' : ''}>
+                                    Save as default
+                                </label>
+                            </div>
                             <input id="schedule-role-${escapeHtml(profile.id)}" name="role" type="text" value="${escapeHtml(values.role)}" placeholder="Research Engineer">
                         </div>
                         <div class="field wide">
-                            <label for="schedule-contact-${escapeHtml(profile.id)}">Preferred Contact Means</label>
+                            <div class="field-label-row">
+                                <label for="schedule-contact-${escapeHtml(profile.id)}">Preferred Contact Means</label>
+                                <label class="default-toggle" for="schedule-save-contact-${escapeHtml(profile.id)}">
+                                    <input id="schedule-save-contact-${escapeHtml(profile.id)}" name="save_contact_default" type="checkbox" ${values.save_contact_default ? 'checked' : ''}>
+                                    Save as default
+                                </label>
+                            </div>
                             <input id="schedule-contact-${escapeHtml(profile.id)}" name="contact" type="text" value="${escapeHtml(values.contact)}" placeholder="email@example.com or WeChat: agitalent">
                         </div>
                     </div>
@@ -1312,8 +1468,8 @@
 
             resultsEl.innerHTML = rows.map((profile) => {
                 const isEditing = isAdminLoggedIn() && editingProfileId === profile.id;
-                const isScheduling = isAdminLoggedIn() && schedulingProfileId === profile.id;
-                const isEmailing = isAdminLoggedIn() && emailingProfileId === profile.id;
+                const isScheduling = canUseOutreachTools() && schedulingProfileId === profile.id;
+                const isEmailing = canUseOutreachTools() && emailingProfileId === profile.id;
                 let bodyHtml = '';
                 let actionsHtml = '';
 
@@ -1336,10 +1492,10 @@
                         })
                         .filter(Boolean)
                         .join('');
-                    actionsHtml = isAdminLoggedIn()
+                    actionsHtml = canUseOutreachTools()
                     ? `
                         <div class="card-actions">
-                            <button class="button-secondary" type="button" data-action="edit-profile" data-id="${escapeHtml(profile.id)}">Edit</button>
+                            ${isAdminLoggedIn() ? `<button class="button-secondary" type="button" data-action="edit-profile" data-id="${escapeHtml(profile.id)}">Edit</button>` : ''}
                             <button class="button-secondary" type="button" data-action="open-schedule" data-id="${escapeHtml(profile.id)}">Schedule</button>
                             <button class="button-secondary" type="button" data-action="open-email" data-id="${escapeHtml(profile.id)}">Email</button>
                         </div>
@@ -1351,7 +1507,7 @@
                     <article class="card">
                         <div class="card-head">
                             <div style="display:flex; align-items:center; gap:10px;">
-                                ${isAdminLoggedIn() && !isEditing ? `<input type="checkbox" data-action="toggle-schedule-select" data-id="${escapeHtml(profile.id)}" ${isProfileSelectedForSchedule(profile.id) ? 'checked' : ''}>` : ''}
+                                ${canUseOutreachTools() && !isEditing ? `<input type="checkbox" data-action="toggle-schedule-select" data-id="${escapeHtml(profile.id)}" ${isProfileSelectedForSchedule(profile.id) ? 'checked' : ''}>` : ''}
                                 <h3 class="card-title">${escapeHtml(titleForProfile(profile))}</h3>
                                 ${profile.Recently_Contacted ? '<div class="pill">Alert: Recently_Contacted</div>' : ''}
                             </div>
@@ -1393,7 +1549,7 @@
             const { scrollToTop = true } = options;
             const query = supabaseClient
                 .from('profiles')
-                .select('*', { count: 'exact' })
+                .select(profileSelectColumns(), { count: 'exact' })
                 .order('created_at', { ascending: false, nullsFirst: false })
                 .order('updated_at', { ascending: false, nullsFirst: false })
                 .range(offset, offset + PAGE_SIZE - 1);
@@ -1401,7 +1557,7 @@
             const { data, error, count } = await query;
             if (error) throw error;
 
-            const rows = await applyRecentContactFlags(Array.isArray(data) ? data : []);
+            const rows = stripPrivateProfileFields(await applyRecentContactFlags(Array.isArray(data) ? data : []));
             totalCount = Number(count || 0);
             currentOffset = offset;
             lastRowsLength = rows.length;
@@ -1415,17 +1571,11 @@
         const applyPromptFilters = (query, promptOverride = activePrompt) => {
             const terms = promptTerms(promptOverride);
             let filteredQuery = query;
+            const fields = searchableProfileFields();
             for (const term of terms) {
                 const safeTerm = term.replace(/[%,'()]/g, ' ').trim();
                 if (!safeTerm) continue;
-                filteredQuery = filteredQuery.or([
-                    `name_or_handle.ilike.%${safeTerm}%`,
-                    `email.ilike.%${safeTerm}%`,
-                    `bio_link.ilike.%${safeTerm}%`,
-                    `location.ilike.%${safeTerm}%`,
-                    `domain_focus.ilike.%${safeTerm}%`,
-                    `seniority.ilike.%${safeTerm}%`
-                ].join(','));
+                filteredQuery = filteredQuery.or(fields.map((field) => `${field}.ilike.%${safeTerm}%`).join(','));
             }
             return filteredQuery;
         };
@@ -1434,7 +1584,7 @@
             const { scrollToTop = true } = options;
             let query = supabaseClient
                 .from('profiles')
-                .select('*', { count: 'exact' })
+                .select(profileSelectColumns(), { count: 'exact' })
                 .order('created_at', { ascending: false, nullsFirst: false })
                 .order('updated_at', { ascending: false, nullsFirst: false });
 
@@ -1443,7 +1593,7 @@
             const { data, error, count } = await query;
             if (error) throw error;
 
-            const rows = await applyRecentContactFlags(Array.isArray(data) ? data : []);
+            const rows = stripPrivateProfileFields(await applyRecentContactFlags(Array.isArray(data) ? data : []));
             totalCount = Number(count || 0);
             currentOffset = offset;
             lastRowsLength = rows.length;
@@ -1506,10 +1656,7 @@
             if (!form) {
                 throw new Error('The schedule form could not be found.');
             }
-            const fields = {};
-            form.querySelectorAll('[name]').forEach((input) => {
-                fields[input.name] = String(input.value || '').trim();
-            });
+            const fields = collectNamedFields(form);
             if (!fields.date || !fields.timezone || fields.hour === '' || fields.minute === '' || !fields.company || !fields.role || !fields.contact) {
                 throw new Error('Complete all schedule fields before sending.');
             }
@@ -1528,7 +1675,10 @@
                 minute: String(minute).padStart(2, '0'),
                 company: fields.company,
                 role: fields.role,
-                contact: fields.contact
+                contact: fields.contact,
+                save_company_default: Boolean(fields.save_company_default),
+                save_role_default: Boolean(fields.save_role_default),
+                save_contact_default: Boolean(fields.save_contact_default)
             };
         };
 
@@ -1537,17 +1687,17 @@
             if (!form) {
                 throw new Error('The email form could not be found.');
             }
-            const fields = {};
-            form.querySelectorAll('[name]').forEach((input) => {
-                fields[input.name] = String(input.value || '').trim();
-            });
+            const fields = collectNamedFields(form);
             if (!fields.company || !fields.role || !fields.contact) {
                 throw new Error('Complete company, role, and preferred contact before sending.');
             }
             return {
                 company: fields.company,
                 role: fields.role,
-                contact: fields.contact
+                contact: fields.contact,
+                save_company_default: Boolean(fields.save_company_default),
+                save_role_default: Boolean(fields.save_role_default),
+                save_contact_default: Boolean(fields.save_contact_default)
             };
         };
 
@@ -1556,10 +1706,7 @@
             if (!form) return;
             const profile = currentRows.find((row) => row.id === profileId);
             if (!profile) return;
-            const values = {};
-            form.querySelectorAll('[name]').forEach((input) => {
-                values[input.name] = String(input.value || '').trim();
-            });
+            const values = collectNamedFields(form);
             profile._scheduleDraft = values;
             const sendButton = resultsEl.querySelector(`button[data-action="send-schedule"][data-id="${CSS.escape(profileId)}"]`);
             if (sendButton) {
@@ -1572,10 +1719,7 @@
             if (!form) return;
             const profile = currentRows.find((row) => row.id === profileId);
             if (!profile) return;
-            const values = {};
-            form.querySelectorAll('[name]').forEach((input) => {
-                values[input.name] = String(input.value || '').trim();
-            });
+            const values = collectNamedFields(form);
             profile._emailDraft = values;
             const sendButton = resultsEl.querySelector(`button[data-action="send-email"][data-id="${CSS.escape(profileId)}"]`);
             if (sendButton) {
@@ -1617,14 +1761,39 @@
             }
         };
 
-        const adminRpcCredentials = () => {
-            if (!isAdminLoggedIn() || !adminPassword) {
-                throw new Error('User login with admin rights is required.');
+        const authRpcCredentials = () => {
+            if (!isLoggedIn() || !adminPassword) {
+                throw new Error('User login is required.');
             }
             return {
                 p_username: adminUser.username,
                 p_password: adminPassword
             };
+        };
+
+        const adminRpcCredentials = () => {
+            if (!isAdminLoggedIn()) {
+                throw new Error('User login with admin rights is required.');
+            }
+            return authRpcCredentials();
+        };
+
+        const loadOutreachDefaults = async () => {
+            outreachDefaults = { company: '', role: '', contact: '' };
+            if (!supabaseClient || !isLoggedIn() || !adminPassword) return;
+            try {
+                const { data, error } = await supabaseClient.rpc('get_schedule_defaults', {
+                    ...authRpcCredentials()
+                });
+                if (error) throw error;
+                outreachDefaults = {
+                    company: String(data?.company || '').trim(),
+                    role: String(data?.role_title || '').trim(),
+                    contact: String(data?.preferred_contact || '').trim()
+                };
+            } catch (_error) {
+                outreachDefaults = { company: '', role: '', contact: '' };
+            }
         };
 
         const runSearch = async (usePrompt) => {
@@ -1740,6 +1909,7 @@
                 persistAdminSession();
                 adminPasswordInput.value = '';
                 updateAdminUi();
+                await loadOutreachDefaults();
                 await loadDashboardMetrics();
                 await runSearch(false);
             } catch (error) {
@@ -1754,6 +1924,7 @@
         adminLogoutButton.addEventListener('click', () => {
             adminUser = null;
             adminPassword = '';
+            outreachDefaults = { company: '', role: '', contact: '' };
             editingProfileId = null;
             resetPasswordOpen = false;
             adminUsernameInput.disabled = false;
@@ -1798,6 +1969,73 @@
                 setAddUserStatus(error.message || 'User creation failed.', true);
             } finally {
                 adminAddUserButton.disabled = false;
+            }
+        });
+
+        adminDeleteUserButton.addEventListener('click', async () => {
+            if (!supabaseClient) {
+                setAddUserStatus('Supabase client failed to initialize.', true);
+                return;
+            }
+            if (!isAdminLoggedIn()) {
+                setAddUserStatus('Admin rights are required.', true);
+                return;
+            }
+            const username = adminAddUserUsernameInput.value.trim();
+            if (!username) {
+                setAddUserStatus('Enter a username to delete.', true);
+                return;
+            }
+            const confirmed = window.confirm(`Delete user ${username}? This cannot be undone.`);
+            if (!confirmed) return;
+            adminDeleteUserButton.disabled = true;
+            try {
+                const { data, error } = await supabaseClient.rpc('admin_delete_app_user', {
+                    p_admin_username: adminUser.username,
+                    p_admin_password: adminPassword,
+                    p_target_username: username
+                });
+                if (error) throw error;
+                adminAddUserUsernameInput.value = '';
+                adminAddUserValidFromInput.value = todayIsoDate();
+                adminAddUserExpiresOnInput.value = plusDaysIsoDate(365);
+                setAddUserStatus(`User ${data?.username || username} deleted.`);
+            } catch (error) {
+                setAddUserStatus(error.message || 'User deletion failed.', true);
+            } finally {
+                adminDeleteUserButton.disabled = false;
+            }
+        });
+
+        adminRenewUserButton.addEventListener('click', async () => {
+            if (!supabaseClient) {
+                setAddUserStatus('Supabase client failed to initialize.', true);
+                return;
+            }
+            if (!isAdminLoggedIn()) {
+                setAddUserStatus('Admin rights are required.', true);
+                return;
+            }
+            const username = adminAddUserUsernameInput.value.trim();
+            if (!username) {
+                setAddUserStatus('Enter a username to renew.', true);
+                return;
+            }
+            adminRenewUserButton.disabled = true;
+            try {
+                const { data, error } = await supabaseClient.rpc('admin_renew_app_user', {
+                    p_admin_username: adminUser.username,
+                    p_admin_password: adminPassword,
+                    p_target_username: username
+                });
+                if (error) throw error;
+                adminAddUserValidFromInput.value = data?.valid_from || adminAddUserValidFromInput.value;
+                adminAddUserExpiresOnInput.value = data?.expires_on || adminAddUserExpiresOnInput.value;
+                setAddUserStatus(`User ${data?.username || username} renewed through ${data?.expires_on || ''}.`);
+            } catch (error) {
+                setAddUserStatus(error.message || 'Renewal failed.', true);
+            } finally {
+                adminRenewUserButton.disabled = false;
             }
         });
 
@@ -1847,6 +2085,7 @@
                 resetPasswordOpen = false;
                 persistAdminSession();
                 updateAdminUi();
+                await loadOutreachDefaults();
                 await loadDashboardMetrics();
                 setAdminStatus('Password reset successful.');
             } catch (error) {
@@ -1912,8 +2151,8 @@
                 return;
             }
 
-            if (!isAdminLoggedIn()) {
-                setAdminStatus('Log in with admin rights before editing records.', true);
+            if (!isAdminLoggedIn() && (action === 'save-profile' || action === 'delete-profile')) {
+                setAdminStatus('Log in with admin rights before editing or deleting records.', true);
                 return;
             }
 
@@ -1983,13 +2222,14 @@
                     let lastScheduledFor = '';
                     for (const profile of profiles) {
                         const { data, error } = await supabaseClient.rpc('admin_enqueue_schedule_invite', {
-                            ...adminRpcCredentials(),
+                            ...authRpcCredentials(),
                             p_profile_id: profile.id,
                             p_schedule: payload
                         });
                         if (error) throw error;
                         lastScheduledFor = data?.scheduled_for || lastScheduledFor;
                     }
+                    applyOutreachDefaultsLocally(payload);
                     currentRows = currentRows.map((row) => (
                         profiles.some((profile) => profile.id === row.id)
                             ? { ...row, Recently_Contacted: true }
@@ -2016,15 +2256,31 @@
                 try {
                     const profile = currentRows.find((row) => row.id === profileId);
                     if (!profile) throw new Error('Profile not found.');
-                    if (!String(profile.email || '').trim()) {
-                        throw new Error('Candidate email is required.');
-                    }
                     const payload = parseEmailForm(profileId);
                     sendingEmailProfileId = profileId;
                     setStatus('Generating email draft...');
                     renderRows(currentRows);
                     const draft = await generateEmailDraft(profile, payload);
-                    const mailtoUrl = `mailto:${escapeMailto(profile.email)}?subject=${escapeMailto(draft.subject)}&body=${escapeMailto(draft.body)}`;
+                    const { data, error } = await supabaseClient.rpc('log_email_outreach', {
+                        ...authRpcCredentials(),
+                        p_profile_id: profileId,
+                        p_company: payload.company,
+                        p_role_title: payload.role,
+                        p_preferred_contact: payload.contact,
+                        p_subject: draft.subject,
+                        p_save_company_default: Boolean(payload.save_company_default),
+                        p_save_role_default: Boolean(payload.save_role_default),
+                        p_save_preferred_contact: Boolean(payload.save_contact_default)
+                    });
+                    if (error) throw error;
+                    const recipientEmail = String(data?.recipient_email || '').trim();
+                    if (!recipientEmail) {
+                        throw new Error('Candidate email is required.');
+                    }
+                    applyOutreachDefaultsLocally(payload);
+                    currentRows = currentRows.map((row) => row.id === profileId ? { ...row, Recently_Contacted: true } : row);
+                    await loadDashboardMetrics();
+                    const mailtoUrl = `mailto:${escapeMailto(recipientEmail)}?subject=${escapeMailto(draft.subject)}&body=${escapeMailto(draft.body)}`;
                     window.location.href = mailtoUrl;
                     emailingProfileId = null;
                     setStatus('Email draft opened in your default mail handler. Review it there and decide whether to send.');
@@ -2091,7 +2347,8 @@
             try {
                 await restoreAdminSession();
                 updateAdminUi();
-                if (isAdminLoggedIn()) {
+                if (isLoggedIn()) {
+                    await loadOutreachDefaults();
                     await loadDashboardMetrics();
                     await runSearch(false);
                 } else {
