@@ -330,6 +330,8 @@
         const hubStatus = document.getElementById('hub-status');
         const hubResults = document.getElementById('hub-results');
         const skillReminder = document.getElementById('skill-reminder');
+        const emailInput = document.getElementById('email');
+        const needEmailInput = document.getElementById('need-email');
 
         const setStatus = (message) => { hubStatus.textContent = message; };
         const setSkillReminderVisible = (visible) => {
@@ -338,6 +340,29 @@
         const toList = (value) => String(value || '').split(/[\n,;]+/).map((item) => item.trim()).filter(Boolean);
         const normalize = (value) => String(value || '').toLowerCase().trim();
         const tokenSet = (value) => new Set(toList(value).flatMap((item) => normalize(item).split(/\s+/)).filter(Boolean));
+        const normalizeEmailInputValue = (value) => String(value || '')
+            .replace(/\s*\(\s*at\s*\)\s*/gi, '@')
+            .replace(/\s*\[\s*at\s*\]\s*/gi, '@')
+            .replace(/\s+at\s+/gi, '@')
+            .replace(/\s*@\s*/g, '@')
+            .replace(/\s*\(\s*dot\s*\)\s*/gi, '.')
+            .replace(/\s*\[\s*dot\s*\]\s*/gi, '.')
+            .replace(/\s+dot\s+/gi, '.')
+            .replace(/\s*\.\s*/g, '.')
+            .replace(/\s+/g, '')
+            .trim();
+        const attachEmailAutocorrect = (input) => {
+            if (!input) return;
+            const applyNormalization = () => {
+                const normalizedValue = normalizeEmailInputValue(input.value);
+                if (normalizedValue !== input.value) {
+                    input.value = normalizedValue;
+                }
+            };
+            input.addEventListener('input', applyNormalization);
+            input.addEventListener('blur', applyNormalization);
+            input.addEventListener('change', applyNormalization);
+        };
         const renderResultCards = (items) => {
             if (!items.length) {
                 hubResults.innerHTML = '<div class="card"><div class="copy">No strong matches yet.</div></div>';
@@ -437,6 +462,8 @@
             const message = String(error?.message || error || '');
             return message.includes("Could not find the 'email' column of 'needs' in the schema cache");
         };
+        attachEmailAutocorrect(emailInput);
+        attachEmailAutocorrect(needEmailInput);
         recordKind.addEventListener('change', toggleFields);
         toggleFields();
         registerForm.addEventListener('submit', async (event) => {
