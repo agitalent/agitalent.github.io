@@ -603,7 +603,6 @@
                             </div>
                             <div class="actions">
                                 <button class="button-secondary" id="admin-login-button" type="button">Login</button>
-                                <button class="button-secondary" id="admin-reset-password-toggle" type="button">Reset Password</button>
                                 <button class="button-secondary" id="admin-logout-button" type="button" disabled>Logout</button>
                             </div>
                             <div class="admin-grid" id="admin-reset-password-panel" style="display:none; margin-top:12px;">
@@ -626,27 +625,16 @@
                             </div>
                         </div>
                         <div class="control-box" id="admin-add-user-panel" style="display:none;">
-                            <strong>Add User</strong>
-                            <div class="admin-grid">
+                            <strong>User Operation</strong>
+                            <div class="admin-grid" style="grid-template-columns: 1fr;">
                                 <div class="field">
                                     <label for="admin-add-user-username">Username</label>
                                     <input id="admin-add-user-username" type="text" autocomplete="off" placeholder="new_username">
                                 </div>
-                                <div class="field">
-                                    <label for="admin-add-user-valid-from">Valid From</label>
-                                    <input id="admin-add-user-valid-from" type="date">
-                                </div>
-                                <div class="field">
-                                    <label for="admin-add-user-expires-on">Expire Date</label>
-                                    <input id="admin-add-user-expires-on" type="date">
-                                </div>
-                            </div>
-                            <div class="actions">
-                                <button class="button-secondary" id="admin-add-user-button" type="button">Create User</button>
                             </div>
                             <div class="user-actions">
+                                <button class="button-secondary" id="admin-add-user-button" type="button">Create User</button>
                                 <button class="button-secondary button-danger" id="admin-delete-user-button" type="button">Delete User</button>
-                                <button class="button-secondary" id="admin-renew-user-button" type="button">Renew 1 Year</button>
                             </div>
                             <div class="admin-status" id="admin-add-user-status"></div>
                         </div>
@@ -697,7 +685,6 @@
         const adminUsernameInput = document.getElementById('admin-username');
         const adminPasswordInput = document.getElementById('admin-password');
         const adminLoginButton = document.getElementById('admin-login-button');
-        const adminResetPasswordToggleButton = document.getElementById('admin-reset-password-toggle');
         const adminResetPasswordPanel = document.getElementById('admin-reset-password-panel');
         const adminResetCurrentPasswordInput = document.getElementById('admin-reset-current-password');
         const adminResetNewPasswordInput = document.getElementById('admin-reset-new-password');
@@ -706,11 +693,8 @@
         const adminResetPasswordActions = document.getElementById('admin-reset-password-actions');
         const adminAddUserPanel = document.getElementById('admin-add-user-panel');
         const adminAddUserUsernameInput = document.getElementById('admin-add-user-username');
-        const adminAddUserValidFromInput = document.getElementById('admin-add-user-valid-from');
-        const adminAddUserExpiresOnInput = document.getElementById('admin-add-user-expires-on');
         const adminAddUserButton = document.getElementById('admin-add-user-button');
         const adminDeleteUserButton = document.getElementById('admin-delete-user-button');
-        const adminRenewUserButton = document.getElementById('admin-renew-user-button');
         const adminAddUserStatusEl = document.getElementById('admin-add-user-status');
         const adminLogoutButton = document.getElementById('admin-logout-button');
         const adminAuthStatusEl = document.getElementById('admin-auth-status');
@@ -780,6 +764,7 @@
         let sendingEmailProfileId = null;
         let selectedScheduleProfileIds = [];
         let resetPasswordOpen = false;
+        let adminTargetUser = null;
         let outreachDefaults = {
             company: '',
             role: '',
@@ -944,21 +929,25 @@
             adminAddUserStatusEl.classList.toggle('error', isError);
         };
 
-        adminAddUserValidFromInput.value = todayIsoDate();
-        adminAddUserExpiresOnInput.value = plusDaysIsoDate(365);
-
         const updateResetPasswordUi = () => {
             const visible = resetPasswordOpen;
             adminResetPasswordPanel.style.display = visible ? '' : 'none';
             adminResetPasswordActions.style.display = visible ? '' : 'none';
         };
 
+        const updateUserOperationUi = () => {
+            const username = adminTargetUser?.username || adminAddUserUsernameInput.value.trim();
+            adminAddUserButton.textContent = adminTargetUser ? 'Renew User' : 'Create User';
+            adminDeleteUserButton.disabled = !isAdminLoggedIn() || !username || !adminTargetUser;
+        };
+
         const updateAdminUi = () => {
             const username = adminUser?.username || '';
-            adminLoginButton.disabled = isLoggedIn();
+            adminLoginButton.disabled = false;
             adminLogoutButton.disabled = !isLoggedIn();
             adminUsernameInput.disabled = isLoggedIn();
             adminPasswordInput.disabled = isLoggedIn();
+            adminLoginButton.textContent = isLoggedIn() ? 'Reset Password' : 'Login';
             salesCtaEl.style.display = isLoggedIn() ? 'none' : '';
             dashboardSectionEl.style.display = isLoggedIn() ? '' : 'none';
             adminAddUserPanel.style.display = isAdminLoggedIn() ? '' : 'none';
@@ -975,7 +964,9 @@
             );
             if (!isAdminLoggedIn()) {
                 setAddUserStatus('', false);
+                adminTargetUser = null;
             }
+            updateUserOperationUi();
             updateResetPasswordUi();
         };
 
@@ -1796,6 +1787,27 @@
             }
         };
 
+        const loadAdminTargetUser = async () => {
+            const username = adminAddUserUsernameInput.value.trim();
+            adminTargetUser = null;
+            if (!supabaseClient || !isAdminLoggedIn() || !username) {
+                updateUserOperationUi();
+                return;
+            }
+            try {
+                const { data, error } = await supabaseClient.rpc('admin_get_app_user', {
+                    p_admin_username: adminUser.username,
+                    p_admin_password: adminPassword,
+                    p_target_username: username
+                });
+                if (error) throw error;
+                adminTargetUser = data && data.username ? data : null;
+            } catch (_error) {
+                adminTargetUser = null;
+            }
+            updateUserOperationUi();
+        };
+
         const runSearch = async (usePrompt) => {
             searchButton.disabled = true;
             prevButton.disabled = true;
@@ -1887,6 +1899,15 @@
                 setAdminStatus('Supabase client failed to initialize.', true);
                 return;
             }
+            if (isLoggedIn()) {
+                resetPasswordOpen = !resetPasswordOpen;
+                if (!resetPasswordOpen) {
+                    adminResetCurrentPasswordInput.value = '';
+                    adminResetNewPasswordInput.value = '';
+                }
+                updateResetPasswordUi();
+                return;
+            }
             const username = adminUsernameInput.value.trim();
             const password = adminPasswordInput.value;
             if (!username || !password) {
@@ -1924,6 +1945,7 @@
         adminLogoutButton.addEventListener('click', () => {
             adminUser = null;
             adminPassword = '';
+            adminTargetUser = null;
             outreachDefaults = { company: '', role: '', contact: '' };
             editingProfileId = null;
             resetPasswordOpen = false;
@@ -1945,28 +1967,42 @@
                 return;
             }
             const newUsername = adminAddUserUsernameInput.value.trim();
-            const validFrom = adminAddUserValidFromInput.value || todayIsoDate();
-            const expiresOn = adminAddUserExpiresOnInput.value || plusDaysIsoDate(365);
             if (!newUsername) {
                 setAddUserStatus('Enter a username.', true);
                 return;
             }
             adminAddUserButton.disabled = true;
             try {
-                const { data, error } = await supabaseClient.rpc('admin_create_app_user', {
-                    p_admin_username: adminUser.username,
-                    p_admin_password: adminPassword,
-                    p_new_username: newUsername,
-                    p_valid_from: validFrom,
-                    p_expires_on: expiresOn
-                });
-                if (error) throw error;
-                adminAddUserValidFromInput.value = data?.valid_from || validFrom;
-                adminAddUserExpiresOnInput.value = data?.expires_on || expiresOn;
-                setAddUserStatus(`User ${data?.username || newUsername} created. Initial password: ${data?.initial_password || ''}. Valid ${data?.valid_from || validFrom} to ${data?.expires_on || expiresOn}.`);
-                adminAddUserUsernameInput.value = '';
+                await loadAdminTargetUser();
+                if (adminTargetUser?.username) {
+                    const { data, error } = await supabaseClient.rpc('admin_renew_app_user', {
+                        p_admin_username: adminUser.username,
+                        p_admin_password: adminPassword,
+                        p_target_username: newUsername
+                    });
+                    if (error) throw error;
+                    adminTargetUser = data && data.username ? data : adminTargetUser;
+                    setAddUserStatus(`User ${data?.username || newUsername} renewed through ${data?.expires_on || ''}.`);
+                } else {
+                    const validFrom = todayIsoDate();
+                    const expiresOn = plusDaysIsoDate(365);
+                    const { data, error } = await supabaseClient.rpc('admin_create_app_user', {
+                        p_admin_username: adminUser.username,
+                        p_admin_password: adminPassword,
+                        p_new_username: newUsername,
+                        p_valid_from: validFrom,
+                        p_expires_on: expiresOn
+                    });
+                    if (error) throw error;
+                    adminTargetUser = {
+                        username: data?.username || newUsername,
+                        expires_on: data?.expires_on || expiresOn
+                    };
+                    setAddUserStatus(`User ${data?.username || newUsername} created. Initial password: ${data?.initial_password || ''}. Expires ${data?.expires_on || expiresOn}.`);
+                }
+                updateUserOperationUi();
             } catch (error) {
-                setAddUserStatus(error.message || 'User creation failed.', true);
+                setAddUserStatus(error.message || 'User operation failed.', true);
             } finally {
                 adminAddUserButton.disabled = false;
             }
@@ -1997,8 +2033,8 @@
                 });
                 if (error) throw error;
                 adminAddUserUsernameInput.value = '';
-                adminAddUserValidFromInput.value = todayIsoDate();
-                adminAddUserExpiresOnInput.value = plusDaysIsoDate(365);
+                adminTargetUser = null;
+                updateUserOperationUi();
                 setAddUserStatus(`User ${data?.username || username} deleted.`);
             } catch (error) {
                 setAddUserStatus(error.message || 'User deletion failed.', true);
@@ -2007,52 +2043,16 @@
             }
         });
 
-        adminRenewUserButton.addEventListener('click', async () => {
-            if (!supabaseClient) {
-                setAddUserStatus('Supabase client failed to initialize.', true);
-                return;
-            }
-            if (!isAdminLoggedIn()) {
-                setAddUserStatus('Admin rights are required.', true);
-                return;
-            }
-            const username = adminAddUserUsernameInput.value.trim();
-            if (!username) {
-                setAddUserStatus('Enter a username to renew.', true);
-                return;
-            }
-            adminRenewUserButton.disabled = true;
-            try {
-                const { data, error } = await supabaseClient.rpc('admin_renew_app_user', {
-                    p_admin_username: adminUser.username,
-                    p_admin_password: adminPassword,
-                    p_target_username: username
-                });
-                if (error) throw error;
-                adminAddUserValidFromInput.value = data?.valid_from || adminAddUserValidFromInput.value;
-                adminAddUserExpiresOnInput.value = data?.expires_on || adminAddUserExpiresOnInput.value;
-                setAddUserStatus(`User ${data?.username || username} renewed through ${data?.expires_on || ''}.`);
-            } catch (error) {
-                setAddUserStatus(error.message || 'Renewal failed.', true);
-            } finally {
-                adminRenewUserButton.disabled = false;
-            }
-        });
-
-        adminResetPasswordToggleButton.addEventListener('click', () => {
-            resetPasswordOpen = !resetPasswordOpen;
-            if (!resetPasswordOpen) {
-                adminResetCurrentPasswordInput.value = '';
-                adminResetNewPasswordInput.value = '';
-            }
-            updateResetPasswordUi();
-        });
-
         adminResetPasswordCancelButton.addEventListener('click', () => {
             resetPasswordOpen = false;
             adminResetCurrentPasswordInput.value = '';
             adminResetNewPasswordInput.value = '';
             updateResetPasswordUi();
+        });
+
+        adminAddUserUsernameInput.addEventListener('input', async () => {
+            setAddUserStatus('', false);
+            await loadAdminTargetUser();
         });
 
         adminResetPasswordSubmitButton.addEventListener('click', async () => {
