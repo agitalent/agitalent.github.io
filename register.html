@@ -224,7 +224,10 @@
                             <div class="field profile-only full" style="display:none;">
                                 <label for="profile-source-text">Paste profile text</label>
                                 <textarea id="profile-source-text" name="profile-source-text" placeholder="Paste a profile bio, resume summary, homepage intro, or raw text here and the form will fill name, email, location, and seniority automatically."></textarea>
-                                <div class="field-note">Local parsing only. No LLM is used for this step.</div>
+                                <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:10px;">
+                                    <button class="button secondary" id="profile-parse-button" type="button">Parse</button>
+                                    <div class="field-note" id="profile-parse-status">Click Parse to extract profile fields.</div>
+                                </div>
                             </div>
                             <div class="field profile-only" style="display:none;">
                                 <label for="bio-link">Bio link</label>
@@ -341,11 +344,18 @@
         const emailInput = document.getElementById('email');
         const needEmailInput = document.getElementById('need-email');
         const profileSourceText = document.getElementById('profile-source-text');
+        const profileParseButton = document.getElementById('profile-parse-button');
+        const profileParseStatus = document.getElementById('profile-parse-status');
         let latestProfileParseRequest = 0;
 
         const setStatus = (message) => { hubStatus.textContent = message; };
         const setSkillReminderVisible = (visible) => {
             skillReminder.style.display = visible ? 'block' : 'none';
+        };
+        const setProfileParseStatus = (message, isError = false) => {
+            if (!profileParseStatus) return;
+            profileParseStatus.textContent = message;
+            profileParseStatus.classList.toggle('error', isError);
         };
         const bailianJson = async (messages) => {
             const response = await fetch(`${BAILIAN_BASE_URL}/chat/completions`, {
@@ -527,17 +537,18 @@
             if (!profileSourceText) return;
             const requestId = ++latestProfileParseRequest;
             const sourceText = profileSourceText.value;
-            let parsed;
-            try {
-                if (recordKind.value === 'profile' && sourceText.trim()) {
-                    setStatus('Parsing pasted profile text...');
-                    parsed = await llmParseProfileSourceText(sourceText);
-                } else {
-                    parsed = parseProfileSourceText(sourceText);
-                }
-            } catch (error) {
-                parsed = parseProfileSourceText(sourceText);
+            if (!sourceText.trim()) {
+                setProfileParseStatus('Paste profile text first.', true);
+                return;
             }
+            if (recordKind.value !== 'profile') {
+                setProfileParseStatus('Switch Record type to Register profile before parsing.', true);
+                return;
+            }
+            setStatus('Parsing pasted profile text...');
+            setProfileParseStatus('Parsing pasted profile text...');
+            if (profileParseButton) profileParseButton.disabled = true;
+            const parsed = await llmParseProfileSourceText(sourceText);
             if (requestId !== latestProfileParseRequest) return;
             const displayNameInput = document.getElementById('display-name');
             const locationInput = document.getElementById('location');
@@ -548,8 +559,18 @@
             if (parsed.location) locationInput.value = parsed.location;
             if (parsed.bio_link) bioLinkInput.value = parsed.bio_link;
             if (parsed.seniority) seniorityInput.value = parsed.seniority;
-            if (recordKind.value === 'profile' && sourceText.trim()) {
-                setStatus('Profile text parsed.');
+            setStatus('Profile text parsed.');
+            setProfileParseStatus('Profile text parsed.');
+        };
+        const handleProfileParseClick = async () => {
+            try {
+                await fillProfileFieldsFromSource();
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error || 'Unknown parse error');
+                setStatus(`Parse failed: ${message}`, true);
+                setProfileParseStatus(`Parse failed: ${message}`, true);
+            } finally {
+                if (profileParseButton) profileParseButton.disabled = false;
             }
         };
         const renderResultCards = (items) => {
@@ -653,13 +674,7 @@
         };
         attachEmailAutocorrect(emailInput);
         attachEmailAutocorrect(needEmailInput);
-        if (profileSourceText) {
-            profileSourceText.addEventListener('paste', () => {
-                window.setTimeout(fillProfileFieldsFromSource, 0);
-            });
-            profileSourceText.addEventListener('blur', fillProfileFieldsFromSource);
-            profileSourceText.addEventListener('change', fillProfileFieldsFromSource);
-        }
+        if (profileParseButton) profileParseButton.addEventListener('click', handleProfileParseClick);
         recordKind.addEventListener('change', toggleFields);
         toggleFields();
         registerForm.addEventListener('submit', async (event) => {
