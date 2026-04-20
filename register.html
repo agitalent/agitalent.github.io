@@ -328,6 +328,9 @@
     <script>
         const SUPABASE_URL = 'https://zocovvewzpqxspysanyy.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvY292dmV3enBxeHNweXNhbnl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwODYwNTgsImV4cCI6MjA4OTY2MjA1OH0.8ekfJ3bcvG-AbLD39xUINwXrpO7RiH9PVgy-xMzeHbE';
+        const BAILIAN_BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
+        const BAILIAN_API_KEY = 'sk-2d4b0be0ff394cef84e04960212d3eab';
+        const BAILIAN_MODEL = 'qwen3-vl-30b-a3b-thinking';
         const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
         const registerForm = document.getElementById('irecruiter-register-form');
         const recordKind = document.getElementById('record-kind');
@@ -338,10 +341,35 @@
         const emailInput = document.getElementById('email');
         const needEmailInput = document.getElementById('need-email');
         const profileSourceText = document.getElementById('profile-source-text');
+        let latestProfileParseRequest = 0;
 
         const setStatus = (message) => { hubStatus.textContent = message; };
         const setSkillReminderVisible = (visible) => {
             skillReminder.style.display = visible ? 'block' : 'none';
+        };
+        const bailianJson = async (messages) => {
+            const response = await fetch(`${BAILIAN_BASE_URL}/chat/completions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${BAILIAN_API_KEY}`
+                },
+                body: JSON.stringify({
+                    model: BAILIAN_MODEL,
+                    messages,
+                    temperature: 0.1,
+                    response_format: { type: 'json_object' }
+                })
+            });
+            if (!response.ok) {
+                const detail = await response.text();
+                throw new Error(`Bailian request failed: ${response.status} ${detail}`);
+            }
+            const payload = await response.json();
+            const content = payload?.choices?.[0]?.message?.content;
+            if (typeof content === 'string') return JSON.parse(content);
+            if (content && typeof content === 'object') return content;
+            throw new Error('Unexpected Bailian response.');
         };
         const toList = (value) => String(value || '').split(/[\n,;]+/).map((item) => item.trim()).filter(Boolean);
         const normalize = (value) => String(value || '').toLowerCase().trim();
@@ -472,9 +500,45 @@
             parsed.seniority = parseSeniorityFromText(cleanedText, parsed);
             return parsed;
         };
-        const fillProfileFieldsFromSource = () => {
+        const llmParseProfileSourceText = async (text) => {
+            const cleanedText = String(text || '').replace(/\r/g, '').trim();
+            if (!cleanedText) {
+                return { name: '', email: '', location: '', bio_link: '', seniority: '' };
+            }
+            const payload = await bailianJson([
+                {
+                    role: 'system',
+                    content: 'Return JSON only with keys name, email, location, bio_link, seniority. Extract an official full person name when possible. Email must be strict username@domain format or empty string. Location should be formal like City, State, Country or City, Country when clear, else empty string. bio_link should be the best personal bio/profile URL or empty string. seniority should contain the remaining relevant role/title/background text after removing the extracted name, email, location, and bio link.'
+                },
+                {
+                    role: 'user',
+                    content: `Parse this pasted candidate/profile text:\n\n${cleanedText}`
+                }
+            ]);
+            return {
+                name: cleanupParsedLine(payload?.name || ''),
+                email: extractEmailFromText(payload?.email || ''),
+                location: looksLikeFormalLocation(payload?.location || '') ? cleanupParsedLine(payload.location) : '',
+                bio_link: extractBioLinkFromText(payload?.bio_link || ''),
+                seniority: cleanupParsedLine(payload?.seniority || '')
+            };
+        };
+        const fillProfileFieldsFromSource = async () => {
             if (!profileSourceText) return;
-            const parsed = parseProfileSourceText(profileSourceText.value);
+            const requestId = ++latestProfileParseRequest;
+            const sourceText = profileSourceText.value;
+            let parsed;
+            try {
+                if (recordKind.value === 'profile' && sourceText.trim()) {
+                    setStatus('Parsing pasted profile text...');
+                    parsed = await llmParseProfileSourceText(sourceText);
+                } else {
+                    parsed = parseProfileSourceText(sourceText);
+                }
+            } catch (error) {
+                parsed = parseProfileSourceText(sourceText);
+            }
+            if (requestId !== latestProfileParseRequest) return;
             const displayNameInput = document.getElementById('display-name');
             const locationInput = document.getElementById('location');
             const seniorityInput = document.getElementById('seniority');
@@ -484,6 +548,9 @@
             if (parsed.location) locationInput.value = parsed.location;
             if (parsed.bio_link) bioLinkInput.value = parsed.bio_link;
             if (parsed.seniority) seniorityInput.value = parsed.seniority;
+            if (recordKind.value === 'profile' && sourceText.trim()) {
+                setStatus('Profile text parsed.');
+            }
         };
         const renderResultCards = (items) => {
             if (!items.length) {
