@@ -221,6 +221,11 @@
                                 <label for="email">Email</label>
                                 <input id="email" name="email" type="email" placeholder="name@example.com">
                             </div>
+                            <div class="field profile-only full" style="display:none;">
+                                <label for="profile-source-text">Paste profile text</label>
+                                <textarea id="profile-source-text" name="profile-source-text" placeholder="Paste a profile bio, resume summary, homepage intro, or raw text here and the form will fill name, email, location, and seniority automatically."></textarea>
+                                <div class="field-note">Local parsing only. No LLM is used for this step.</div>
+                            </div>
                             <div class="field profile-only" style="display:none;">
                                 <label for="bio-link">Bio link</label>
                                 <input id="bio-link" name="bio-link" type="url" placeholder="https://linkedin.com/in/...">
@@ -245,7 +250,7 @@
                                 <label for="location">Location</label>
                                 <input id="location" name="location" type="text" placeholder="San Francisco / Remote">
                             </div>
-                            <div class="field profile-only" style="display:none;">
+                            <div class="field hidden-profile-field" style="display:none;">
                                 <label for="timezone">Timezone</label>
                                 <input id="timezone" name="timezone" type="text" placeholder="Asia/Shanghai">
                             </div>
@@ -253,7 +258,7 @@
                                 <label for="team">Team</label>
                                 <input id="team" name="team" type="text" placeholder="Foundation Models">
                             </div>
-                            <div class="field profile-only full" style="display:none;">
+                            <div class="field hidden-profile-field full" style="display:none;">
                                 <label for="domain-focus">Domain focus</label>
                                 <input id="domain-focus" name="domain-focus" type="text" placeholder="LLM systems, multimodal, infra">
                             </div>
@@ -261,15 +266,15 @@
                                 <label for="seniority">Current position or seniority</label>
                                 <input id="seniority" name="seniority" type="text" placeholder="Senior Research Engineer">
                             </div>
-                            <div class="field profile-only" style="display:none;">
+                            <div class="field hidden-profile-field" style="display:none;">
                                 <label for="availability">Availability</label>
                                 <input id="availability" name="availability" type="text" placeholder="active">
                             </div>
-                            <div class="field profile-only full" style="display:none;">
+                            <div class="field hidden-profile-field full" style="display:none;">
                                 <label for="skills">Skills</label>
                                 <textarea id="skills" name="skills" placeholder="PyTorch, distributed systems, CUDA, inference"></textarea>
                             </div>
-                            <div class="field profile-only full" style="display:none;">
+                            <div class="field hidden-profile-field full" style="display:none;">
                                 <label for="recent-evidence">Recent evidence</label>
                                 <textarea id="recent-evidence" name="recent-evidence" placeholder="Latest paper, shipped infra project, benchmark result"></textarea>
                             </div>
@@ -332,6 +337,7 @@
         const skillReminder = document.getElementById('skill-reminder');
         const emailInput = document.getElementById('email');
         const needEmailInput = document.getElementById('need-email');
+        const profileSourceText = document.getElementById('profile-source-text');
 
         const setStatus = (message) => { hubStatus.textContent = message; };
         const setSkillReminderVisible = (visible) => {
@@ -363,6 +369,81 @@
             input.addEventListener('blur', applyNormalization);
             input.addEventListener('change', applyNormalization);
         };
+        const toTitleCase = (value) => String(value || '')
+            .toLowerCase()
+            .replace(/\b([a-z])/g, (_, char) => char.toUpperCase());
+        const extractEmailFromText = (text) => {
+            const match = normalizeEmailInputValue(text).match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+            return match ? match[0] : '';
+        };
+        const extractLabeledValue = (text, labels) => {
+            const escapedLabels = labels.map((label) => label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+            const pattern = new RegExp(`(?:^|\\n)\\s*(?:${escapedLabels.join('|')})\\s*[:\\-]\\s*([^\\n]+)`, 'i');
+            const match = text.match(pattern);
+            return match ? match[1].trim() : '';
+        };
+        const cleanupParsedLine = (value) => String(value || '')
+            .replace(/\s+/g, ' ')
+            .replace(/^[,;:.\- ]+|[,;:.\- ]+$/g, '')
+            .trim();
+        const parseNameFromText = (text, email) => {
+            const labeled = cleanupParsedLine(extractLabeledValue(text, ['name', 'candidate', 'contact name']));
+            if (labeled) return labeled;
+            const firstUsefulLine = text
+                .split('\n')
+                .map((line) => cleanupParsedLine(line))
+                .find((line) => line && line.length <= 60 && !/[@:/]|https?:\/\//i.test(line) && !/\b(location|email|seniority|skills|experience|bio)\b/i.test(line));
+            if (firstUsefulLine) return firstUsefulLine;
+            if (email) {
+                const localPart = email.split('@')[0].replace(/[._-]+/g, ' ').trim();
+                if (localPart) return toTitleCase(localPart);
+            }
+            return '';
+        };
+        const parseLocationFromText = (text) => {
+            const labeled = cleanupParsedLine(extractLabeledValue(text, ['location', 'based in', 'city', 'region']));
+            if (labeled) return labeled;
+            const lineMatch = text.match(/(?:located in|based in|living in|from)\s+([A-Za-z][^\n,.]{1,60})/i);
+            if (lineMatch) return cleanupParsedLine(lineMatch[1]);
+            const remoteMatch = text.match(/\b(remote|hybrid|onsite)\b/i);
+            if (remoteMatch) return cleanupParsedLine(remoteMatch[1]);
+            return '';
+        };
+        const parseSeniorityFromText = (text) => {
+            const labeled = cleanupParsedLine(extractLabeledValue(text, ['seniority', 'title', 'role', 'current position', 'position']));
+            if (labeled) return labeled;
+            const line = text
+                .split('\n')
+                .map((item) => cleanupParsedLine(item))
+                .find((item) => /\b(intern|student|research assistant|engineer|developer|scientist|manager|director|lead|principal|founder|professor|postdoc)\b/i.test(item));
+            if (line) return line;
+            const keywordMatch = text.match(/\b(Principal Engineer|Staff Engineer|Senior Research Engineer|Senior Engineer|Research Engineer|Research Scientist|Software Engineer|ML Engineer|Data Scientist|Product Manager|Postdoctoral Researcher|Postdoc|Professor|PhD Student|Graduate Student|Student|Intern)\b/i);
+            return keywordMatch ? cleanupParsedLine(keywordMatch[1]) : '';
+        };
+        const parseProfileSourceText = (text) => {
+            const cleanedText = String(text || '').replace(/\r/g, '').trim();
+            if (!cleanedText) {
+                return { name: '', email: '', location: '', seniority: '' };
+            }
+            const email = extractEmailFromText(cleanedText);
+            return {
+                name: parseNameFromText(cleanedText, email),
+                email,
+                location: parseLocationFromText(cleanedText),
+                seniority: parseSeniorityFromText(cleanedText)
+            };
+        };
+        const fillProfileFieldsFromSource = () => {
+            if (!profileSourceText) return;
+            const parsed = parseProfileSourceText(profileSourceText.value);
+            const displayNameInput = document.getElementById('display-name');
+            const locationInput = document.getElementById('location');
+            const seniorityInput = document.getElementById('seniority');
+            if (parsed.name) displayNameInput.value = parsed.name;
+            if (parsed.email) emailInput.value = parsed.email;
+            if (parsed.location) locationInput.value = parsed.location;
+            if (parsed.seniority) seniorityInput.value = parsed.seniority;
+        };
         const renderResultCards = (items) => {
             if (!items.length) {
                 hubResults.innerHTML = '<div class="card"><div class="copy">No strong matches yet.</div></div>';
@@ -390,13 +471,13 @@
             email: document.getElementById('email').value.trim() || null,
             bio_link: document.getElementById('bio-link').value.trim() || null,
             location: document.getElementById('location').value.trim() || null,
-            timezone: document.getElementById('timezone').value.trim() || null,
-            domain_focus: document.getElementById('domain-focus').value.trim() || null,
+            timezone: null,
+            domain_focus: null,
             seniority: document.getElementById('seniority').value.trim() || null,
-            skills: toList(document.getElementById('skills').value),
+            skills: [],
             needs: [],
-            recent_evidence: [{ source: 'register-page', text: document.getElementById('recent-evidence').value.trim() || '' }],
-            availability: document.getElementById('availability').value.trim() || 'active',
+            recent_evidence: [{ source: 'register-page', text: profileSourceText?.value.trim() || '' }],
+            availability: 'active',
             delivery_route: document.getElementById('delivery-route-profile').value.trim() || 'hub_notification',
             status: 'active'
         });
@@ -464,6 +545,13 @@
         };
         attachEmailAutocorrect(emailInput);
         attachEmailAutocorrect(needEmailInput);
+        if (profileSourceText) {
+            profileSourceText.addEventListener('paste', () => {
+                window.setTimeout(fillProfileFieldsFromSource, 0);
+            });
+            profileSourceText.addEventListener('blur', fillProfileFieldsFromSource);
+            profileSourceText.addEventListener('change', fillProfileFieldsFromSource);
+        }
         recordKind.addEventListener('change', toggleFields);
         toggleFields();
         registerForm.addEventListener('submit', async (event) => {
