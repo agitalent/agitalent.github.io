@@ -1536,6 +1536,11 @@
             .map((term) => term.trim())
             .filter((term) => term && term.length > 1);
 
+        const sanitizeSearchValue = (value) => String(value || '')
+            .replace(/[%,'()]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+
         const fetchProfilesDirect = async (offset = 0, options = {}) => {
             const { scrollToTop = true } = options;
             const query = supabaseClient
@@ -1560,15 +1565,25 @@
         };
 
         const applyPromptFilters = (query, promptOverride = activePrompt) => {
-            const terms = promptTerms(promptOverride);
-            let filteredQuery = query;
             const fields = searchableProfileFields();
-            for (const term of terms) {
-                const safeTerm = term.replace(/[%,'()]/g, ' ').trim();
-                if (!safeTerm) continue;
-                filteredQuery = filteredQuery.or(fields.map((field) => `${field}.ilike.%${safeTerm}%`).join(','));
+            const exactPrompt = sanitizeSearchValue(promptOverride);
+            const searchValues = [];
+            if (exactPrompt.length > 1) {
+                searchValues.push(exactPrompt);
             }
-            return filteredQuery;
+            for (const term of promptTerms(promptOverride)) {
+                const safeTerm = sanitizeSearchValue(term);
+                if (safeTerm && !searchValues.includes(safeTerm)) {
+                    searchValues.push(safeTerm);
+                }
+            }
+            if (!searchValues.length) {
+                return query;
+            }
+            const clauses = searchValues.flatMap((value) => (
+                fields.map((field) => `${field}.ilike.%${value}%`)
+            ));
+            return query.or(clauses.join(','));
         };
 
         const fetchProfilesClientFiltered = async (offset = 0, promptOverride = activePrompt, options = {}) => {
