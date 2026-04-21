@@ -373,7 +373,8 @@
                 body: JSON.stringify({
                     model: BAILIAN_MODEL,
                     messages,
-                    temperature: 0.1,
+                    temperature: 0,
+                    max_tokens: 220,
                     response_format: { type: 'json_object' }
                 })
             });
@@ -521,14 +522,21 @@
             if (!cleanedText) {
                 return { name: '', email: '', location: '', bio_link: '', seniority: '' };
             }
+            const compactedText = cleanedText
+                .split('\n')
+                .map((line) => line.trim())
+                .filter(Boolean)
+                .slice(0, 40)
+                .join('\n')
+                .slice(0, 3500);
             const payload = await bailianJson([
                 {
                     role: 'system',
-                    content: 'Return JSON only with keys name, email, location, bio_link, seniority. Extract an official full person name when possible. Email must be strict username@domain format or empty string. Location should be formal like City, State, Country or City, Country when clear, else empty string. bio_link should be the best personal bio/profile URL or empty string. seniority should contain the remaining relevant role/title/background text after removing the extracted name, email, location, and bio link.'
+                    content: 'Return JSON only: {"name":"","email":"","location":"","bio_link":"","seniority":""}. Extract one person only. Keep email strict username@domain or "". Keep location formal or "". Keep bio_link as the best personal URL or "". Keep seniority concise.'
                 },
                 {
                     role: 'user',
-                    content: `Parse this pasted candidate/profile text:\n\n${cleanedText}`
+                    content: `Extract fields from this candidate text:\n${compactedText}`
                 }
             ]);
             return {
