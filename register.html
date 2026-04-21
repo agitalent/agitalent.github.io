@@ -386,6 +386,8 @@
             if (typeof content === 'string') return JSON.parse(content);
             if (content && typeof content === 'object') return content;
             throw new Error('Unexpected Bailian response.');
+=======
+>>>>>>> a721bc4 (Default register page to profile)
         };
         const toList = (value) => String(value || '').split(/[\n,;]+/).map((item) => item.trim()).filter(Boolean);
         const normalize = (value) => String(value || '').toLowerCase().trim();
