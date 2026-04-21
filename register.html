@@ -420,7 +420,7 @@
             const line = text
                 .split('\n')
                 .map((item) => cleanupParsedLine(item))
-                .find((item) => /\b(intern|student|research assistant|engineer|developer|scientist|manager|director|lead|principal|founder|professor|postdoc)\b/i.test(item));
+                .find((item) => /\b(intern|student|research assistant|engineer|developer|scientist|manager|director|lead|principal|founder|professor|postdoc|researcher)\b/i.test(item));
             if (line) return line;
             const keywordMatch = text.match(/\b(Principal Engineer|Staff Engineer|Senior Research Engineer|Senior Engineer|Research Engineer|Research Scientist|Software Engineer|ML Engineer|Data Scientist|Product Manager|Postdoctoral Researcher|Postdoc|Professor|PhD Student|Graduate Student|Student|Intern)\b/i);
             return keywordMatch ? cleanupParsedLine(keywordMatch[1]) : '';
