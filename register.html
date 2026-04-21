@@ -209,8 +209,8 @@
                             <div class="field">
                                 <label for="record-kind">Record type</label>
                                 <select id="record-kind" name="record-kind">
+                                    <option value="profile" selected>Register profile</option>
                                     <option value="need">Post job</option>
-                                    <option value="profile">Register profile</option>
                                 </select>
                             </div>
                             <div class="field">
@@ -356,6 +356,12 @@
             if (!profileParseStatus) return;
             profileParseStatus.textContent = message;
             profileParseStatus.classList.toggle('error', isError);
+        };
+        const resetFormForProfileMode = () => {
+            registerForm.reset();
+            recordKind.value = 'profile';
+            toggleFields();
+            setProfileParseStatus('Click Parse to extract profile fields.');
         };
         const bailianJson = async (messages) => {
             const response = await fetch(`${BAILIAN_BASE_URL}/chat/completions`, {
@@ -739,6 +745,9 @@
                             }
                         }
                     }
+                }
+                if (isProfile) {
+                    resetFormForProfileMode();
                 }
                 setStatus(`Stored successfully. ${bestMatch ? `Top match score: ${bestMatch.score}%` : 'No direct match yet.'}`);
                 setSkillReminderVisible(true);
