@@ -1530,12 +1530,6 @@
             pageGoButton.disabled = totalCount === 0;
         };
 
-        const promptTerms = (prompt) => String(prompt || '')
-            .toLowerCase()
-            .split(/[^a-z0-9]+/i)
-            .map((term) => term.trim())
-            .filter((term) => term && term.length > 1);
-
         const normalizeSearchPrompt = (value) => String(value || '')
             .trim()
             .replace(/\s+/g, ' ');
@@ -1546,6 +1540,13 @@
             .trim();
 
         const isFullEmailSearch = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeSearchPrompt(value));
+        const escapeRegexLiteral = (value) => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const seniorityWholePhrasePattern = (value) => {
+            const normalized = sanitizeSearchValue(value);
+            if (normalized.length <= 1) return '';
+            const escaped = escapeRegexLiteral(normalized).replace(/\s+/g, '[[:space:]]+');
+            return `(^|[^[:alnum:]])${escaped}([^[:alnum:]]|$)`;
+        };
 
         const buildProfilesQuery = () => supabaseClient
             .from('profiles')
@@ -1576,26 +1577,10 @@
             await commitFetchedProfiles({ data, count }, offset, options);
         };
 
-        const buildSenioritySearchValues = (promptOverride = activePrompt) => {
-            const values = [];
-            const exactPrompt = sanitizeSearchValue(promptOverride);
-            if (exactPrompt.length > 1) {
-                values.push(exactPrompt);
-            }
-            for (const term of promptTerms(promptOverride)) {
-                const safeTerm = sanitizeSearchValue(term);
-                if (safeTerm && !values.includes(safeTerm)) {
-                    values.push(safeTerm);
-                }
-            }
-            return values;
-        };
-
         const applySeniorityFilters = (query, promptOverride = activePrompt) => {
-            const searchValues = buildSenioritySearchValues(promptOverride);
-            if (!searchValues.length) return query;
-            const clauses = searchValues.map((value) => `seniority.ilike.%${value}%`);
-            return query.or(clauses.join(','));
+            const pattern = seniorityWholePhrasePattern(promptOverride);
+            if (!pattern) return query;
+            return query.filter('seniority', 'imatch', pattern);
         };
 
         const fetchProfilesClientFiltered = async (offset = 0, promptOverride = activePrompt, options = {}) => {
