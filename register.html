@@ -347,6 +347,10 @@
         const profileParseButton = document.getElementById('profile-parse-button');
         const profileParseStatus = document.getElementById('profile-parse-status');
         let latestProfileParseRequest = 0;
+        let latestDuplicateEmailCheckRequest = 0;
+        let profileEmailDuplicate = false;
+        let duplicateEmailCheckInFlight = false;
+        let registerSubmissionInFlight = false;
 
         const setStatus = (message) => { hubStatus.textContent = message; };
         const setSkillReminderVisible = (visible) => {
@@ -360,6 +364,9 @@
         const resetFormForProfileMode = () => {
             registerForm.reset();
             recordKind.value = 'profile';
+            profileEmailDuplicate = false;
+            duplicateEmailCheckInFlight = false;
+            registerSubmissionInFlight = false;
             toggleFields();
             setProfileParseStatus('Click Parse to extract profile fields.');
         };
@@ -413,6 +420,69 @@
             input.addEventListener('input', applyNormalization);
             input.addEventListener('blur', applyNormalization);
             input.addEventListener('change', applyNormalization);
+        };
+        const updateSubmitButtonState = () => {
+            const isProfile = recordKind.value === 'profile';
+            submitButton.disabled = registerSubmissionInFlight || (isProfile && (duplicateEmailCheckInFlight || profileEmailDuplicate));
+        };
+        const checkDuplicateProfileEmail = async ({ preserveStatus = false } = {}) => {
+            if (!supabaseClient) {
+                profileEmailDuplicate = false;
+                duplicateEmailCheckInFlight = false;
+                updateSubmitButtonState();
+                return false;
+            }
+            if (recordKind.value !== 'profile') {
+                profileEmailDuplicate = false;
+                duplicateEmailCheckInFlight = false;
+                updateSubmitButtonState();
+                return false;
+            }
+            const normalizedEmail = normalizeEmailInputValue(emailInput.value);
+            if (!normalizedEmail) {
+                profileEmailDuplicate = false;
+                duplicateEmailCheckInFlight = false;
+                updateSubmitButtonState();
+                if (!preserveStatus && hubStatus.textContent === 'candidate already present') {
+                    setStatus('');
+                }
+                return false;
+            }
+
+            const requestId = ++latestDuplicateEmailCheckRequest;
+            duplicateEmailCheckInFlight = true;
+            updateSubmitButtonState();
+
+            try {
+                const { count, error } = await supabaseClient
+                    .from('profiles')
+                    .select('id', { count: 'exact', head: true })
+                    .ilike('email', normalizedEmail);
+                if (requestId !== latestDuplicateEmailCheckRequest) {
+                    return profileEmailDuplicate;
+                }
+                if (error) throw error;
+                profileEmailDuplicate = Number(count || 0) > 0;
+                if (profileEmailDuplicate) {
+                    setStatus('candidate already present');
+                } else if (!preserveStatus && hubStatus.textContent === 'candidate already present') {
+                    setStatus('');
+                }
+                return profileEmailDuplicate;
+            } catch (error) {
+                if (requestId === latestDuplicateEmailCheckRequest) {
+                    profileEmailDuplicate = false;
+                    if (!preserveStatus) {
+                        setStatus(`Email check failed: ${error.message}`);
+                    }
+                }
+                return false;
+            } finally {
+                if (requestId === latestDuplicateEmailCheckRequest) {
+                    duplicateEmailCheckInFlight = false;
+                    updateSubmitButtonState();
+                }
+            }
         };
         const US_STATE_CODES = new Set(['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'IA', 'ID', 'IL', 'IN', 'KS', 'KY', 'LA', 'MA', 'MD', 'ME', 'MI', 'MN', 'MO', 'MS', 'MT', 'NC', 'ND', 'NE', 'NH', 'NJ', 'NM', 'NV', 'NY', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VA', 'VT', 'WA', 'WI', 'WV', 'WY', 'DC']);
         const COUNTRY_WORDS = ['United States', 'USA', 'United Kingdom', 'UK', 'Canada', 'China', 'Singapore', 'Germany', 'France', 'Japan', 'India', 'Australia', 'Netherlands'];
@@ -573,6 +643,7 @@
             if (parsed.location) locationInput.value = parsed.location;
             if (parsed.bio_link) bioLinkInput.value = parsed.bio_link;
             if (parsed.seniority) seniorityInput.value = parsed.seniority;
+            await checkDuplicateProfileEmail();
             setStatus('Profile text parsed.');
             setProfileParseStatus('Profile text parsed.');
         };
@@ -607,6 +678,14 @@
             document.querySelectorAll('.profile-only').forEach((el) => { el.style.display = isProfile ? '' : 'none'; });
             document.querySelectorAll('.need-only').forEach((el) => { el.style.display = isProfile ? 'none' : ''; });
             submitButton.textContent = isProfile ? 'Register profile and search jobs' : 'Post job and search profiles';
+            if (!isProfile) {
+                profileEmailDuplicate = false;
+                duplicateEmailCheckInFlight = false;
+                if (hubStatus.textContent === 'candidate already present') {
+                    setStatus('');
+                }
+            }
+            updateSubmitButtonState();
         };
         const buildProfilePayload = () => ({
             agent_type: 'job_seeker',
@@ -688,6 +767,12 @@
         };
         attachEmailAutocorrect(emailInput);
         attachEmailAutocorrect(needEmailInput);
+        emailInput.addEventListener('input', () => {
+            checkDuplicateProfileEmail();
+        });
+        emailInput.addEventListener('blur', () => {
+            checkDuplicateProfileEmail();
+        });
         if (profileParseButton) profileParseButton.addEventListener('click', handleProfileParseClick);
         recordKind.addEventListener('change', toggleFields);
         toggleFields();
@@ -700,9 +785,15 @@
             const isProfile = recordKind.value === 'profile';
             const payload = isProfile ? buildProfilePayload() : buildNeedPayload();
             const table = isProfile ? 'profiles' : 'needs';
-            setStatus(`Writing ${isProfile ? 'profile' : 'job'} to the shared hub...`);
+            registerSubmissionInFlight = true;
+            updateSubmitButtonState();
             setSkillReminderVisible(false);
             try {
+                if (isProfile && await checkDuplicateProfileEmail({ preserveStatus: true })) {
+                    setStatus('candidate already present');
+                    return;
+                }
+                setStatus(`Writing ${isProfile ? 'profile' : 'job'} to the shared hub...`);
                 let insertPayload = payload;
                 let insertedRows;
                 let error;
@@ -762,6 +853,9 @@
             } catch (error) {
                 setStatus(`Write failed: ${error.message}`);
                 setSkillReminderVisible(false);
+            } finally {
+                registerSubmissionInFlight = false;
+                updateSubmitButtonState();
             }
         });
     </script>
