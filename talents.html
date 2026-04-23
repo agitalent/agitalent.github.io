@@ -276,8 +276,29 @@
             font-size: 1.35rem;
             line-height: 1;
         }
-        .actions.center {
-            justify-content: center;
+        .search-composer {
+            position: relative;
+        }
+        .search-composer textarea {
+            min-height: 170px;
+            padding-right: 82px;
+            padding-bottom: 76px;
+        }
+        .search-composer .button-icon {
+            position: absolute;
+            right: 18px;
+            bottom: 18px;
+            width: auto;
+            height: 1em;
+            min-width: 0;
+            padding: 0;
+            border-radius: 0;
+            background: transparent;
+            color: var(--accent-2);
+            font-size: 1rem;
+            font-weight: 400;
+            line-height: 1;
+            box-shadow: none;
         }
         .button-secondary {
             border: 1px solid rgba(71, 229, 165, 0.22);
@@ -682,10 +703,8 @@
                     <div class="stack">
                         <div class="control-box">
                             <strong>Search</strong>
-                            <div class="field">
+                            <div class="field search-composer">
                                 <textarea id="search-input" placeholder=""></textarea>
-                            </div>
-                            <div class="actions center">
                                 <button class="button button-icon" id="search-button" type="button" aria-label="Search">→</button>
                             </div>
                         </div>
@@ -922,8 +941,8 @@
         };
         const REQUIRED_FIELDS = new Set(['agent_type', 'name_or_handle', 'status']);
         const PUBLIC_PROFILE_SELECT = 'id, agent_type, name_or_handle, location, domain_focus, seniority, skills, needs, recent_evidence, status, created_at, updated_at';
-        const SIGNED_OUT_PROFILE_SELECT = 'id, name_or_handle, seniority, created_at, updated_at';
-        const SIGNED_OUT_VISIBLE_PROFILE_FIELDS = new Set(['seniority']);
+        const SIGNED_OUT_PROFILE_SELECT = 'id, name_or_handle, seniority, location, "Recently_Contacted", created_at, updated_at';
+        const SIGNED_OUT_VISIBLE_PROFILE_FIELDS = new Set(['seniority', 'location', 'Recently_Contacted']);
 
         let activePrompt = '';
         let currentOffset = 0;
@@ -1019,10 +1038,11 @@
                 ? '*'
                 : (isLoggedIn() ? PUBLIC_PROFILE_SELECT : SIGNED_OUT_PROFILE_SELECT)
         );
+        const profileSourceName = () => (isLoggedIn() ? 'profiles' : 'public_profile_directory');
         const searchableProfileFields = () => (
             isAdminLoggedIn()
                 ? ['name_or_handle', 'email', 'bio_link', 'location', 'domain_focus', 'seniority']
-                : ['name_or_handle', 'location', 'domain_focus', 'seniority']
+                : ['name_or_handle', 'location', 'seniority']
         );
         const displayAgentType = (value) => AGENT_TYPE_LABELS[String(value || '').trim()] || String(value || '').trim();
         const buildDefaultToggleState = () => {
@@ -1058,6 +1078,8 @@
                     id: row.id,
                     name_or_handle: row.name_or_handle,
                     seniority: row.seniority,
+                    location: row.location,
+                    Recently_Contacted: Boolean(row.Recently_Contacted),
                     created_at: row.created_at,
                     updated_at: row.updated_at
                 }));
@@ -1458,6 +1480,10 @@
         const renderValueHtml = (key, value) => {
             if (isEmptyValue(value)) return '';
 
+            if (key === 'Recently_Contacted') {
+                return value ? 'Yes' : 'No';
+            }
+
             if (key === 'email') {
                 const email = String(value).trim();
                 const label = escapeHtml(email);
@@ -1796,7 +1822,7 @@
         };
 
         const buildProfilesQuery = () => supabaseClient
-            .from('profiles')
+            .from(profileSourceName())
             .select(profileSelectColumns(), { count: 'exact' })
             .order('created_at', { ascending: false, nullsFirst: false })
             .order('updated_at', { ascending: false, nullsFirst: false });
@@ -1837,7 +1863,7 @@
                 return;
             }
 
-            if (isFullEmailSearch(normalizedPrompt)) {
+            if (isLoggedIn() && isFullEmailSearch(normalizedPrompt)) {
                 const emailQuery = buildProfilesQuery()
                     .ilike('email', normalizedPrompt)
                     .range(offset, offset + PAGE_SIZE - 1);
