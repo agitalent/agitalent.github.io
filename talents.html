@@ -62,12 +62,31 @@
             gap: 16px;
             margin-bottom: 24px;
         }
+        .topbar-actions,
+        .topbar-user {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
         .brand {
             display: inline-flex;
             align-items: center;
             gap: 12px;
             font-size: 0.95rem;
             color: rgba(255, 255, 255, 0.86);
+        }
+        .user-chip {
+            display: inline-flex;
+            align-items: center;
+            min-height: 48px;
+            padding: 0 16px;
+            border-radius: 999px;
+            border: 1px solid rgba(71, 229, 165, 0.18);
+            background: rgba(71, 229, 165, 0.08);
+            color: rgba(239, 248, 244, 0.94);
+            font-weight: 700;
         }
         .brand-mark {
             width: 12px;
@@ -412,6 +431,64 @@
             color: var(--muted);
             line-height: 1.5;
         }
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: rgba(4, 10, 8, 0.72);
+            backdrop-filter: blur(14px);
+            z-index: 30;
+        }
+        .modal-backdrop.open {
+            display: flex;
+        }
+        .modal {
+            width: min(100%, 460px);
+            border-radius: 28px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: linear-gradient(180deg, rgba(12, 28, 23, 0.98), rgba(9, 21, 18, 0.94));
+            box-shadow: 0 28px 90px rgba(0, 0, 0, 0.45);
+            padding: 24px;
+        }
+        .modal-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+        .modal-head h3 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+        .modal-copy {
+            margin: 8px 0 0;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+        .modal-close {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text);
+            width: 42px;
+            height: 42px;
+            border-radius: 999px;
+            cursor: pointer;
+            font: inherit;
+            font-size: 1.1rem;
+        }
+        .modal-status {
+            min-height: 24px;
+            margin-top: 12px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+        .modal-status.error {
+            color: var(--danger);
+        }
         .default-toggle {
             display: inline-flex;
             align-items: center;
@@ -520,11 +597,18 @@
 <body>
     <div class="container">
         <div class="topbar">
-            <a class="brand" href="match.html">
+            <a class="brand" href="talents.html">
                 <span class="brand-mark"></span>
                 <span>AGI Talent</span>
             </a>
-            <a class="link" href="register.html">Register Profile or Job</a>
+            <div class="topbar-actions" id="topbar-auth-actions">
+                <button class="button-secondary" id="topbar-login-button" type="button">Log in</button>
+                <button class="button" id="topbar-signup-button" type="button">Sign Up</button>
+            </div>
+            <div class="topbar-user" id="topbar-user" style="display:none;">
+                <div class="user-chip" id="topbar-username">username</div>
+                <button class="button-secondary" id="topbar-logout-button" type="button">Logout</button>
+            </div>
         </div>
 
         <section class="hero">
@@ -630,6 +714,14 @@
                                 <button class="button-secondary" id="admin-add-user-button" type="button">Create User</button>
                                 <button class="button-secondary button-danger" id="admin-delete-user-button" type="button">Delete User</button>
                             </div>
+                            <div class="field" style="margin-top:14px;">
+                                <label for="admin-invite-code-output">Invitation Code</label>
+                                <input id="admin-invite-code-output" type="text" readonly placeholder="Generate a code for self-service sign up">
+                                <small>Share this code with a user so they can register from the Sign Up dialog.</small>
+                            </div>
+                            <div class="user-actions">
+                                <button class="button-secondary" id="admin-generate-invite-button" type="button">Generate Invitation Code</button>
+                            </div>
                             <div class="admin-status" id="admin-add-user-status"></div>
                         </div>
                         <div class="status" id="status">Login is required to browse candidate records.</div>
@@ -656,6 +748,62 @@
         </section>
     </div>
 
+    <div class="modal-backdrop" id="login-modal" aria-hidden="true">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
+            <div class="modal-head">
+                <div>
+                    <h3 id="login-modal-title">Log in</h3>
+                    <p class="modal-copy">Sign in to browse candidate records and use your current account permissions.</p>
+                </div>
+                <button class="modal-close" type="button" data-close-modal="login-modal" aria-label="Close log in window">✕</button>
+            </div>
+            <div class="stack" style="margin-top:0;">
+                <div class="field">
+                    <label for="login-modal-username">Username</label>
+                    <input id="login-modal-username" type="text" autocomplete="username" placeholder="Username">
+                </div>
+                <div class="field">
+                    <label for="login-modal-password">Password</label>
+                    <input id="login-modal-password" type="password" autocomplete="current-password" placeholder="Password">
+                </div>
+            </div>
+            <div class="actions">
+                <button class="button" id="login-modal-submit" type="button">Log in</button>
+            </div>
+            <div class="modal-status" id="login-modal-status"></div>
+        </div>
+    </div>
+
+    <div class="modal-backdrop" id="signup-modal" aria-hidden="true">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="signup-modal-title">
+            <div class="modal-head">
+                <div>
+                    <h3 id="signup-modal-title">Sign Up</h3>
+                    <p class="modal-copy">Create a user account with a valid invitation code from an admin.</p>
+                </div>
+                <button class="modal-close" type="button" data-close-modal="signup-modal" aria-label="Close sign up window">✕</button>
+            </div>
+            <div class="stack" style="margin-top:0;">
+                <div class="field">
+                    <label for="signup-modal-username">Username</label>
+                    <input id="signup-modal-username" type="text" autocomplete="username" placeholder="Choose a username">
+                </div>
+                <div class="field">
+                    <label for="signup-modal-password">Password</label>
+                    <input id="signup-modal-password" type="password" autocomplete="new-password" placeholder="At least 8 characters">
+                </div>
+                <div class="field">
+                    <label for="signup-modal-code">Invitation code</label>
+                    <input id="signup-modal-code" type="text" autocomplete="off" placeholder="ABCD-EFGH-IJKL">
+                </div>
+            </div>
+            <div class="actions">
+                <button class="button" id="signup-modal-submit" type="button">Create Account</button>
+            </div>
+            <div class="modal-status" id="signup-modal-status"></div>
+        </div>
+    </div>
+
     <script>
         const SUPABASE_URL = 'https://zocovvewzpqxspysanyy.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvY292dmV3enBxeHNweXNhbnl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwODYwNTgsImV4cCI6MjA4OTY2MjA1OH0.8ekfJ3bcvG-AbLD39xUINwXrpO7RiH9PVgy-xMzeHbE';
@@ -671,6 +819,12 @@
         const searchInput = document.getElementById('search-input');
         const searchButton = document.getElementById('search-button');
         const apiKeyField = document.getElementById('api-key-field');
+        const topbarAuthActionsEl = document.getElementById('topbar-auth-actions');
+        const topbarUserEl = document.getElementById('topbar-user');
+        const topbarUsernameEl = document.getElementById('topbar-username');
+        const topbarLoginButton = document.getElementById('topbar-login-button');
+        const topbarSignupButton = document.getElementById('topbar-signup-button');
+        const topbarLogoutButton = document.getElementById('topbar-logout-button');
         const prevButton = document.getElementById('prev-button');
         const nextButton = document.getElementById('next-button');
         const pageInput = document.getElementById('page-input');
@@ -689,6 +843,8 @@
         const adminAddUserUsernameInput = document.getElementById('admin-add-user-username');
         const adminAddUserButton = document.getElementById('admin-add-user-button');
         const adminDeleteUserButton = document.getElementById('admin-delete-user-button');
+        const adminInviteCodeOutput = document.getElementById('admin-invite-code-output');
+        const adminGenerateInviteButton = document.getElementById('admin-generate-invite-button');
         const adminAddUserStatusEl = document.getElementById('admin-add-user-status');
         const adminLogoutButton = document.getElementById('admin-logout-button');
         const adminAuthStatusEl = document.getElementById('admin-auth-status');
@@ -699,6 +855,17 @@
         const salesCtaEl = document.getElementById('sales-cta');
         const dashboardNewRecordsChartEl = document.getElementById('dashboard-new-records-chart');
         const dashboardSentSchedulesChartEl = document.getElementById('dashboard-sent-schedules-chart');
+        const loginModalEl = document.getElementById('login-modal');
+        const loginModalUsernameInput = document.getElementById('login-modal-username');
+        const loginModalPasswordInput = document.getElementById('login-modal-password');
+        const loginModalSubmitButton = document.getElementById('login-modal-submit');
+        const loginModalStatusEl = document.getElementById('login-modal-status');
+        const signupModalEl = document.getElementById('signup-modal');
+        const signupModalUsernameInput = document.getElementById('signup-modal-username');
+        const signupModalPasswordInput = document.getElementById('signup-modal-password');
+        const signupModalCodeInput = document.getElementById('signup-modal-code');
+        const signupModalSubmitButton = document.getElementById('signup-modal-submit');
+        const signupModalStatusEl = document.getElementById('signup-modal-status');
         const resultsMetaEl = document.getElementById('results-meta');
         const resultsEl = document.getElementById('results');
         const HIDDEN_PROFILE_FIELDS = new Set([
@@ -805,6 +972,12 @@
         const setAdminStatus = (message, isError = false) => {
             adminAuthStatusEl.textContent = message;
             adminAuthStatusEl.classList.toggle('error', isError);
+        };
+
+        const setModalStatus = (element, message, isError = false) => {
+            if (!element) return;
+            element.textContent = message;
+            element.classList.toggle('error', isError);
         };
 
         const escapeHtml = (value) => String(value)
@@ -923,6 +1096,24 @@
             adminAddUserStatusEl.classList.toggle('error', isError);
         };
 
+        const openModal = (element) => {
+            if (!element) return;
+            element.classList.add('open');
+            element.setAttribute('aria-hidden', 'false');
+        };
+
+        const closeModal = (element) => {
+            if (!element) return;
+            element.classList.remove('open');
+            element.setAttribute('aria-hidden', 'true');
+        };
+
+        const normalizeInvitationCode = (value) => String(value || '')
+            .trim()
+            .toUpperCase()
+            .replace(/\s+/g, '')
+            .replace(/[^A-Z0-9-]/g, '');
+
         const updateResetPasswordUi = () => {
             const visible = resetPasswordOpen;
             adminResetPasswordPanel.style.display = visible ? '' : 'none';
@@ -933,6 +1124,7 @@
             const username = adminTargetUser?.username || adminAddUserUsernameInput.value.trim();
             adminAddUserButton.textContent = adminTargetUser ? 'Renew User' : 'Create User';
             adminDeleteUserButton.disabled = !isAdminLoggedIn() || !username || !adminTargetUser;
+            adminGenerateInviteButton.disabled = !isAdminLoggedIn();
         };
 
         const updateAdminUi = () => {
@@ -946,6 +1138,9 @@
             dashboardSectionEl.style.display = isLoggedIn() ? '' : 'none';
             adminAddUserPanel.style.display = isAdminLoggedIn() ? '' : 'none';
             dashboardGridEl.classList.toggle('user-mode', isLoggedIn() && !isAdminLoggedIn());
+            topbarAuthActionsEl.style.display = isLoggedIn() ? 'none' : 'inline-flex';
+            topbarUserEl.style.display = isLoggedIn() ? 'inline-flex' : 'none';
+            topbarUsernameEl.textContent = username || 'username';
             dashboardPrimaryTitleEl.textContent = 'New records, last 7 days';
             dashboardSecondaryTitleEl.textContent = isAdminLoggedIn() ? 'New schedules, last 7 days' : 'Email outreach, last 7 days';
             setAdminStatus(
@@ -959,6 +1154,7 @@
             if (!isAdminLoggedIn()) {
                 setAddUserStatus('', false);
                 adminTargetUser = null;
+                adminInviteCodeOutput.value = '';
             }
             updateUserOperationUi();
             updateResetPasswordUi();
@@ -1825,6 +2021,81 @@
             updateUserOperationUi();
         };
 
+        const completeAuthenticatedSession = async (data, password, { closeElement = null } = {}) => {
+            adminUser = data;
+            adminPassword = password;
+            adminUsernameInput.value = data?.username || '';
+            adminPasswordInput.value = '';
+            persistAdminSession();
+            updateAdminUi();
+            await loadOutreachDefaults();
+            await loadDashboardMetrics();
+            await runSearch(false);
+            if (closeElement) {
+                closeModal(closeElement);
+            }
+        };
+
+        const performLogin = async (username, password, options = {}) => {
+            if (!supabaseClient) {
+                throw new Error('Supabase client failed to initialize.');
+            }
+            const { closeElement = null } = options;
+            const normalizedUsername = String(username || '').trim();
+            if (!normalizedUsername || !password) {
+                throw new Error('Enter username and password.');
+            }
+            const { data, error } = await supabaseClient.rpc('authenticate_app_user', {
+                p_username: normalizedUsername,
+                p_password: password
+            });
+            if (error) throw error;
+            if (!data || !data.username) {
+                throw new Error('Login failed.');
+            }
+            await completeAuthenticatedSession(data, password, { closeElement });
+        };
+
+        const performSignup = async (username, password, invitationCode, options = {}) => {
+            if (!supabaseClient) {
+                throw new Error('Supabase client failed to initialize.');
+            }
+            const { closeElement = null } = options;
+            const normalizedUsername = String(username || '').trim();
+            const normalizedCode = normalizeInvitationCode(invitationCode);
+            if (!normalizedUsername || !password || !normalizedCode) {
+                throw new Error('Enter username, password, and invitation code.');
+            }
+            const { data, error } = await supabaseClient.rpc('register_app_user_with_invitation', {
+                p_username: normalizedUsername,
+                p_password: password,
+                p_invitation_code: normalizedCode
+            });
+            if (error) throw error;
+            if (!data || !data.username) {
+                throw new Error('Sign up failed.');
+            }
+            await completeAuthenticatedSession(data, password, { closeElement });
+        };
+
+        const logoutCurrentUser = () => {
+            adminUser = null;
+            adminPassword = '';
+            adminTargetUser = null;
+            outreachDefaults = { company: '', role: '', contact: '' };
+            editingProfileId = null;
+            resetPasswordOpen = false;
+            adminUsernameInput.disabled = false;
+            adminPasswordInput.disabled = false;
+            adminInviteCodeOutput.value = '';
+            closeModal(loginModalEl);
+            closeModal(signupModalEl);
+            clearAdminSession();
+            updateAdminUi();
+            clearResultsForSignedOutState();
+            setStatus('Login is required to browse candidate records.');
+        };
+
         const runSearch = async (usePrompt) => {
             searchButton.disabled = true;
             prevButton.disabled = true;
@@ -1912,10 +2183,6 @@
         });
 
         adminLoginButton.addEventListener('click', async () => {
-            if (!supabaseClient) {
-                setAdminStatus('Supabase client failed to initialize.', true);
-                return;
-            }
             if (isLoggedIn()) {
                 resetPasswordOpen = !resetPasswordOpen;
                 if (!resetPasswordOpen) {
@@ -1927,29 +2194,9 @@
             }
             const username = adminUsernameInput.value.trim();
             const password = adminPasswordInput.value;
-            if (!username || !password) {
-                setAdminStatus('Enter username and password.', true);
-                return;
-            }
-
             adminLoginButton.disabled = true;
             try {
-                const { data, error } = await supabaseClient.rpc('authenticate_app_user', {
-                    p_username: username,
-                    p_password: password
-                });
-                if (error) throw error;
-                if (!data || !data.username) {
-                    throw new Error('Login failed.');
-                }
-                adminUser = data;
-                adminPassword = password;
-                persistAdminSession();
-                adminPasswordInput.value = '';
-                updateAdminUi();
-                await loadOutreachDefaults();
-                await loadDashboardMetrics();
-                await runSearch(false);
+                await performLogin(username, password);
             } catch (error) {
                 setAdminStatus(error.message || 'Login failed.', true);
             } finally {
@@ -1959,19 +2206,101 @@
             }
         });
 
-        adminLogoutButton.addEventListener('click', () => {
-            adminUser = null;
-            adminPassword = '';
-            adminTargetUser = null;
-            outreachDefaults = { company: '', role: '', contact: '' };
-            editingProfileId = null;
-            resetPasswordOpen = false;
-            adminUsernameInput.disabled = false;
-            adminPasswordInput.disabled = false;
-            clearAdminSession();
-            updateAdminUi();
-            clearResultsForSignedOutState();
-            setStatus('Login is required to browse candidate records.');
+        adminLogoutButton.addEventListener('click', logoutCurrentUser);
+        topbarLogoutButton.addEventListener('click', logoutCurrentUser);
+
+        topbarLoginButton.addEventListener('click', () => {
+            setModalStatus(loginModalStatusEl, '', false);
+            loginModalUsernameInput.value = adminUsernameInput.value.trim();
+            loginModalPasswordInput.value = '';
+            openModal(loginModalEl);
+            window.setTimeout(() => loginModalUsernameInput.focus(), 0);
+        });
+
+        topbarSignupButton.addEventListener('click', () => {
+            setModalStatus(signupModalStatusEl, '', false);
+            signupModalUsernameInput.value = '';
+            signupModalPasswordInput.value = '';
+            signupModalCodeInput.value = '';
+            openModal(signupModalEl);
+            window.setTimeout(() => signupModalUsernameInput.focus(), 0);
+        });
+
+        loginModalSubmitButton.addEventListener('click', async () => {
+            loginModalSubmitButton.disabled = true;
+            setModalStatus(loginModalStatusEl, 'Signing in...');
+            try {
+                await performLogin(loginModalUsernameInput.value, loginModalPasswordInput.value, { closeElement: loginModalEl });
+                setModalStatus(loginModalStatusEl, '', false);
+                loginModalPasswordInput.value = '';
+            } catch (error) {
+                setModalStatus(loginModalStatusEl, error.message || 'Login failed.', true);
+            } finally {
+                loginModalSubmitButton.disabled = false;
+            }
+        });
+
+        [loginModalUsernameInput, loginModalPasswordInput].forEach((input) => {
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    loginModalSubmitButton.click();
+                }
+            });
+        });
+
+        signupModalCodeInput.addEventListener('input', () => {
+            signupModalCodeInput.value = normalizeInvitationCode(signupModalCodeInput.value);
+        });
+
+        signupModalSubmitButton.addEventListener('click', async () => {
+            signupModalSubmitButton.disabled = true;
+            setModalStatus(signupModalStatusEl, 'Creating account...');
+            try {
+                await performSignup(
+                    signupModalUsernameInput.value,
+                    signupModalPasswordInput.value,
+                    signupModalCodeInput.value,
+                    { closeElement: signupModalEl }
+                );
+                setModalStatus(signupModalStatusEl, '', false);
+                signupModalPasswordInput.value = '';
+                signupModalCodeInput.value = '';
+            } catch (error) {
+                setModalStatus(signupModalStatusEl, error.message || 'Sign up failed.', true);
+            } finally {
+                signupModalSubmitButton.disabled = false;
+            }
+        });
+
+        [signupModalUsernameInput, signupModalPasswordInput, signupModalCodeInput].forEach((input) => {
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    signupModalSubmitButton.click();
+                }
+            });
+        });
+
+        document.querySelectorAll('[data-close-modal]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const modalId = button.getAttribute('data-close-modal');
+                closeModal(document.getElementById(modalId));
+            });
+        });
+
+        [loginModalEl, signupModalEl].forEach((modal) => {
+            modal.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                    closeModal(modal);
+                }
+            });
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key !== 'Escape') return;
+            closeModal(loginModalEl);
+            closeModal(signupModalEl);
         });
 
         adminAddUserButton.addEventListener('click', async () => {
@@ -2022,6 +2351,34 @@
                 setAddUserStatus(error.message || 'User operation failed.', true);
             } finally {
                 adminAddUserButton.disabled = false;
+            }
+        });
+
+        adminGenerateInviteButton.addEventListener('click', async () => {
+            if (!supabaseClient) {
+                setAddUserStatus('Supabase client failed to initialize.', true);
+                return;
+            }
+            if (!isAdminLoggedIn()) {
+                setAddUserStatus('Admin rights are required.', true);
+                return;
+            }
+            adminGenerateInviteButton.disabled = true;
+            try {
+                const { data, error } = await supabaseClient.rpc('admin_generate_app_user_invitation_code', {
+                    p_admin_username: adminUser.username,
+                    p_admin_password: adminPassword,
+                    p_valid_from: todayIsoDate(),
+                    p_expires_on: plusDaysIsoDate(365)
+                });
+                if (error) throw error;
+                adminInviteCodeOutput.value = String(data?.code || '').trim();
+                setAddUserStatus(`Invitation code generated. Valid through ${data?.expires_on || plusDaysIsoDate(365)}.`);
+            } catch (error) {
+                setAddUserStatus(error.message || 'Invitation code generation failed.', true);
+            } finally {
+                adminGenerateInviteButton.disabled = false;
+                updateUserOperationUi();
             }
         });
 
