@@ -167,6 +167,9 @@
             gap: 18px;
             width: 100%;
         }
+        .dashboard-grid.user-mode {
+            grid-template-columns: 1fr;
+        }
         .dashboard-card {
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 18px;
@@ -1803,32 +1806,29 @@
             pageGoButton.disabled = totalCount === 0;
         };
 
-        const normalizeSearchPrompt = (value) => String(value || '')
-            .trim()
-            .replace(/\s+/g, ' ');
+        const promptTerms = (prompt) => String(prompt || '')
+            .toLowerCase()
+            .split(/[^a-z0-9]+/i)
+            .map((term) => term.trim())
+            .filter((term) => term && term.length > 1);
 
         const sanitizeSearchValue = (value) => String(value || '')
             .replace(/[%,'()]/g, ' ')
             .replace(/\s+/g, ' ')
             .trim();
 
-        const isFullEmailSearch = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeSearchPrompt(value));
-        const escapeRegexLiteral = (value) => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const seniorityWholePhrasePattern = (value) => {
-            const normalized = sanitizeSearchValue(value);
-            if (normalized.length <= 1) return '';
-            const escaped = escapeRegexLiteral(normalized).replace(/\s+/g, '[[:space:]]+');
-            return `(^|[^[:alnum:]])${escaped}([^[:alnum:]]|$)`;
-        };
-
-        const buildProfilesQuery = () => supabaseClient
-            .from(profileSourceName())
-            .select(profileSelectColumns(), { count: 'exact' })
-            .order('created_at', { ascending: false, nullsFirst: false })
-            .order('updated_at', { ascending: false, nullsFirst: false });
-
-        const commitFetchedProfiles = async ({ data, count }, offset, options = {}) => {
+        const fetchProfilesDirect = async (offset = 0, options = {}) => {
             const { scrollToTop = true } = options;
+            const query = supabaseClient
+                .from(profileSourceName())
+                .select(profileSelectColumns(), { count: 'exact' })
+                .order('created_at', { ascending: false, nullsFirst: false })
+                .order('updated_at', { ascending: false, nullsFirst: false })
+                .range(offset, offset + PAGE_SIZE - 1);
+
+            const { data, error, count } = await query;
+            if (error) throw error;
+
             const rows = stripPrivateProfileFields(await applyRecentContactFlags(Array.isArray(data) ? data : []));
             totalCount = Number(count || 0);
             currentOffset = offset;
@@ -1840,55 +1840,50 @@
             }
         };
 
-        const fetchProfilesDirect = async (offset = 0, options = {}) => {
-            const query = buildProfilesQuery()
-                .range(offset, offset + PAGE_SIZE - 1);
+        const applyPromptFilters = (query, promptOverride = activePrompt) => {
+            const fields = searchableProfileFields();
+            const exactPrompt = sanitizeSearchValue(promptOverride);
+            const searchValues = [];
+            if (exactPrompt.length > 1) {
+                searchValues.push(exactPrompt);
+            }
+            for (const term of promptTerms(promptOverride)) {
+                const safeTerm = sanitizeSearchValue(term);
+                if (safeTerm && !searchValues.includes(safeTerm)) {
+                    searchValues.push(safeTerm);
+                }
+            }
+            if (!searchValues.length) {
+                return query;
+            }
+            const clauses = searchValues.flatMap((value) => (
+                fields.map((field) => `${field}.ilike.%${value}%`)
+            ));
+            return query.or(clauses.join(','));
+        };
+
+        const fetchProfilesClientFiltered = async (offset = 0, promptOverride = activePrompt, options = {}) => {
+            const { scrollToTop = true } = options;
+            let query = supabaseClient
+                .from(profileSourceName())
+                .select(profileSelectColumns(), { count: 'exact' })
+                .order('created_at', { ascending: false, nullsFirst: false })
+                .order('updated_at', { ascending: false, nullsFirst: false });
+
+            query = applyPromptFilters(query, promptOverride).range(offset, offset + PAGE_SIZE - 1);
 
             const { data, error, count } = await query;
             if (error) throw error;
 
-            await commitFetchedProfiles({ data, count }, offset, options);
-        };
-
-        const applySeniorityFilters = (query, promptOverride = activePrompt) => {
-            const pattern = seniorityWholePhrasePattern(promptOverride);
-            if (!pattern) return query;
-            return query.filter('seniority', 'imatch', pattern);
-        };
-
-        const fetchProfilesClientFiltered = async (offset = 0, promptOverride = activePrompt, options = {}) => {
-            const normalizedPrompt = normalizeSearchPrompt(promptOverride);
-            if (!normalizedPrompt) {
-                await fetchProfilesDirect(offset, options);
-                return;
+            const rows = stripPrivateProfileFields(await applyRecentContactFlags(Array.isArray(data) ? data : []));
+            totalCount = Number(count || 0);
+            currentOffset = offset;
+            lastRowsLength = rows.length;
+            renderRows(rows);
+            updatePagination();
+            if (scrollToTop) {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
-
-            if (isLoggedIn() && isFullEmailSearch(normalizedPrompt)) {
-                const emailQuery = buildProfilesQuery()
-                    .ilike('email', normalizedPrompt)
-                    .range(offset, offset + PAGE_SIZE - 1);
-                const { data, error, count } = await emailQuery;
-                if (error) throw error;
-                await commitFetchedProfiles({ data, count }, offset, options);
-                return;
-            }
-
-            const exactNameQuery = buildProfilesQuery()
-                .ilike('name_or_handle', normalizedPrompt)
-                .range(offset, offset + PAGE_SIZE - 1);
-            const exactNameResult = await exactNameQuery;
-            if (exactNameResult.error) throw exactNameResult.error;
-
-            if (Number(exactNameResult.count || 0) > 0) {
-                await commitFetchedProfiles(exactNameResult, offset, options);
-                return;
-            }
-
-            const seniorityQuery = applySeniorityFilters(buildProfilesQuery(), normalizedPrompt)
-                .range(offset, offset + PAGE_SIZE - 1);
-            const { data, error, count } = await seniorityQuery;
-            if (error) throw error;
-            await commitFetchedProfiles({ data, count }, offset, options);
         };
 
         const fetchProfiles = async (offset = 0, options = {}) => {
