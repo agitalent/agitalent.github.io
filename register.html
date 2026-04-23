@@ -223,7 +223,7 @@
                             </div>
                             <div class="field profile-only full" style="display:none;">
                                 <label for="profile-source-text">Paste profile text</label>
-                                <textarea id="profile-source-text" name="profile-source-text" placeholder="Paste a profile bio, resume summary, homepage intro, or raw text here and the form will fill name, email, location, and seniority automatically."></textarea>
+                                <textarea id="profile-source-text" name="profile-source-text" placeholder="Paste a profile bio, resume summary, homepage intro, or raw text here and the form will fill name, email, location, and brief_background automatically."></textarea>
                                 <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:10px;">
                                     <button class="button secondary" id="profile-parse-button" type="button">Parse</button>
                                     <div class="field-note" id="profile-parse-status">Click Parse to extract profile fields.</div>
@@ -266,8 +266,8 @@
                                 <input id="domain-focus" name="domain-focus" type="text" placeholder="LLM systems, multimodal, infra">
                             </div>
                             <div class="field profile-only" style="display:none;">
-                                <label for="seniority">Current position or seniority</label>
-                                <input id="seniority" name="seniority" type="text" placeholder="Senior Research Engineer">
+                                <label for="seniority">brief_background</label>
+                                <textarea id="seniority" name="seniority" placeholder="Senior Research Engineer&#10;&#10;Built large-scale inference systems for multimodal models."></textarea>
                             </div>
                             <div class="field hidden-profile-field" style="display:none;">
                                 <label for="availability">Availability</label>
@@ -462,7 +462,7 @@
             const firstUsefulLine = text
                 .split('\n')
                 .map((line) => cleanupParsedLine(line))
-                .find((line) => line && line.length <= 60 && /^[A-Za-z .'-]+$/.test(line) && !/\b(location|email|seniority|skills|experience|bio|engineer|scientist|manager|director|student|intern)\b/i.test(line));
+                .find((line) => line && line.length <= 60 && /^[A-Za-z .'-]+$/.test(line) && !/\b(location|email|seniority|brief background|skills|experience|bio|engineer|scientist|manager|director|student|intern)\b/i.test(line));
             if (firstUsefulLine) return firstUsefulLine;
             if (email) {
                 const localPart = email.split('@')[0].replace(/[._-]+/g, ' ').trim();
@@ -470,6 +470,17 @@
             }
             return '';
         };
+        const normalizeParagraphText = (value) => String(value || '')
+            .replace(/\r/g, '')
+            .split(/\n\s*\n+/)
+            .map((paragraph) => paragraph
+                .split('\n')
+                .map((line) => cleanupParsedLine(line))
+                .filter(Boolean)
+                .join(' ')
+                .trim())
+            .filter(Boolean)
+            .join('\n\n');
         const parseLocationFromText = (text) => {
             const labeled = cleanupParsedLine(extractLabeledValue(text, ['location', 'based in', 'city', 'region']));
             if (looksLikeFormalLocation(labeled)) return labeled;
@@ -483,23 +494,25 @@
             return '';
         };
         const parseSeniorityFromText = (text, parsed) => {
-            const labeled = cleanupParsedLine(extractLabeledValue(text, ['seniority', 'title', 'role', 'current position', 'position']));
+            const labeled = cleanupParsedLine(extractLabeledValue(text, ['seniority', 'brief background', 'brief_background', 'title', 'role', 'current position', 'position']));
             if (labeled) return labeled;
-            let remaining = String(text || '');
+            let remaining = String(text || '').replace(/\r/g, '');
             [parsed.name, parsed.email, parsed.location, parsed.bio_link].filter(Boolean).forEach((value) => {
                 remaining = remaining.replace(new RegExp(escapeRegExp(value), 'ig'), ' ');
             });
             remaining = remaining
                 .replace(/https?:\/\/[^\s<>"')]+/gi, ' ')
                 .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, ' ')
-                .replace(/\s+/g, ' ')
+                .replace(/(?:^|\n)\s*(?:name|candidate|contact name|email|location|bio link|website|linkedin|github)\s*[:\-]\s*[^\n]*/gi, ' ')
                 .trim();
-            const line = remaining
+            const paragraphValue = normalizeParagraphText(remaining);
+            if (paragraphValue.includes('\n\n')) return paragraphValue;
+            const line = paragraphValue
                 .split('\n')
                 .map((item) => cleanupParsedLine(item))
                 .find((item) => /\b(intern|student|research assistant|engineer|developer|scientist|manager|director|lead|principal|founder|professor|postdoc|researcher)\b/i.test(item));
             if (line) return line;
-            return cleanupParsedLine(remaining);
+            return cleanupParsedLine(paragraphValue);
         };
         const parseProfileSourceText = (text) => {
             const cleanedText = String(text || '').replace(/\r/g, '').trim();
@@ -532,19 +545,23 @@
             const payload = await bailianJson([
                 {
                     role: 'system',
-                    content: 'Return JSON only: {"name":"","email":"","location":"","bio_link":"","seniority":""}. Extract one person only. Keep email strict username@domain or "". Keep location formal or "". Keep bio_link as the best personal URL or "". Keep seniority concise.'
+                    content: 'Return JSON only: {"name":"","email":"","location":"","bio_link":"","seniority":""}. Extract one person only. Keep email strict username@domain or "". Keep location formal or "". Keep bio_link as the best personal URL or "". Use seniority for brief_background and preserve multiple paragraphs when useful.'
                 },
                 {
                     role: 'user',
                     content: `Extract fields from this candidate text:\n${compactedText}`
                 }
             ]);
-            return {
+            const parsedIdentity = {
                 name: cleanupParsedLine(payload?.name || ''),
                 email: extractEmailFromText(payload?.email || ''),
                 location: looksLikeFormalLocation(payload?.location || '') ? cleanupParsedLine(payload.location) : '',
-                bio_link: extractBioLinkFromText(payload?.bio_link || ''),
-                seniority: cleanupParsedLine(payload?.seniority || '')
+                bio_link: extractBioLinkFromText(payload?.bio_link || '')
+            };
+            const derivedBackground = parseSeniorityFromText(cleanedText, parsedIdentity);
+            return {
+                ...parsedIdentity,
+                seniority: derivedBackground.includes('\n\n') ? derivedBackground : (normalizeParagraphText(payload?.seniority || '') || derivedBackground)
             };
         };
         const fillProfileFieldsFromSource = async () => {

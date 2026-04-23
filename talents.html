@@ -355,6 +355,48 @@
             gap: 12px;
             margin-bottom: 16px;
         }
+        .signup-promo {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+            gap: 24px;
+            align-items: center;
+            padding: 28px 32px;
+            border-top: 1px solid var(--line);
+            border-bottom: 1px solid var(--line);
+            background:
+                radial-gradient(circle at top left, rgba(127, 255, 212, 0.1), transparent 34%),
+                linear-gradient(135deg, rgba(71, 229, 165, 0.08), rgba(255, 255, 255, 0.02));
+        }
+        .signup-promo-copy {
+            display: grid;
+            gap: 14px;
+        }
+        .signup-promo-copy strong {
+            font-size: clamp(1.6rem, 3vw, 2.3rem);
+            font-family: 'Untitled Serif', serif;
+            font-weight: 400;
+            line-height: 1.08;
+            letter-spacing: -0.03em;
+            color: var(--text);
+        }
+        .signup-promo-copy p {
+            margin: 0;
+            max-width: 48ch;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+        .signup-promo-visual {
+            border-radius: 28px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.03);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+        }
+        .signup-promo-visual svg {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
         .results-meta {
             color: var(--muted);
             font-size: 0.96rem;
@@ -638,6 +680,9 @@
             line-height: 1.5;
         }
         @media (max-width: 1040px) {
+            .signup-promo {
+                grid-template-columns: 1fr;
+            }
             .layout {
                 grid-template-columns: 1fr;
             }
@@ -695,6 +740,48 @@
                         <h3 id="dashboard-secondary-title">New schedules, last 7 days</h3>
                         <div class="bar-chart empty" id="dashboard-sent-schedules-chart">-</div>
                     </div>
+                </div>
+            </div>
+            <div class="signup-promo" id="signup-promo">
+                <div class="signup-promo-copy">
+                    <strong>Sign up to enjoy more smooth and automatic candidate outreach.</strong>
+                    <p>Unlock richer profile details, smoother outreach actions, and a faster candidate workflow that stays aligned with the page style.</p>
+                    <div class="actions" style="margin-top:0;">
+                        <button class="button-secondary" id="signup-promo-button" type="button">Sign Up To Unlock More</button>
+                    </div>
+                </div>
+                <div class="signup-promo-visual" aria-hidden="true">
+                    <svg viewBox="0 0 620 360" xmlns="http://www.w3.org/2000/svg" role="img">
+                        <defs>
+                            <linearGradient id="promo-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#0c201b"/>
+                                <stop offset="100%" stop-color="#0a1714"/>
+                            </linearGradient>
+                            <linearGradient id="promo-accent" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#7fffd4"/>
+                                <stop offset="100%" stop-color="#47e5a5"/>
+                            </linearGradient>
+                        </defs>
+                        <rect width="620" height="360" fill="url(#promo-bg)"/>
+                        <circle cx="126" cy="86" r="74" fill="rgba(127,255,212,0.10)"/>
+                        <circle cx="522" cy="298" r="82" fill="rgba(71,229,165,0.10)"/>
+                        <rect x="42" y="56" width="258" height="248" rx="28" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.10)"/>
+                        <rect x="72" y="92" width="90" height="14" rx="7" fill="rgba(239,248,244,0.82)"/>
+                        <rect x="72" y="124" width="182" height="10" rx="5" fill="rgba(239,248,244,0.28)"/>
+                        <rect x="72" y="146" width="156" height="10" rx="5" fill="rgba(239,248,244,0.22)"/>
+                        <rect x="72" y="192" width="196" height="76" rx="22" fill="rgba(71,229,165,0.10)" stroke="rgba(71,229,165,0.26)"/>
+                        <rect x="98" y="218" width="114" height="12" rx="6" fill="url(#promo-accent)"/>
+                        <rect x="98" y="242" width="138" height="10" rx="5" fill="rgba(239,248,244,0.32)"/>
+                        <path d="M330 180h84" stroke="rgba(127,255,212,0.55)" stroke-width="10" stroke-linecap="round"/>
+                        <path d="M392 150l42 30-42 30" fill="none" stroke="url(#promo-accent)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+                        <rect x="446" y="74" width="128" height="88" rx="24" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.12)"/>
+                        <rect x="472" y="102" width="58" height="12" rx="6" fill="rgba(239,248,244,0.84)"/>
+                        <rect x="472" y="126" width="74" height="10" rx="5" fill="rgba(239,248,244,0.24)"/>
+                        <rect x="428" y="210" width="150" height="100" rx="28" fill="rgba(255,255,255,0.05)" stroke="rgba(127,255,212,0.16)"/>
+                        <rect x="456" y="238" width="94" height="12" rx="6" fill="url(#promo-accent)"/>
+                        <rect x="456" y="262" width="82" height="10" rx="5" fill="rgba(239,248,244,0.26)"/>
+                        <rect x="456" y="282" width="102" height="10" rx="5" fill="rgba(239,248,244,0.18)"/>
+                    </svg>
                 </div>
             </div>
             <div class="layout">
@@ -848,10 +935,14 @@
         const BAILIAN_API_KEY = 'sk-2d4b0be0ff394cef84e04960212d3eab';
         const BAILIAN_MODEL = 'qwen3-vl-30b-a3b-thinking';
         const PAGE_SIZE = 20;
+        const MAX_PUBLIC_PAGES = 10;
+        const MAX_PUBLIC_RESULTS = PAGE_SIZE * MAX_PUBLIC_PAGES;
 
         const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
         const searchInput = document.getElementById('search-input');
         const searchButton = document.getElementById('search-button');
+        const signupPromoEl = document.getElementById('signup-promo');
+        const signupPromoButton = document.getElementById('signup-promo-button');
         const topbarAuthActionsEl = document.getElementById('topbar-auth-actions');
         const topbarUserEl = document.getElementById('topbar-user');
         const topbarUsernameEl = document.getElementById('topbar-username');
@@ -938,6 +1029,10 @@
         const SELECT_FIELDS = {
             agent_type: ['job_seeker', 'recruiter', 'hiring_manager'],
             status: ['active', 'paused', 'archived']
+        };
+        const LONG_TEXT_FIELDS = new Set(['seniority']);
+        const FIELD_LABELS = {
+            seniority: 'brief_background'
         };
         const REQUIRED_FIELDS = new Set(['agent_type', 'name_or_handle', 'status']);
         const PUBLIC_PROFILE_SELECT = 'id, agent_type, name_or_handle, location, domain_focus, seniority, skills, needs, recent_evidence, status, created_at, updated_at';
@@ -1044,6 +1139,13 @@
                 ? ['name_or_handle', 'email', 'bio_link', 'location', 'domain_focus', 'seniority']
                 : ['name_or_handle', 'location', 'seniority']
         );
+        const displayFieldLabel = (key) => FIELD_LABELS[key] || key;
+        const maxVisibleResults = () => (isLoggedIn() ? Number.POSITIVE_INFINITY : MAX_PUBLIC_RESULTS);
+        const clampVisibleOffset = (offset) => {
+            const normalizedOffset = Math.max(0, Number(offset) || 0);
+            return Math.min(normalizedOffset, Math.max(0, maxVisibleResults() - PAGE_SIZE));
+        };
+        const capVisibleCount = (count) => Math.min(Number(count || 0), maxVisibleResults());
         const displayAgentType = (value) => AGENT_TYPE_LABELS[String(value || '').trim()] || String(value || '').trim();
         const buildDefaultToggleState = () => {
             const defaults = normalizedOutreachDefaults();
@@ -1079,7 +1181,7 @@
                     name_or_handle: row.name_or_handle,
                     seniority: row.seniority,
                     location: row.location,
-                    Recently_Contacted: Boolean(row.Recently_Contacted),
+                    Recently_Contacted: false,
                     created_at: row.created_at,
                     updated_at: row.updated_at
                 }));
@@ -1213,6 +1315,7 @@
             adminLoginButton.textContent = isLoggedIn() ? 'Reset Password' : 'Login';
             salesCtaEl.style.display = isLoggedIn() ? 'none' : '';
             dashboardSectionEl.style.display = isLoggedIn() ? '' : 'none';
+            signupPromoEl.style.display = isLoggedIn() ? 'none' : 'grid';
             adminAddUserPanel.style.display = isAdminLoggedIn() ? '' : 'none';
             dashboardGridEl.classList.toggle('user-mode', isLoggedIn() && !isAdminLoggedIn());
             topbarAuthActionsEl.style.display = isLoggedIn() ? 'none' : 'inline-flex';
@@ -1530,7 +1633,7 @@
         const renderEditorField = (profile, key) => {
             const value = formatEditorValue(key, profile[key]);
             const escapedValue = escapeHtml(value);
-            const wide = JSON_PROFILE_FIELDS.has(key) || key === 'bio_link';
+            const wide = JSON_PROFILE_FIELDS.has(key) || LONG_TEXT_FIELDS.has(key) || key === 'bio_link';
             const wrapperClass = wide ? 'field wide' : 'field';
 
             if (SELECT_FIELDS[key]) {
@@ -1541,16 +1644,16 @@
                 }).join('');
                 return `
                     <div class="${wrapperClass}">
-                        <label for="edit-${escapeHtml(profile.id)}-${escapeHtml(key)}">${escapeHtml(key)}</label>
+                        <label for="edit-${escapeHtml(profile.id)}-${escapeHtml(key)}">${escapeHtml(displayFieldLabel(key))}</label>
                         <select id="edit-${escapeHtml(profile.id)}-${escapeHtml(key)}" name="${escapeHtml(key)}">${options}</select>
                     </div>
                 `;
             }
 
-            if (JSON_PROFILE_FIELDS.has(key)) {
+            if (JSON_PROFILE_FIELDS.has(key) || LONG_TEXT_FIELDS.has(key)) {
                 return `
                     <div class="${wrapperClass}">
-                        <label for="edit-${escapeHtml(profile.id)}-${escapeHtml(key)}">${escapeHtml(key)}</label>
+                        <label for="edit-${escapeHtml(profile.id)}-${escapeHtml(key)}">${escapeHtml(displayFieldLabel(key))}</label>
                         <textarea id="edit-${escapeHtml(profile.id)}-${escapeHtml(key)}" name="${escapeHtml(key)}">${escapedValue}</textarea>
                     </div>
                 `;
@@ -1558,7 +1661,7 @@
 
             return `
                 <div class="${wrapperClass}">
-                    <label for="edit-${escapeHtml(profile.id)}-${escapeHtml(key)}">${escapeHtml(key)}</label>
+                    <label for="edit-${escapeHtml(profile.id)}-${escapeHtml(key)}">${escapeHtml(displayFieldLabel(key))}</label>
                     <input id="edit-${escapeHtml(profile.id)}-${escapeHtml(key)}" name="${escapeHtml(key)}" type="text" value="${escapedValue}">
                 </div>
             `;
@@ -1749,7 +1852,7 @@
                             if (!renderedValue) return '';
                             return `
                                 <div class="meta">
-                                    <div class="meta-key">${escapeHtml(key)}</div>
+                                    <div class="meta-key">${escapeHtml(displayFieldLabel(key))}</div>
                                     <div class="meta-value">${renderedValue}</div>
                                 </div>
                             `;
@@ -1816,19 +1919,20 @@
 
         const fetchProfilesDirect = async (offset = 0, options = {}) => {
             const { scrollToTop = true } = options;
+            const safeOffset = clampVisibleOffset(offset);
             const query = supabaseClient
                 .from(profileSourceName())
                 .select(profileSelectColumns(), { count: 'exact' })
                 .order('created_at', { ascending: false, nullsFirst: false })
                 .order('updated_at', { ascending: false, nullsFirst: false })
-                .range(offset, offset + PAGE_SIZE - 1);
+                .range(safeOffset, safeOffset + PAGE_SIZE - 1);
 
             const { data, error, count } = await query;
             if (error) throw error;
 
             const rows = stripPrivateProfileFields(await applyRecentContactFlags(Array.isArray(data) ? data : []));
-            totalCount = Number(count || 0);
-            currentOffset = offset;
+            totalCount = capVisibleCount(count);
+            currentOffset = safeOffset;
             lastRowsLength = rows.length;
             renderRows(rows);
             updatePagination();
@@ -1861,20 +1965,21 @@
 
         const fetchProfilesClientFiltered = async (offset = 0, promptOverride = activePrompt, options = {}) => {
             const { scrollToTop = true } = options;
+            const safeOffset = clampVisibleOffset(offset);
             let query = supabaseClient
                 .from(profileSourceName())
                 .select(profileSelectColumns(), { count: 'exact' })
                 .order('created_at', { ascending: false, nullsFirst: false })
                 .order('updated_at', { ascending: false, nullsFirst: false });
 
-            query = applyPromptFilters(query, promptOverride).range(offset, offset + PAGE_SIZE - 1);
+            query = applyPromptFilters(query, promptOverride).range(safeOffset, safeOffset + PAGE_SIZE - 1);
 
             const { data, error, count } = await query;
             if (error) throw error;
 
             const rows = stripPrivateProfileFields(await applyRecentContactFlags(Array.isArray(data) ? data : []));
-            totalCount = Number(count || 0);
-            currentOffset = offset;
+            totalCount = capVisibleCount(count);
+            currentOffset = safeOffset;
             lastRowsLength = rows.length;
             renderRows(rows);
             updatePagination();
@@ -2299,6 +2404,9 @@
             ensurePayPalButtonsRendered();
             window.setTimeout(() => signupModalUsernameInput.focus(), 0);
         });
+        if (signupPromoButton) {
+            signupPromoButton.addEventListener('click', () => topbarSignupButton.click());
+        }
 
         loginModalSubmitButton.addEventListener('click', async () => {
             loginModalSubmitButton.disabled = true;
