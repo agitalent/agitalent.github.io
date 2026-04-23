@@ -633,73 +633,11 @@
                         <div class="control-box">
                             <strong>Search</strong>
                             <div class="field">
-                                <label for="model-select">LLM</label>
-                                <select id="model-select">
-                                    <option value="qwen/qwen-plus" selected>Qwen3.5 / Qwen3.5-Plus</option>
-                                    <option value="openai/gpt-5.4-pro">GPT-5.4 Pro</option>
-                                    <option value="openai/gpt-5.4">GPT-5.4</option>
-                                    <option value="openai/gpt-5.4-mini">GPT-5.4 Mini</option>
-                                    <option value="openai/gpt-5.3-codex">GPT-5.3 Codex / GPT-5.3 (coding-focused)</option>
-                                    <option value="anthropic/claude-opus-4.6">Claude Opus 4.6</option>
-                                    <option value="anthropic/claude-sonnet-4.6">Claude Sonnet 4.6</option>
-                                    <option value="anthropic/claude-opus-4.5">Claude Opus 4.5</option>
-                                    <option value="anthropic/claude-sonnet-4.5">Claude Sonnet 4.5</option>
-                                    <option value="qwen/qwen3.5-max">Qwen3.5-Max</option>
-                                    <option value="qwen/qwen3-max-thinking">Qwen3-Max-Thinking</option>
-                                    <option value="qwen/qwen3-omni">Qwen3-Omni</option>
-                                </select>
-                            </div>
-                            <div class="field">
-                                <label for="custom-model">Custom model id</label>
-                                <input id="custom-model" type="text" value="qwen/qwen-plus" placeholder="provider/model">
-                                <small>Used directly for the LLM request. Change it if your provider expects a different model id.</small>
-                            </div>
-                            <div class="field" id="api-key-field" style="display:none;">
-                                <label for="api-key">LLM API key</label>
-                                <input id="api-key" type="password" value="" autocomplete="off">
-                                <small>This page keeps the key in the browser only.</small>
-                            </div>
-                            <div class="field">
                                 <label for="search-input">Natural language search</label>
                                 <textarea id="search-input" placeholder=""></textarea>
                             </div>
                             <div class="actions">
                                 <button class="button" id="search-button" type="button">Search</button>
-                            </div>
-                        </div>
-                        <div class="control-box">
-                            <strong>User Login</strong>
-                            <div class="admin-grid">
-                                <div class="field">
-                                    <label for="admin-username">Username</label>
-                                    <input id="admin-username" type="text" autocomplete="username" placeholder="owenheisenberg">
-                                </div>
-                                <div class="field">
-                                    <label for="admin-password">Password</label>
-                                    <input id="admin-password" type="password" autocomplete="current-password" placeholder="Password">
-                                </div>
-                            </div>
-                            <div class="actions">
-                                <button class="button-secondary" id="admin-login-button" type="button">Login</button>
-                                <button class="button-secondary" id="admin-logout-button" type="button" disabled>Logout</button>
-                            </div>
-                            <div class="admin-grid" id="admin-reset-password-panel" style="display:none; margin-top:12px;">
-                                <div class="field">
-                                    <label for="admin-reset-current-password">Current Password</label>
-                                    <input id="admin-reset-current-password" type="password" autocomplete="current-password" placeholder="Current password">
-                                </div>
-                                <div class="field">
-                                    <label for="admin-reset-new-password">New Password</label>
-                                    <input id="admin-reset-new-password" type="password" autocomplete="new-password" placeholder="New password">
-                                </div>
-                            </div>
-                            <div class="actions" id="admin-reset-password-actions" style="display:none;">
-                                <button class="button-secondary" id="admin-reset-password-submit" type="button">Confirm Reset</button>
-                                <button class="button-secondary" id="admin-reset-password-cancel" type="button">Cancel</button>
-                            </div>
-                            <div class="admin-status" id="admin-auth-status">Signed out. Login is required to browse candidate records. Admin rights also enable edit, schedule, email, and user management.</div>
-                            <div class="admin-status" id="sales-cta" style="margin-top:12px;">
-                                <a href="https://calendly.com/mctalentmm/30min" target="_blank" rel="noopener noreferrer">Book a meeting with our sales to access top-notched AI candidates</a>
                             </div>
                         </div>
                         <div class="control-box" id="admin-add-user-panel" style="display:none;">
@@ -725,6 +663,30 @@
                             <div class="admin-status" id="admin-add-user-status"></div>
                         </div>
                         <div class="status" id="status">Login is required to browse candidate records.</div>
+                        <div style="display:none;">
+                            <input id="admin-username" type="text" autocomplete="username">
+                            <input id="admin-password" type="password" autocomplete="current-password">
+                            <button id="admin-login-button" type="button">Login</button>
+                            <button id="admin-logout-button" type="button" disabled>Logout</button>
+                            <div class="admin-grid" id="admin-reset-password-panel" style="display:none; margin-top:12px;">
+                                <div class="field">
+                                    <label for="admin-reset-current-password">Current Password</label>
+                                    <input id="admin-reset-current-password" type="password" autocomplete="current-password" placeholder="Current password">
+                                </div>
+                                <div class="field">
+                                    <label for="admin-reset-new-password">New Password</label>
+                                    <input id="admin-reset-new-password" type="password" autocomplete="new-password" placeholder="New password">
+                                </div>
+                            </div>
+                            <div class="actions" id="admin-reset-password-actions" style="display:none;">
+                                <button id="admin-reset-password-submit" type="button">Confirm Reset</button>
+                                <button id="admin-reset-password-cancel" type="button">Cancel</button>
+                            </div>
+                            <div class="admin-status" id="admin-auth-status">Signed out. Login is required to browse candidate records. Admin rights also enable edit, schedule, email, and user management.</div>
+                            <div class="admin-status" id="sales-cta" style="margin-top:12px;">
+                                <a href="https://calendly.com/mctalentmm/30min" target="_blank" rel="noopener noreferrer">Book a meeting with our sales to access top-notched AI candidates</a>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
@@ -813,12 +775,8 @@
         const PAGE_SIZE = 20;
 
         const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
-        const modelSelect = document.getElementById('model-select');
-        const customModelInput = document.getElementById('custom-model');
-        const apiKeyInput = document.getElementById('api-key');
         const searchInput = document.getElementById('search-input');
         const searchButton = document.getElementById('search-button');
-        const apiKeyField = document.getElementById('api-key-field');
         const topbarAuthActionsEl = document.getElementById('topbar-auth-actions');
         const topbarUserEl = document.getElementById('topbar-user');
         const topbarUsernameEl = document.getElementById('topbar-username');
@@ -932,37 +890,6 @@
             contact: ''
         };
         const ADMIN_SESSION_KEY = 'talentsAdminSession';
-
-        const MODEL_LABELS = {
-            'qwen/qwen-plus': 'Qwen3.5 / Qwen3.5-Plus',
-            'openai/gpt-5.4-pro': 'GPT-5.4 Pro',
-            'openai/gpt-5.4': 'GPT-5.4',
-            'openai/gpt-5.4-mini': 'GPT-5.4 Mini',
-            'openai/gpt-5.3-codex': 'GPT-5.3 Codex / GPT-5.3 (coding-focused)',
-            'anthropic/claude-opus-4.6': 'Claude Opus 4.6',
-            'anthropic/claude-sonnet-4.6': 'Claude Sonnet 4.6',
-            'anthropic/claude-opus-4.5': 'Claude Opus 4.5',
-            'anthropic/claude-sonnet-4.5': 'Claude Sonnet 4.5',
-            'qwen/qwen3.5-max': 'Qwen3.5-Max',
-            'qwen/qwen3-max-thinking': 'Qwen3-Max-Thinking',
-            'qwen/qwen3-omni': 'Qwen3-Omni'
-        };
-
-        modelSelect.addEventListener('change', () => {
-            customModelInput.value = modelSelect.value;
-            syncApiKeyVisibility();
-        });
-
-        const syncApiKeyVisibility = () => {
-            const model = customModelInput.value.trim() || modelSelect.value;
-            const isDefaultQwen = model === 'qwen/qwen-plus';
-            apiKeyField.style.display = isDefaultQwen ? 'none' : '';
-            if (isDefaultQwen) {
-                apiKeyInput.value = '';
-            }
-        };
-
-        customModelInput.addEventListener('input', syncApiKeyVisibility);
 
         const setStatus = (message, isError = false) => {
             statusEl.textContent = message;
@@ -2721,7 +2648,6 @@
         });
 
         (async () => {
-            syncApiKeyVisibility();
             try {
                 await restoreAdminSession();
                 updateAdminUi();
