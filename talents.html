@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Talent Search | AGI Talent</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://www.paypal.com/sdk/js?client-id=Ac3lknyLJQUooRk1gO7pZ0o-HExE_0iRzaaJXo_sX4BXEOoxa1E1h_Pkhn3eC3AA0i7Qt_qSj16dllUJ&currency=USD&intent=capture"></script>
     <style>
         @font-face {
             font-family: 'Untitled Sans';
@@ -489,6 +490,42 @@
         .modal-status.error {
             color: var(--danger);
         }
+        .purchase-box {
+            margin-top: 16px;
+            padding: 16px;
+            border-radius: 18px;
+            border: 1px solid rgba(127, 255, 212, 0.14);
+            background: rgba(255, 255, 255, 0.03);
+        }
+        .purchase-box strong {
+            display: block;
+            font-size: 1rem;
+            margin-bottom: 6px;
+        }
+        .purchase-price {
+            color: var(--accent-2);
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+        }
+        .purchase-code {
+            margin-top: 12px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px dashed rgba(127, 255, 212, 0.2);
+            background: rgba(71, 229, 165, 0.05);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .purchase-code strong {
+            margin-bottom: 4px;
+        }
+        .modal-link {
+            color: var(--accent-2);
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
         .default-toggle {
             display: inline-flex;
             align-items: center;
@@ -741,9 +778,16 @@
             <div class="modal-head">
                 <div>
                     <h3 id="signup-modal-title">Sign Up</h3>
-                    <p class="modal-copy">Create a user account with a valid invitation code from an admin.</p>
+                    <p class="modal-copy">Create a user account with a valid invitation code from <a class="modal-link" href="#signup-paypal-section">here</a>.</p>
                 </div>
                 <button class="modal-close" type="button" data-close-modal="signup-modal" aria-label="Close sign up window">✕</button>
+            </div>
+            <div class="purchase-box" id="signup-paypal-section">
+                <strong>Buy an invitation code</strong>
+                <div class="purchase-price">USD 50</div>
+                <p class="modal-copy" style="margin-top:8px;">Complete the PayPal payment below. After payment, this window will reveal one fresh invitation code from Supabase and fill it into the form for you.</p>
+                <div id="paypal-button-container" style="margin-top:14px;"></div>
+                <div class="purchase-code" id="signup-issued-code" style="display:none;"></div>
             </div>
             <div class="stack" style="margin-top:0;">
                 <div class="field">
@@ -824,6 +868,7 @@
         const signupModalCodeInput = document.getElementById('signup-modal-code');
         const signupModalSubmitButton = document.getElementById('signup-modal-submit');
         const signupModalStatusEl = document.getElementById('signup-modal-status');
+        const signupIssuedCodeEl = document.getElementById('signup-issued-code');
         const resultsMetaEl = document.getElementById('results-meta');
         const resultsEl = document.getElementById('results');
         const HIDDEN_PROFILE_FIELDS = new Set([
@@ -884,6 +929,7 @@
         let selectedScheduleProfileIds = [];
         let resetPasswordOpen = false;
         let adminTargetUser = null;
+        let paypalButtonsRendered = false;
         let outreachDefaults = {
             company: '',
             role: '',
@@ -1040,6 +1086,61 @@
             .toUpperCase()
             .replace(/\s+/g, '')
             .replace(/[^A-Z0-9-]/g, '');
+
+        const renderIssuedInvitationCode = (payload) => {
+            const code = String(payload?.code || '').trim();
+            if (!code) return;
+            signupModalCodeInput.value = code;
+            signupIssuedCodeEl.style.display = '';
+            signupIssuedCodeEl.innerHTML = `
+                <strong>Your invitation code</strong>
+                <div>${escapeHtml(code)}</div>
+                <div>Valid through ${escapeHtml(String(payload?.expires_on || ''))}</div>
+            `;
+        };
+
+        const ensurePayPalButtonsRendered = () => {
+            if (paypalButtonsRendered || !window.paypal) return;
+            const container = document.getElementById('paypal-button-container');
+            if (!container) return;
+            window.paypal.Buttons({
+                style: {
+                    layout: 'vertical',
+                    shape: 'pill',
+                    color: 'gold',
+                    label: 'paypal'
+                },
+                createOrder(_data, actions) {
+                    return actions.order.create({
+                        purchase_units: [{
+                            amount: {
+                                currency_code: 'USD',
+                                value: '50.00'
+                            },
+                            description: 'AGI Talent invitation code'
+                        }]
+                    });
+                },
+                async onApprove(_data, actions) {
+                    setModalStatus(signupModalStatusEl, 'Payment approved. Issuing invitation code...');
+                    const order = await actions.order.capture();
+                    const orderId = String(order?.id || '').trim();
+                    if (!orderId) {
+                        throw new Error('PayPal order id was missing.');
+                    }
+                    const { data, error } = await supabaseClient.rpc('issue_paid_app_user_invitation_code', {
+                        p_paypal_order_id: orderId
+                    });
+                    if (error) throw error;
+                    renderIssuedInvitationCode(data);
+                    setModalStatus(signupModalStatusEl, 'Payment complete. Your invitation code is ready.');
+                },
+                onError(error) {
+                    setModalStatus(signupModalStatusEl, error?.message || 'PayPal payment failed.', true);
+                }
+            }).render(container);
+            paypalButtonsRendered = true;
+        };
 
         const updateResetPasswordUi = () => {
             const visible = resetPasswordOpen;
@@ -2149,7 +2250,10 @@
             signupModalUsernameInput.value = '';
             signupModalPasswordInput.value = '';
             signupModalCodeInput.value = '';
+            signupIssuedCodeEl.style.display = 'none';
+            signupIssuedCodeEl.innerHTML = '';
             openModal(signupModalEl);
+            ensurePayPalButtonsRendered();
             window.setTimeout(() => signupModalUsernameInput.focus(), 0);
         });
 
