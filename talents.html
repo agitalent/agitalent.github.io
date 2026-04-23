@@ -265,6 +265,17 @@
             color: #062018;
             background: linear-gradient(180deg, #7fffd4, #47e5a5);
         }
+        .button-icon {
+            width: 52px;
+            height: 52px;
+            padding: 0;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.35rem;
+            line-height: 1;
+        }
         .button-secondary {
             border: 1px solid rgba(71, 229, 165, 0.22);
             color: var(--text);
@@ -665,16 +676,14 @@
             <div class="layout">
                 <section class="panel">
                     <h2>Workspace</h2>
-                    <div class="copy">Search candidates, sign in, and manage user access from the same control rail.</div>
                     <div class="stack">
                         <div class="control-box">
                             <strong>Search</strong>
                             <div class="field">
-                                <label for="search-input">Natural language search</label>
                                 <textarea id="search-input" placeholder=""></textarea>
                             </div>
                             <div class="actions">
-                                <button class="button" id="search-button" type="button">Search</button>
+                                <button class="button button-icon" id="search-button" type="button" aria-label="Search">↑</button>
                             </div>
                         </div>
                         <div class="control-box" id="admin-add-user-panel" style="display:none;">
@@ -785,7 +794,7 @@
             <div class="purchase-box" id="signup-paypal-section">
                 <strong>Buy an invitation code</strong>
                 <div class="purchase-price">USD 50</div>
-                <p class="modal-copy" style="margin-top:8px;">Complete the PayPal payment below. After payment, this window will reveal one fresh invitation code from Supabase and fill it into the form for you.</p>
+                <p class="modal-copy" style="margin-top:8px;">Complete the PayPal payment below. After payment, you will get a invitation code.</p>
                 <div id="paypal-button-container" style="margin-top:14px;"></div>
                 <div class="purchase-code" id="signup-issued-code" style="display:none;"></div>
             </div>
