@@ -276,6 +276,9 @@
             font-size: 1.35rem;
             line-height: 1;
         }
+        .actions.center {
+            justify-content: center;
+        }
         .button-secondary {
             border: 1px solid rgba(71, 229, 165, 0.22);
             color: var(--text);
@@ -682,8 +685,8 @@
                             <div class="field">
                                 <textarea id="search-input" placeholder=""></textarea>
                             </div>
-                            <div class="actions">
-                                <button class="button button-icon" id="search-button" type="button" aria-label="Search">↑</button>
+                            <div class="actions center">
+                                <button class="button button-icon" id="search-button" type="button" aria-label="Search">→</button>
                             </div>
                         </div>
                         <div class="control-box" id="admin-add-user-panel" style="display:none;">
@@ -919,6 +922,8 @@
         };
         const REQUIRED_FIELDS = new Set(['agent_type', 'name_or_handle', 'status']);
         const PUBLIC_PROFILE_SELECT = 'id, agent_type, name_or_handle, location, domain_focus, seniority, skills, needs, recent_evidence, status, created_at, updated_at';
+        const SIGNED_OUT_PROFILE_SELECT = 'id, name_or_handle, seniority, created_at, updated_at';
+        const SIGNED_OUT_VISIBLE_PROFILE_FIELDS = new Set(['seniority']);
 
         let activePrompt = '';
         let currentOffset = 0;
@@ -1009,7 +1014,11 @@
             role: String(outreachDefaults.role || '').trim(),
             contact: String(outreachDefaults.contact || '').trim()
         });
-        const profileSelectColumns = () => isAdminLoggedIn() ? '*' : PUBLIC_PROFILE_SELECT;
+        const profileSelectColumns = () => (
+            isAdminLoggedIn()
+                ? '*'
+                : (isLoggedIn() ? PUBLIC_PROFILE_SELECT : SIGNED_OUT_PROFILE_SELECT)
+        );
         const searchableProfileFields = () => (
             isAdminLoggedIn()
                 ? ['name_or_handle', 'email', 'bio_link', 'location', 'domain_focus', 'seniority']
@@ -1044,6 +1053,15 @@
         };
         const stripPrivateProfileFields = (rows) => {
             if (isAdminLoggedIn()) return rows;
+            if (!isLoggedIn()) {
+                return rows.map((row) => ({
+                    id: row.id,
+                    name_or_handle: row.name_or_handle,
+                    seniority: row.seniority,
+                    created_at: row.created_at,
+                    updated_at: row.updated_at
+                }));
+            }
             return rows.map(({ email, bio_link, ...rest }) => rest);
         };
         const collectNamedFields = (form) => {
@@ -1208,8 +1226,8 @@
             schedulingProfileId = null;
             emailingProfileId = null;
             selectedScheduleProfileIds = [];
-            resultsMetaEl.textContent = 'Login required to view candidate records.';
-            resultsEl.innerHTML = '<div class="empty">Log in to browse candidate records.</div>';
+            resultsMetaEl.textContent = 'Loading public candidate records...';
+            resultsEl.innerHTML = '<div class="empty">Loading public candidate records...</div>';
             resetDashboardCharts();
             updatePagination();
         };
@@ -1471,6 +1489,7 @@
         };
 
         const badgeForProfile = (profile) => {
+            if (!isLoggedIn()) return '';
             return displayAgentType(profile.agent_type) || profile.domain_focus || 'profile';
         };
 
@@ -1697,6 +1716,7 @@
                     actionsHtml = editor.actionsHtml;
                 } else {
                     bodyHtml = Object.keys(profile)
+                        .filter((key) => isLoggedIn() || SIGNED_OUT_VISIBLE_PROFILE_FIELDS.has(key))
                         .filter((key) => !HIDDEN_PROFILE_FIELDS.has(key))
                         .map((key) => {
                             const renderedValue = renderValueHtml(key, profile[key]);
@@ -1729,7 +1749,7 @@
                                 <h3 class="card-title">${escapeHtml(titleForProfile(profile))}</h3>
                                 ${profile.Recently_Contacted ? '<div class="pill">Alert: Recently_Contacted</div>' : ''}
                             </div>
-                            <div class="pill">${escapeHtml(badgeForProfile(profile))}</div>
+                            ${badgeForProfile(profile) ? `<div class="pill">${escapeHtml(badgeForProfile(profile))}</div>` : ''}
                         </div>
                         <div class="${isEditing ? 'editor-shell' : 'field-grid'}">${bodyHtml}</div>
                         ${actionsHtml}
@@ -1848,10 +1868,6 @@
         const fetchProfiles = async (offset = 0, options = {}) => {
             if (!supabaseClient) {
                 throw new Error('Supabase client failed to initialize.');
-            }
-            if (!isLoggedIn()) {
-                clearResultsForSignedOutState();
-                throw new Error('Login is required to browse candidate records.');
             }
             if (searchMode === 'prompt') {
                 await fetchProfilesClientFiltered(offset, activePrompt, options);
@@ -2770,7 +2786,8 @@
                     await runSearch(false);
                 } else {
                     clearResultsForSignedOutState();
-                    setStatus('Login is required to browse candidate records.');
+                    await runSearch(false);
+                    setStatus('Showing public candidate records. Log in for full details.');
                 }
             } catch (error) {
                 setStatus(error.message || 'Initial load failed.', true);
