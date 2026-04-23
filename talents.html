@@ -147,12 +147,6 @@
             gap: 18px;
             width: 100%;
         }
-        .dashboard-grid.user-mode {
-            grid-template-columns: 1fr;
-        }
-        .dashboard-grid.user-mode #dashboard-primary-card {
-            display: none;
-        }
         .dashboard-card {
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 18px;
@@ -1139,7 +1133,7 @@
                 renderDashboardChart(dashboardSentSchedulesChartEl, data?.sent_schedules_last_7d || []);
                 return;
             }
-            renderDashboardChart(dashboardNewRecordsChartEl, []);
+            renderDashboardChart(dashboardNewRecordsChartEl, data?.new_records_last_7d || []);
             renderDashboardChart(dashboardSentSchedulesChartEl, data?.email_outreach_last_7d || []);
         };
 
