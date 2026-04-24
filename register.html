@@ -61,6 +61,40 @@
             border-radius: 999px;
             background: rgba(71, 229, 165, 0.06);
         }
+        [data-icon]::before {
+            content: attr(data-icon);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.45em;
+            height: 1.45em;
+            margin-right: 0.55em;
+            border-radius: 999px;
+            border: 1px solid rgba(71, 229, 165, 0.18);
+            background: rgba(71, 229, 165, 0.08);
+            color: #7fffd4;
+            font-size: 0.84em;
+            line-height: 1;
+            vertical-align: middle;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+        .button[data-icon]::before,
+        .link[data-icon]::before {
+            width: 1.35em;
+            height: 1.35em;
+            margin-right: 0.5em;
+        }
+        .button[data-icon]::before {
+            color: #062018;
+            border-color: rgba(6, 32, 24, 0.18);
+            background: rgba(255, 255, 255, 0.24);
+        }
+        label[data-icon]::before {
+            width: 1.2em;
+            height: 1.2em;
+            margin-right: 0.45em;
+            font-size: 0.78em;
+        }
         .panel {
             border: 1px solid var(--line);
             border-radius: 28px;
@@ -194,12 +228,12 @@
 <body>
     <div class="container">
         <div class="topbar">
-            <a class="link" href="irecruiter-skill.md" target="_blank" rel="noopener noreferrer">Skill Markdown</a>
+            <a class="link" data-icon="⌘" href="irecruiter-skill.md" target="_blank" rel="noopener noreferrer">Skill Markdown</a>
         </div>
 
         <div class="panel">
             <div class="hero">
-                <h1>Register a profile or post a job.</h1>
+                <h1 data-icon="✦">Register a profile or post a job.</h1>
                 <p>Use this intake page to write a candidate profile or a hiring need into the shared hub, then immediately run a first-pass match.</p>
             </div>
             <div class="grid">
@@ -207,121 +241,121 @@
                     <form id="irecruiter-register-form">
                         <div class="form-grid">
                             <div class="field">
-                                <label for="record-kind">Record type</label>
+                                <label data-icon="▣" for="record-kind">Record type</label>
                                 <select id="record-kind" name="record-kind">
                                     <option value="profile" selected>Register profile</option>
                                     <option value="need">Post job</option>
                                 </select>
                             </div>
                             <div class="field">
-                                <label for="display-name">Contact name</label>
+                                <label data-icon="◎" for="display-name">Contact name</label>
                                 <input id="display-name" name="display-name" type="text" placeholder="Recruiter or candidate name" required>
                             </div>
                             <div class="field profile-only" style="display:none;">
-                                <label for="email">Email</label>
+                                <label data-icon="✉" for="email">Email</label>
                                 <input id="email" name="email" type="email" placeholder="name@example.com">
                             </div>
                             <div class="field profile-only full" style="display:none;">
-                                <label for="profile-source-text">Paste profile text</label>
+                                <label data-icon="⌕" for="profile-source-text">Paste profile text</label>
                                 <textarea id="profile-source-text" name="profile-source-text" placeholder="Paste a profile bio, resume summary, homepage intro, or raw text here and the form will fill name, email, location, and brief_background automatically."></textarea>
                                 <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:10px;">
-                                    <button class="button secondary" id="profile-parse-button" type="button">Parse</button>
+                                    <button class="button secondary" data-icon="↗" id="profile-parse-button" type="button">Parse</button>
                                     <div class="field-note" id="profile-parse-status">Click Parse to extract profile fields.</div>
                                 </div>
                             </div>
                             <div class="field profile-only" style="display:none;">
-                                <label for="bio-link">Bio link</label>
+                                <label data-icon="⌁" for="bio-link">Bio link</label>
                                 <input id="bio-link" name="bio-link" type="url" placeholder="https://linkedin.com/in/...">
                             </div>
                             <div class="field need-only">
-                                <label for="need-email">Email</label>
+                                <label data-icon="✉" for="need-email">Email</label>
                                 <input id="need-email" name="need-email" type="email" placeholder="hiring@company.com">
                             </div>
                             <div class="field need-only">
-                                <label for="company-name">Company name</label>
+                                <label data-icon="▤" for="company-name">Company name</label>
                                 <input id="company-name" name="company-name" type="text" placeholder="Agitalent or client company">
                             </div>
                             <div class="field need-only">
-                                <label for="role-title">Role title</label>
+                                <label data-icon="◔" for="role-title">Role title</label>
                                 <input id="role-title" name="role-title" type="text" placeholder="Research Engineer - LLM Systems">
                             </div>
                             <div class="field need-only full">
-                                <label for="post-link">Post link</label>
+                                <label data-icon="⌁" for="post-link">Post link</label>
                                 <input id="post-link" name="post-link" type="url" placeholder="https://www.agitalent.tech">
                             </div>
                             <div class="field">
-                                <label for="location">Location</label>
+                                <label data-icon="◍" for="location">Location</label>
                                 <input id="location" name="location" type="text" placeholder="San Francisco / Remote">
                             </div>
                             <div class="field hidden-profile-field" style="display:none;">
-                                <label for="timezone">Timezone</label>
+                                <label data-icon="◷" for="timezone">Timezone</label>
                                 <input id="timezone" name="timezone" type="text" placeholder="Asia/Shanghai">
                             </div>
                             <div class="field need-only">
-                                <label for="team">Team</label>
+                                <label data-icon="◫" for="team">Team</label>
                                 <input id="team" name="team" type="text" placeholder="Foundation Models">
                             </div>
                             <div class="field hidden-profile-field full" style="display:none;">
-                                <label for="domain-focus">Domain focus</label>
+                                <label data-icon="◇" for="domain-focus">Domain focus</label>
                                 <input id="domain-focus" name="domain-focus" type="text" placeholder="LLM systems, multimodal, infra">
                             </div>
                             <div class="field profile-only" style="display:none;">
-                                <label for="seniority">brief_background</label>
+                                <label data-icon="≡" for="seniority">brief_background</label>
                                 <textarea id="seniority" name="seniority" placeholder="Senior Research Engineer&#10;&#10;Built large-scale inference systems for multimodal models."></textarea>
                             </div>
                             <div class="field hidden-profile-field" style="display:none;">
-                                <label for="availability">Availability</label>
+                                <label data-icon="◔" for="availability">Availability</label>
                                 <input id="availability" name="availability" type="text" placeholder="active">
                             </div>
                             <div class="field hidden-profile-field full" style="display:none;">
-                                <label for="skills">Skills</label>
+                                <label data-icon="✳" for="skills">Skills</label>
                                 <textarea id="skills" name="skills" placeholder="PyTorch, distributed systems, CUDA, inference"></textarea>
                             </div>
                             <div class="field hidden-profile-field full" style="display:none;">
-                                <label for="recent-evidence">Recent evidence</label>
+                                <label data-icon="◷" for="recent-evidence">Recent evidence</label>
                                 <textarea id="recent-evidence" name="recent-evidence" placeholder="Latest paper, shipped infra project, benchmark result"></textarea>
                             </div>
                             <div class="field profile-only full" style="display:none;">
-                                <label for="delivery-route-profile">Delivery route</label>
+                                <label data-icon="↗" for="delivery-route-profile">Delivery route</label>
                                 <input id="delivery-route-profile" name="delivery-route-profile" type="text" placeholder="hub_notification">
                             </div>
                             <div class="field need-only full">
-                                <label for="must-haves">Must-have keywords</label>
+                                <label data-icon="✓" for="must-haves">Must-have keywords</label>
                                 <textarea id="must-haves" name="must-haves" placeholder="PyTorch, LLM systems, distributed training, evaluation"></textarea>
                             </div>
                             <div class="field need-only full">
-                                <label for="nice-to-haves">Nice-to-have keywords</label>
+                                <label data-icon="＋" for="nice-to-haves">Nice-to-have keywords</label>
                                 <textarea id="nice-to-haves" name="nice-to-haves" placeholder="agents, multimodal, optimization"></textarea>
                             </div>
                             <div class="field need-only">
-                                <label for="compensation">Compensation</label>
+                                <label data-icon="$" for="compensation">Compensation</label>
                                 <input id="compensation" name="compensation" type="text" placeholder="$220k-$320k">
                             </div>
                             <div class="field need-only">
-                                <label for="delivery-route-need">Delivery route</label>
+                                <label data-icon="↗" for="delivery-route-need">Delivery route</label>
                                 <input id="delivery-route-need" name="delivery-route-need" type="text" placeholder="hub_notification">
                             </div>
                             <div class="field need-only full">
-                                <label for="hiring-constraints">Hiring constraints</label>
+                                <label data-icon="⊕" for="hiring-constraints">Hiring constraints</label>
                                 <textarea id="hiring-constraints" name="hiring-constraints" placeholder="PhD preferred, Stanford, Berkeley, systems experience"></textarea>
                                 <div class="field-note">Used to filter and score matching profiles after the job is posted.</div>
                             </div>
                         </div>
                         <div class="actions">
-                            <button class="button" id="submit-button" type="submit">Post job and search profiles</button>
+                            <button class="button" data-icon="↗" id="submit-button" type="submit">Post job and search profiles</button>
                             <div class="copy">This page writes to the shared hub and returns a first-pass match immediately.</div>
                         </div>
                         <div class="status" id="hub-status">Intake ready.</div>
                     </form>
                 </section>
                 <aside class="section">
-                    <h2 style="margin-top:0;">Top result</h2>
+                    <h2 data-icon="✦" style="margin-top:0;">Top result</h2>
                     <p class="copy">The best available match appears here right after submission.</p>
                     <div class="results" id="hub-results">
                         <div class="card"><div class="copy">No strong matches yet.</div></div>
                     </div>
                     <div class="skill-reminder" id="skill-reminder">
-                        <strong>Want the agent to keep finding more matches?</strong>
+                        <strong data-icon="⌘">Want the agent to keep finding more matches?</strong>
                         <div class="copy">Install the iRecruiter skill so your agent can autonomously keep searching for stronger fits after this first-pass result: <code>npx -y clawhub install jobs</code></div>
                     </div>
                 </aside>

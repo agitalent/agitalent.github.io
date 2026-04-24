@@ -96,6 +96,46 @@
             background: linear-gradient(180deg, var(--accent-2), var(--accent));
             box-shadow: 0 0 24px rgba(71, 229, 165, 0.45);
         }
+        [data-icon]::before {
+            content: attr(data-icon);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.45em;
+            height: 1.45em;
+            margin-right: 0.55em;
+            border-radius: 999px;
+            border: 1px solid rgba(71, 229, 165, 0.18);
+            background: rgba(71, 229, 165, 0.08);
+            color: var(--accent-2);
+            font-size: 0.84em;
+            line-height: 1;
+            vertical-align: middle;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+        .button[data-icon]::before,
+        .button-secondary[data-icon]::before,
+        button[data-icon]::before,
+        .link[data-icon]::before {
+            width: 1.35em;
+            height: 1.35em;
+            margin-right: 0.5em;
+        }
+        .button[data-icon]::before {
+            color: #062018;
+            border-color: rgba(6, 32, 24, 0.18);
+            background: rgba(255, 255, 255, 0.24);
+        }
+        label[data-icon]::before {
+            width: 1.2em;
+            height: 1.2em;
+            margin-right: 0.45em;
+            font-size: 0.78em;
+        }
+        .eyebrow[data-icon]::before {
+            width: 1.3em;
+            height: 1.3em;
+        }
         .link {
             border: 1px solid rgba(71, 229, 165, 0.18);
             padding: 10px 14px;
@@ -722,39 +762,39 @@
                 <span>AGI Talent</span>
             </a>
             <div class="topbar-actions" id="topbar-auth-actions">
-                <button class="button-secondary" id="topbar-login-button" type="button">Log in</button>
-                <button class="button" id="topbar-signup-button" type="button">Sign Up</button>
+                <button class="button-secondary" data-icon="◌" id="topbar-login-button" type="button">Log in</button>
+                <button class="button" data-icon="✦" id="topbar-signup-button" type="button">Sign Up</button>
             </div>
             <div class="topbar-user" id="topbar-user" style="display:none;">
                 <div class="user-chip" id="topbar-username">username</div>
-                <button class="button-secondary" id="topbar-logout-button" type="button">Logout</button>
+                <button class="button-secondary" data-icon="⇠" id="topbar-logout-button" type="button">Logout</button>
             </div>
         </div>
 
         <section class="hero">
             <div class="hero-head" id="dashboard-section">
-                <div class="eyebrow">Dashboard</div>
+                <div class="eyebrow" data-icon="◔">Dashboard</div>
                 <div class="dashboard-grid" id="dashboard-grid">
                     <div class="dashboard-card" id="dashboard-primary-card">
-                        <h3 id="dashboard-primary-title">New records, last 7 days</h3>
+                        <h3 data-icon="▣" id="dashboard-primary-title">New records, last 7 days</h3>
                         <div class="bar-chart empty" id="dashboard-new-records-chart">-</div>
                     </div>
                     <div class="dashboard-card" id="dashboard-secondary-card">
-                        <h3 id="dashboard-secondary-title">New users, last 7 days</h3>
+                        <h3 data-icon="◎" id="dashboard-secondary-title">New users, last 7 days</h3>
                         <div class="bar-chart empty" id="dashboard-new-users-chart">-</div>
                     </div>
                     <div class="dashboard-card" id="dashboard-tertiary-card">
-                        <h3 id="dashboard-tertiary-title">New schedules, last 7 days</h3>
+                        <h3 data-icon="↗" id="dashboard-tertiary-title">New schedules, last 7 days</h3>
                         <div class="bar-chart empty" id="dashboard-sent-schedules-chart">-</div>
                     </div>
                 </div>
             </div>
             <div class="signup-promo" id="signup-promo">
                 <div class="signup-promo-copy">
-                    <strong>Sign up to enjoy more smooth and automatic candidate outreach.</strong>
+                    <strong data-icon="✦">Sign up to enjoy more smooth and automatic candidate outreach.</strong>
                     <p>Unlock richer profile details, smoother outreach actions, and a faster candidate workflow that stays aligned with the page style.</p>
                     <div class="actions" style="margin-top:0;">
-                        <button class="button-secondary" id="signup-promo-button" type="button">Sign Up To Unlock More</button>
+                        <button class="button-secondary" data-icon="✦" id="signup-promo-button" type="button">Sign Up To Unlock More</button>
                     </div>
                 </div>
                 <div class="signup-promo-visual" aria-hidden="true">
@@ -793,34 +833,34 @@
             </div>
             <div class="layout">
                 <section class="panel">
-                    <h2>Workspace</h2>
+                    <h2 data-icon="⌕">Workspace</h2>
                     <div class="stack">
                         <div class="control-box">
-                            <strong>Search</strong>
+                            <strong data-icon="◍">Search</strong>
                             <div class="field search-composer">
                                 <textarea id="search-input" placeholder=""></textarea>
                                 <button class="button button-icon" id="search-button" type="button" aria-label="Search">→</button>
                             </div>
                         </div>
                         <div class="control-box" id="admin-add-user-panel" style="display:none;">
-                            <strong>User Operation</strong>
+                            <strong data-icon="◎">User Operation</strong>
                             <div class="admin-grid" style="grid-template-columns: 1fr;">
                                 <div class="field">
-                                    <label for="admin-add-user-username">Username</label>
+                                    <label data-icon="◎" for="admin-add-user-username">Username</label>
                                     <input id="admin-add-user-username" type="text" autocomplete="off" placeholder="new_username">
                                 </div>
                             </div>
                             <div class="user-actions">
-                                <button class="button-secondary" id="admin-add-user-button" type="button">Create User</button>
-                                <button class="button-secondary button-danger" id="admin-delete-user-button" type="button">Delete User</button>
+                                <button class="button-secondary" data-icon="＋" id="admin-add-user-button" type="button">Create User</button>
+                                <button class="button-secondary button-danger" data-icon="−" id="admin-delete-user-button" type="button">Delete User</button>
                             </div>
                             <div class="field" style="margin-top:14px;">
-                                <label for="admin-invite-code-output">Invitation Code</label>
+                                <label data-icon="◇" for="admin-invite-code-output">Invitation Code</label>
                                 <input id="admin-invite-code-output" type="text" readonly placeholder="Generate a code for self-service sign up">
                                 <small>Share this code with a user so they can register from the Sign Up dialog.</small>
                             </div>
                             <div class="user-actions">
-                                <button class="button-secondary" id="admin-generate-invite-button" type="button">Generate Invitation Code</button>
+                                <button class="button-secondary" data-icon="◇" id="admin-generate-invite-button" type="button">Generate Invitation Code</button>
                             </div>
                             <div class="admin-status" id="admin-add-user-status"></div>
                         </div>
@@ -828,21 +868,21 @@
                         <div style="display:none;">
                             <input id="admin-username" type="text" autocomplete="username">
                             <input id="admin-password" type="password" autocomplete="current-password">
-                            <button id="admin-login-button" type="button">Login</button>
-                            <button id="admin-logout-button" type="button" disabled>Logout</button>
+                            <button data-icon="◌" id="admin-login-button" type="button">Login</button>
+                            <button data-icon="⇠" id="admin-logout-button" type="button" disabled>Logout</button>
                             <div class="admin-grid" id="admin-reset-password-panel" style="display:none; margin-top:12px;">
                                 <div class="field">
-                                    <label for="admin-reset-current-password">Current Password</label>
+                                    <label data-icon="◌" for="admin-reset-current-password">Current Password</label>
                                     <input id="admin-reset-current-password" type="password" autocomplete="current-password" placeholder="Current password">
                                 </div>
                                 <div class="field">
-                                    <label for="admin-reset-new-password">New Password</label>
+                                    <label data-icon="◌" for="admin-reset-new-password">New Password</label>
                                     <input id="admin-reset-new-password" type="password" autocomplete="new-password" placeholder="New password">
                                 </div>
                             </div>
                             <div class="actions" id="admin-reset-password-actions" style="display:none;">
-                                <button id="admin-reset-password-submit" type="button">Confirm Reset</button>
-                                <button id="admin-reset-password-cancel" type="button">Cancel</button>
+                                <button data-icon="✓" id="admin-reset-password-submit" type="button">Confirm Reset</button>
+                                <button data-icon="×" id="admin-reset-password-cancel" type="button">Cancel</button>
                             </div>
                             <div class="admin-status" id="admin-auth-status">Signed out. Login is required to browse candidate records. Admin rights also enable edit, schedule, email, and user management.</div>
                             <div class="admin-status" id="sales-cta" style="margin-top:12px;">
@@ -855,17 +895,17 @@
                 <section class="panel">
                     <div class="results-head">
                         <div>
-                            <h2>Profiles</h2>
+                            <h2 data-icon="▤">Profiles</h2>
                             <div class="results-meta" id="results-meta">Waiting for data...</div>
                         </div>
                     </div>
                     <div class="results" id="results"></div>
                     <div class="pagination">
-                        <button class="button-secondary" id="prev-button" type="button">Previous</button>
-                        <label class="copy" for="page-input">Page</label>
+                        <button class="button-secondary" data-icon="←" id="prev-button" type="button">Previous</button>
+                        <label class="copy" data-icon="◫" for="page-input">Page</label>
                         <input id="page-input" type="number" min="1" value="1" style="width:88px;border:1px solid rgba(255,255,255,0.08);border-radius:12px;background:rgba(255,255,255,0.04);color:var(--text);padding:10px 12px;font:inherit;">
-                        <button class="button-secondary" id="page-go-button" type="button">Go</button>
-                        <button class="button-secondary" id="next-button" type="button">Next</button>
+                        <button class="button-secondary" data-icon="→" id="page-go-button" type="button">Go</button>
+                        <button class="button-secondary" data-icon="→" id="next-button" type="button">Next</button>
                     </div>
                 </section>
             </div>
@@ -876,23 +916,23 @@
         <div class="modal" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
             <div class="modal-head">
                 <div>
-                    <h3 id="login-modal-title">Log in</h3>
+                    <h3 data-icon="◌" id="login-modal-title">Log in</h3>
                     <p class="modal-copy">Sign in to browse candidate records and use your current account permissions.</p>
                 </div>
                 <button class="modal-close" type="button" data-close-modal="login-modal" aria-label="Close log in window">✕</button>
             </div>
             <div class="stack" style="margin-top:0;">
                 <div class="field">
-                    <label for="login-modal-username">Username</label>
+                    <label data-icon="◎" for="login-modal-username">Username</label>
                     <input id="login-modal-username" type="text" autocomplete="username" placeholder="Username">
                 </div>
                 <div class="field">
-                    <label for="login-modal-password">Password</label>
+                    <label data-icon="◌" for="login-modal-password">Password</label>
                     <input id="login-modal-password" type="password" autocomplete="current-password" placeholder="Password">
                 </div>
             </div>
             <div class="actions">
-                <button class="button" id="login-modal-submit" type="button">Log in</button>
+                <button class="button" data-icon="◌" id="login-modal-submit" type="button">Log in</button>
             </div>
             <div class="modal-status" id="login-modal-status"></div>
         </div>
@@ -902,13 +942,13 @@
         <div class="modal" role="dialog" aria-modal="true" aria-labelledby="signup-modal-title">
             <div class="modal-head">
                 <div>
-                    <h3 id="signup-modal-title">Sign Up</h3>
+                    <h3 data-icon="✦" id="signup-modal-title">Sign Up</h3>
                     <p class="modal-copy">Create a user account with a valid invitation code from <a class="modal-link" href="#signup-paypal-section">here</a>.</p>
                 </div>
                 <button class="modal-close" type="button" data-close-modal="signup-modal" aria-label="Close sign up window">✕</button>
             </div>
             <div class="purchase-box" id="signup-paypal-section">
-                <strong>Buy an invitation code</strong>
+                <strong data-icon="◇">Buy an invitation code</strong>
                 <div class="purchase-price">USD 50</div>
                 <p class="modal-copy" style="margin-top:8px;">Complete the PayPal payment below. After payment, you will get a invitation code.</p>
                 <div id="paypal-button-container" style="margin-top:14px;"></div>
@@ -916,20 +956,20 @@
             </div>
             <div class="stack" style="margin-top:0;">
                 <div class="field">
-                    <label for="signup-modal-username">Username</label>
+                    <label data-icon="◎" for="signup-modal-username">Username</label>
                     <input id="signup-modal-username" type="text" autocomplete="username" placeholder="Choose a username">
                 </div>
                 <div class="field">
-                    <label for="signup-modal-password">Password</label>
+                    <label data-icon="◌" for="signup-modal-password">Password</label>
                     <input id="signup-modal-password" type="password" autocomplete="new-password" placeholder="At least 8 characters">
                 </div>
                 <div class="field">
-                    <label for="signup-modal-code">Invitation code</label>
+                    <label data-icon="◇" for="signup-modal-code">Invitation code</label>
                     <input id="signup-modal-code" type="text" autocomplete="off" placeholder="ABCD-EFGH-IJKL">
                 </div>
             </div>
             <div class="actions">
-                <button class="button" id="signup-modal-submit" type="button">Create Account</button>
+                <button class="button" data-icon="✦" id="signup-modal-submit" type="button">Create Account</button>
             </div>
             <div class="modal-status" id="signup-modal-status"></div>
         </div>
@@ -1694,9 +1734,9 @@
                 `,
                 actionsHtml: `
                 <div class="card-actions">
-                    <button class="button-secondary" type="button" data-action="cancel-edit" data-id="${escapeHtml(profile.id)}"${disabledAttr}>Cancel</button>
-                    <button class="button" type="button" data-action="save-profile" data-id="${escapeHtml(profile.id)}"${disabledAttr}>Save</button>
-                    <button class="button-secondary button-danger" type="button" data-action="delete-profile" data-id="${escapeHtml(profile.id)}"${disabledAttr}>Delete</button>
+                    <button class="button-secondary" data-icon="×" type="button" data-action="cancel-edit" data-id="${escapeHtml(profile.id)}"${disabledAttr}>Cancel</button>
+                    <button class="button" data-icon="✓" type="button" data-action="save-profile" data-id="${escapeHtml(profile.id)}"${disabledAttr}>Save</button>
+                    <button class="button-secondary button-danger" data-icon="−" type="button" data-action="delete-profile" data-id="${escapeHtml(profile.id)}"${disabledAttr}>Delete</button>
                 </div>
                 `
             };
@@ -1764,8 +1804,8 @@
                         </div>
                     </div>
                     <div class="card-actions">
-                        <button class="button-secondary" type="button" data-action="cancel-email" data-id="${escapeHtml(profile.id)}"${disabledAttr}>Cancel</button>
-                        <button class="button" type="button" data-action="send-email" data-id="${escapeHtml(profile.id)}"${sendDisabledAttr}>Send</button>
+                        <button class="button-secondary" data-icon="×" type="button" data-action="cancel-email" data-id="${escapeHtml(profile.id)}"${disabledAttr}>Cancel</button>
+                        <button class="button" data-icon="✉" type="button" data-action="send-email" data-id="${escapeHtml(profile.id)}"${sendDisabledAttr}>Send</button>
                     </div>
                     <div class="schedule-status">This creates an email draft in your default mail handler. You can review it there and decide whether to send it.</div>
                 </div>
@@ -1833,8 +1873,8 @@
                         </div>
                     </div>
                     <div class="card-actions">
-                        <button class="button-secondary" type="button" data-action="cancel-schedule" data-id="${escapeHtml(profile.id)}"${disabledAttr}>Cancel</button>
-                        <button class="button" type="button" data-action="send-schedule" data-id="${escapeHtml(profile.id)}"${sendDisabledAttr}>${selectionCount > 1 ? `Send to ${selectionCount} selected` : 'Send'}</button>
+                        <button class="button-secondary" data-icon="×" type="button" data-action="cancel-schedule" data-id="${escapeHtml(profile.id)}"${disabledAttr}>Cancel</button>
+                        <button class="button" data-icon="↗" type="button" data-action="send-schedule" data-id="${escapeHtml(profile.id)}"${sendDisabledAttr}>${selectionCount > 1 ? `Send to ${selectionCount} selected` : 'Send'}</button>
                     </div>
                     <div class="schedule-status">This queues a Google Calendar invitation now. The selected date and time are the meeting time.${selectionCount > 1 ? ` The same schedule will be used for ${selectionCount} selected records on this page.` : ''}</div>
                 </div>
@@ -1878,9 +1918,9 @@
                     actionsHtml = (isAdminLoggedIn() || canUseEmailTools())
                     ? `
                         <div class="card-actions">
-                            ${isAdminLoggedIn() ? `<button class="button-secondary" type="button" data-action="edit-profile" data-id="${escapeHtml(profile.id)}">Edit</button>` : ''}
-                            ${isAdminLoggedIn() ? `<button class="button-secondary" type="button" data-action="open-schedule" data-id="${escapeHtml(profile.id)}">Schedule</button>` : ''}
-                            <button class="button-secondary" type="button" data-action="open-email" data-id="${escapeHtml(profile.id)}">Email</button>
+                            ${isAdminLoggedIn() ? `<button class="button-secondary" data-icon="✎" type="button" data-action="edit-profile" data-id="${escapeHtml(profile.id)}">Edit</button>` : ''}
+                            ${isAdminLoggedIn() ? `<button class="button-secondary" data-icon="↗" type="button" data-action="open-schedule" data-id="${escapeHtml(profile.id)}">Schedule</button>` : ''}
+                            <button class="button-secondary" data-icon="✉" type="button" data-action="open-email" data-id="${escapeHtml(profile.id)}">Email</button>
                         </div>
                     `
                     : '';
