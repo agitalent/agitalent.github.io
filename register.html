@@ -102,25 +102,6 @@
             box-shadow: 0 34px 80px rgba(0, 0, 0, 0.35);
             overflow: hidden;
         }
-        .hero {
-            padding: 34px;
-            border-bottom: 1px solid var(--line);
-        }
-        .hero h1 {
-            margin: 0;
-            font-size: clamp(2.6rem, 5vw, 4.3rem);
-            line-height: 1.05;
-            letter-spacing: -0.04em;
-            max-width: none;
-            white-space: nowrap;
-        }
-        .hero p {
-            margin: 16px 0 0;
-            max-width: 58ch;
-            color: var(--muted);
-            font-size: 1.08rem;
-            line-height: 1.7;
-        }
         .grid {
             display: grid;
             grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
@@ -219,9 +200,6 @@
             .grid { grid-template-columns: 1fr; }
             .section + .section { border-left: 0; border-top: 1px solid var(--line); }
             .form-grid { grid-template-columns: 1fr; }
-            .hero h1 {
-                white-space: normal;
-            }
         }
     </style>
 </head>
@@ -232,28 +210,16 @@
         </div>
 
         <div class="panel">
-            <div class="hero">
-                <h1 data-icon="✦">Register a profile or post a job.</h1>
-                <p>Use this intake page to write a candidate profile or a hiring need into the shared hub, then immediately run a first-pass match.</p>
-            </div>
             <div class="grid">
                 <section class="section">
                     <form id="irecruiter-register-form">
                         <div class="form-grid">
-                            <div class="field">
+                            <div class="field full">
                                 <label data-icon="▣" for="record-kind">Record type</label>
                                 <select id="record-kind" name="record-kind">
                                     <option value="profile" selected>Register profile</option>
                                     <option value="need">Post job</option>
                                 </select>
-                            </div>
-                            <div class="field">
-                                <label data-icon="◎" for="display-name">Contact name</label>
-                                <input id="display-name" name="display-name" type="text" placeholder="Recruiter or candidate name" required>
-                            </div>
-                            <div class="field profile-only" style="display:none;">
-                                <label data-icon="✉" for="email">Email</label>
-                                <input id="email" name="email" type="email" placeholder="name@example.com">
                             </div>
                             <div class="field profile-only full" style="display:none;">
                                 <label data-icon="⌕" for="profile-source-text">Paste profile text</label>
@@ -262,6 +228,14 @@
                                     <button class="button secondary" data-icon="↗" id="profile-parse-button" type="button">Parse</button>
                                     <div class="field-note" id="profile-parse-status">Click Parse to extract profile fields.</div>
                                 </div>
+                            </div>
+                            <div class="field">
+                                <label data-icon="◎" for="display-name">Contact name</label>
+                                <input id="display-name" name="display-name" type="text" placeholder="Recruiter or candidate name" required>
+                            </div>
+                            <div class="field profile-only" style="display:none;">
+                                <label data-icon="✉" for="email">Email</label>
+                                <input id="email" name="email" type="email" placeholder="name@example.com">
                             </div>
                             <div class="field profile-only" style="display:none;">
                                 <label data-icon="⌁" for="bio-link">Bio link</label>
