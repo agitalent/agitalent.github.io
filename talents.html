@@ -2644,16 +2644,22 @@
             adminGenerateInviteButton.disabled = true;
             try {
                 if (adminBatchInviteToggle?.checked) {
-                    const { data, error } = await supabaseClient.rpc('admin_generate_app_user_invitation_codes_batch', {
-                        p_admin_username: adminUser.username,
-                        p_admin_password: adminPassword,
-                        p_batch_size: 100,
-                        p_valid_from: todayIsoDate(),
-                        p_expires_on: plusDaysIsoDate(365)
-                    });
-                    if (error) throw error;
+                    const batchSize = 100;
+                    const validFrom = todayIsoDate();
+                    const expiresOn = plusDaysIsoDate(365);
+                    let generatedCount = 0;
+                    for (let index = 0; index < batchSize; index += 1) {
+                        const { error } = await supabaseClient.rpc('admin_generate_app_user_invitation_code', {
+                            p_admin_username: adminUser.username,
+                            p_admin_password: adminPassword,
+                            p_valid_from: validFrom,
+                            p_expires_on: expiresOn
+                        });
+                        if (error) throw error;
+                        generatedCount += 1;
+                    }
                     adminInviteCodeOutput.value = '';
-                    setAddUserStatus(`${Number(data?.generated_count || 100)} invitation codes generated and stored. Valid through ${data?.expires_on || plusDaysIsoDate(365)}.`);
+                    setAddUserStatus(`${generatedCount} invitation codes generated and stored. Valid through ${expiresOn}.`);
                 } else {
                     const { data, error } = await supabaseClient.rpc('admin_generate_app_user_invitation_code', {
                         p_admin_username: adminUser.username,
