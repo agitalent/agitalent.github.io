@@ -2004,10 +2004,9 @@
             pageGoButton.disabled = totalCount === 0;
         };
 
-        const promptTerms = (prompt) => String(prompt || '')
-            .toLowerCase()
-            .split(/[^a-z0-9]+/i)
-            .map((term) => term.trim())
+        const promptPhrases = (prompt) => String(prompt || '')
+            .split(/[\n,;]+/)
+            .map((term) => sanitizeSearchValue(term))
             .filter((term) => term && term.length > 1);
 
         const sanitizeSearchValue = (value) => String(value || '')
@@ -2041,21 +2040,11 @@
 
         const applyPromptFilters = (query, promptOverride = activePrompt) => {
             const fields = searchableProfileFields();
-            const exactPrompt = sanitizeSearchValue(promptOverride);
-            const searchValues = [];
-            if (exactPrompt.length > 1) {
-                searchValues.push(exactPrompt);
-            }
-            for (const term of promptTerms(promptOverride)) {
-                const safeTerm = sanitizeSearchValue(term);
-                if (safeTerm && !searchValues.includes(safeTerm)) {
-                    searchValues.push(safeTerm);
-                }
-            }
-            if (!searchValues.length) {
+            const searchPhrases = promptPhrases(promptOverride);
+            if (!searchPhrases.length) {
                 return query;
             }
-            const clauses = searchValues.flatMap((value) => (
+            const clauses = searchPhrases.flatMap((value) => (
                 fields.map((field) => `${field}.ilike.%${value}%`)
             ));
             return query.or(clauses.join(','));
