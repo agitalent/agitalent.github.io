@@ -2918,6 +2918,10 @@
                 setAdminStatus('Enter username, current password, and new password.', true);
                 return;
             }
+            if (currentPassword === newPassword) {
+                setAdminStatus('New password must be different from the current password.', true);
+                return;
+            }
 
             adminResetPasswordSubmitButton.disabled = true;
             try {
@@ -2955,6 +2959,10 @@
             const newPassword = changePasswordNewInput.value;
             if (!username || !currentPassword || !newPassword) {
                 setModalStatus(changePasswordStatusEl, 'Enter current password and new password.', true);
+                return;
+            }
+            if (currentPassword === newPassword) {
+                setModalStatus(changePasswordStatusEl, 'New password must be different from the current password.', true);
                 return;
             }
 
