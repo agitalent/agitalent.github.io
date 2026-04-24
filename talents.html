@@ -167,6 +167,9 @@
             gap: 18px;
             width: 100%;
         }
+        .dashboard-grid.admin-mode {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
         .dashboard-card {
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 18px;
@@ -737,7 +740,11 @@
                         <div class="bar-chart empty" id="dashboard-new-records-chart">-</div>
                     </div>
                     <div class="dashboard-card" id="dashboard-secondary-card">
-                        <h3 id="dashboard-secondary-title">New schedules, last 7 days</h3>
+                        <h3 id="dashboard-secondary-title">New users, last 7 days</h3>
+                        <div class="bar-chart empty" id="dashboard-new-users-chart">-</div>
+                    </div>
+                    <div class="dashboard-card" id="dashboard-tertiary-card">
+                        <h3 id="dashboard-tertiary-title">New schedules, last 7 days</h3>
                         <div class="bar-chart empty" id="dashboard-sent-schedules-chart">-</div>
                     </div>
                 </div>
@@ -976,8 +983,10 @@
         const dashboardGridEl = document.getElementById('dashboard-grid');
         const dashboardPrimaryTitleEl = document.getElementById('dashboard-primary-title');
         const dashboardSecondaryTitleEl = document.getElementById('dashboard-secondary-title');
+        const dashboardTertiaryTitleEl = document.getElementById('dashboard-tertiary-title');
         const salesCtaEl = document.getElementById('sales-cta');
         const dashboardNewRecordsChartEl = document.getElementById('dashboard-new-records-chart');
+        const dashboardNewUsersChartEl = document.getElementById('dashboard-new-users-chart');
         const dashboardSentSchedulesChartEl = document.getElementById('dashboard-sent-schedules-chart');
         const loginModalEl = document.getElementById('login-modal');
         const loginModalUsernameInput = document.getElementById('login-modal-username');
@@ -1158,6 +1167,8 @@
         const resetDashboardCharts = () => {
             dashboardNewRecordsChartEl.textContent = '-';
             dashboardNewRecordsChartEl.className = 'bar-chart empty';
+            dashboardNewUsersChartEl.textContent = '-';
+            dashboardNewUsersChartEl.className = 'bar-chart empty';
             dashboardSentSchedulesChartEl.textContent = '-';
             dashboardSentSchedulesChartEl.className = 'bar-chart empty';
         };
@@ -1318,11 +1329,14 @@
             signupPromoEl.style.display = isLoggedIn() ? 'none' : 'grid';
             adminAddUserPanel.style.display = isAdminLoggedIn() ? '' : 'none';
             dashboardGridEl.classList.toggle('user-mode', isLoggedIn() && !isAdminLoggedIn());
+            dashboardGridEl.classList.toggle('admin-mode', isAdminLoggedIn());
             topbarAuthActionsEl.style.display = isLoggedIn() ? 'none' : 'inline-flex';
             topbarUserEl.style.display = isLoggedIn() ? 'inline-flex' : 'none';
             topbarUsernameEl.textContent = username || 'username';
             dashboardPrimaryTitleEl.textContent = 'New records, last 7 days';
-            dashboardSecondaryTitleEl.textContent = isAdminLoggedIn() ? 'New schedules, last 7 days' : 'Email outreach, last 7 days';
+            dashboardSecondaryTitleEl.textContent = isAdminLoggedIn() ? 'New users, last 7 days' : 'Email outreach, last 7 days';
+            dashboardTertiaryTitleEl.textContent = 'New schedules, last 7 days';
+            document.getElementById('dashboard-tertiary-card').style.display = isAdminLoggedIn() ? '' : 'none';
             setAdminStatus(
                 isLoggedIn()
                     ? (isAdminLoggedIn()
@@ -1506,10 +1520,12 @@
             if (error) throw error;
             if (isAdminLoggedIn()) {
                 renderDashboardChart(dashboardNewRecordsChartEl, data?.new_records_last_7d || []);
+                renderDashboardChart(dashboardNewUsersChartEl, data?.new_users_last_7d || []);
                 renderDashboardChart(dashboardSentSchedulesChartEl, data?.sent_schedules_last_7d || []);
                 return;
             }
             renderDashboardChart(dashboardNewRecordsChartEl, data?.new_records_last_7d || []);
+            renderDashboardChart(dashboardNewUsersChartEl, data?.email_outreach_last_7d || []);
             renderDashboardChart(dashboardSentSchedulesChartEl, data?.email_outreach_last_7d || []);
         };
 
