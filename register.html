@@ -428,6 +428,10 @@
             .replace(/\s*\.\s*/g, '.')
             .replace(/\s+/g, '')
             .trim();
+        const normalizeStoredEmail = (value) => {
+            const cleaned = normalizeEmailInputValue(value);
+            return cleaned ? cleaned.toLowerCase() : null;
+        };
         const attachEmailAutocorrect = (input) => {
             if (!input) return;
             const applyNormalization = () => {
@@ -654,7 +658,7 @@
         const buildProfilePayload = () => ({
             agent_type: 'job_seeker',
             name_or_handle: document.getElementById('display-name').value.trim(),
-            email: document.getElementById('email').value.trim() || null,
+            email: normalizeStoredEmail(document.getElementById('email').value) || null,
             bio_link: document.getElementById('bio-link').value.trim() || null,
             location: document.getElementById('location').value.trim() || null,
             timezone: null,
@@ -669,7 +673,7 @@
         });
         const buildNeedPayload = () => ({
             contact_name: document.getElementById('display-name').value.trim() || null,
-            email: document.getElementById('need-email').value.trim() || null,
+            email: normalizeStoredEmail(document.getElementById('need-email').value) || null,
             company_name: document.getElementById('company-name').value.trim() || null,
             role_title: document.getElementById('role-title').value.trim() || null,
             post_link: document.getElementById('post-link').value.trim() || null,
@@ -729,6 +733,48 @@
             const message = String(error?.message || error || '');
             return message.includes("Could not find the 'email' column of 'needs' in the schema cache");
         };
+        const isDuplicateEmailConstraintError = (error) => {
+            const message = String(error?.message || error || '').toLowerCase();
+            const details = String(error?.details || '').toLowerCase();
+            return error?.code === '23505' && (message.includes('email') || details.includes('email'));
+        };
+        const findExistingRecordByEmail = async (email) => {
+            const normalizedEmail = normalizeStoredEmail(email);
+            if (!normalizedEmail) return null;
+
+            const { data: profileRows, error: profileError } = await supabaseClient
+                .from('profiles')
+                .select('id, email, name_or_handle')
+                .eq('email', normalizedEmail)
+                .limit(1);
+            if (profileError) throw profileError;
+            if (profileRows && profileRows[0]) {
+                return {
+                    table: 'profiles',
+                    label: profileRows[0].name_or_handle || 'existing profile',
+                    email: profileRows[0].email || normalizedEmail
+                };
+            }
+
+            const { data: needRows, error: needError } = await supabaseClient
+                .from('needs')
+                .select('id, email, contact_name, role_title')
+                .eq('email', normalizedEmail)
+                .limit(1);
+            if (needError) {
+                if (isMissingNeedsEmailColumnError(needError)) return null;
+                throw needError;
+            }
+            if (needRows && needRows[0]) {
+                return {
+                    table: 'needs',
+                    label: needRows[0].contact_name || needRows[0].role_title || 'existing job record',
+                    email: needRows[0].email || normalizedEmail
+                };
+            }
+
+            return null;
+        };
         attachEmailAutocorrect(emailInput);
         attachEmailAutocorrect(needEmailInput);
         if (profileParseButton) profileParseButton.addEventListener('click', handleProfileParseClick);
@@ -746,6 +792,13 @@
             setStatus(`Writing ${isProfile ? 'profile' : 'job'} to the shared hub...`);
             setSkillReminderVisible(false);
             try {
+                if (payload.email) {
+                    const existingRecord = await findExistingRecordByEmail(payload.email);
+                    if (existingRecord) {
+                        throw new Error(`Duplicate email blocked. ${existingRecord.email} already exists in ${existingRecord.table} for ${existingRecord.label}.`);
+                    }
+                }
+
                 let insertPayload = payload;
                 let insertedRows;
                 let error;
@@ -759,7 +812,12 @@
                     ({ data: insertedRows, error } = await supabaseClient.from(table).insert(insertPayload).select('*'));
                 }
 
-                if (error) throw error;
+                if (error) {
+                    if (isDuplicateEmailConstraintError(error) && payload.email) {
+                        throw new Error(`Duplicate email blocked. ${payload.email} is already stored in the hub.`);
+                    }
+                    throw error;
+                }
                 const inserted = insertedRows && insertedRows[0] ? insertedRows[0] : payload;
                 try {
                     await insertHubEvent(isProfile ? 'NEW_PROFILE' : 'NEW_NEED', isProfile ? 'profile' : 'need', inserted.id, isProfile ? 'job_seeker' : 'recruiter', inserted);
