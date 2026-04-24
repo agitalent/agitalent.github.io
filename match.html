@@ -48,6 +48,7 @@
                 radial-gradient(circle at 80% 10%, rgba(127, 255, 212, 0.08), transparent 24%),
                 linear-gradient(180deg, #07110f 0%, #091612 52%, #06100d 100%);
             -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
         }
 
         h1, h2, h3 {
@@ -426,6 +427,7 @@
             justify-content: space-between;
             gap: 12px;
             align-items: center;
+            flex-wrap: wrap;
         }
 
         .recent-item-top strong {
@@ -491,6 +493,7 @@
             justify-content: space-between;
             gap: 18px;
             margin-bottom: 18px;
+            flex-wrap: wrap;
         }
 
         .detail-top h4 {
@@ -949,6 +952,7 @@
             justify-content: space-between;
             gap: 12px;
             margin-bottom: 10px;
+            flex-wrap: wrap;
         }
 
         .result-head strong {
@@ -967,6 +971,7 @@
             color: rgba(255, 255, 255, 0.76);
             line-height: 1.75;
             font-size: 14px;
+            overflow-wrap: anywhere;
         }
 
         .icon-dot {
@@ -1002,7 +1007,7 @@
 
         @media (max-width: 767px) {
             .container-custom {
-                padding: 0 20px;
+                padding: 0 16px;
             }
 
             .hero {
@@ -1012,11 +1017,15 @@
             .hero-copy,
             .match-board,
             .hub-console-panel {
-                padding: 22px;
+                padding: 18px;
             }
 
             .match-board {
                 min-height: auto;
+            }
+
+            .hero-title {
+                font-size: clamp(2.6rem, 13vw, 3.4rem);
             }
 
             .board-row {
@@ -1036,6 +1045,15 @@
                 grid-template-columns: 1fr;
             }
 
+            .detail-drawer {
+                padding: 12px;
+            }
+
+            .detail-panel {
+                padding: 18px;
+                border-radius: 22px;
+            }
+
             .hero-badges {
                 flex-direction: column;
                 align-items: flex-start;
@@ -1043,6 +1061,30 @@
 
             .form-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .recent-kind,
+            .score,
+            .connector-pill {
+                white-space: normal;
+            }
+
+            .detail-share-row > * {
+                width: 100%;
+            }
+
+            .detail-export {
+                width: 100%;
+            }
+
+            .detail-export-menu {
+                left: 0;
+                right: 0;
+                min-width: 0;
+            }
+
+            .stack[style*="repeat(3"] {
+                grid-template-columns: 1fr !important;
             }
         }
 
