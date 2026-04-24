@@ -1337,7 +1337,7 @@
             signupIssuedCodeEl.innerHTML = `
                 <strong>Your invitation code</strong>
                 <div>${escapeHtml(code)}</div>
-                <div>Valid through ${escapeHtml(String(payload?.expires_on || ''))}</div>
+                <div>No expiration</div>
             `;
         };
 
@@ -2646,30 +2646,27 @@
                 if (adminBatchInviteToggle?.checked) {
                     const batchSize = 100;
                     const validFrom = todayIsoDate();
-                    const expiresOn = plusDaysIsoDate(365);
                     let generatedCount = 0;
                     for (let index = 0; index < batchSize; index += 1) {
                         const { error } = await supabaseClient.rpc('admin_generate_app_user_invitation_code', {
                             p_admin_username: adminUser.username,
                             p_admin_password: adminPassword,
-                            p_valid_from: validFrom,
-                            p_expires_on: expiresOn
+                            p_valid_from: validFrom
                         });
                         if (error) throw error;
                         generatedCount += 1;
                     }
                     adminInviteCodeOutput.value = '';
-                    setAddUserStatus(`${generatedCount} invitation codes generated and stored. Valid through ${expiresOn}.`);
+                    setAddUserStatus(`${generatedCount} invitation codes generated and stored with no expiration.`);
                 } else {
                     const { data, error } = await supabaseClient.rpc('admin_generate_app_user_invitation_code', {
                         p_admin_username: adminUser.username,
                         p_admin_password: adminPassword,
-                        p_valid_from: todayIsoDate(),
-                        p_expires_on: plusDaysIsoDate(365)
+                        p_valid_from: todayIsoDate()
                     });
                     if (error) throw error;
                     adminInviteCodeOutput.value = String(data?.code || '').trim();
-                    setAddUserStatus(`Invitation code generated. Valid through ${data?.expires_on || plusDaysIsoDate(365)}.`);
+                    setAddUserStatus('Invitation code generated with no expiration.');
                 }
             } catch (error) {
                 setAddUserStatus(error.message || 'Invitation code generation failed.', true);
