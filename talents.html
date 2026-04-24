@@ -450,6 +450,20 @@
             color: var(--muted);
             font-size: 0.96rem;
         }
+        .checkbox-inline {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: rgba(255, 255, 255, 0.86);
+            font-size: 0.93rem;
+            user-select: none;
+        }
+        .checkbox-inline input {
+            width: 16px;
+            height: 16px;
+            margin: 0;
+            accent-color: var(--accent);
+        }
         .results {
             display: grid;
             gap: 14px;
@@ -881,6 +895,10 @@
                                 <small>Share this code with a user so they can register from the Sign Up dialog.</small>
                             </div>
                             <div class="user-actions">
+                                <label class="checkbox-inline" for="admin-batch-invite-toggle">
+                                    <input id="admin-batch-invite-toggle" type="checkbox">
+                                    <span>Batch</span>
+                                </label>
                                 <button class="button-secondary" data-icon="◇" id="admin-generate-invite-button" type="button">Generate Invitation Code</button>
                             </div>
                             <div class="admin-status" id="admin-add-user-status"></div>
@@ -1036,6 +1054,7 @@
         const adminAddUserButton = document.getElementById('admin-add-user-button');
         const adminDeleteUserButton = document.getElementById('admin-delete-user-button');
         const adminInviteCodeOutput = document.getElementById('admin-invite-code-output');
+        const adminBatchInviteToggle = document.getElementById('admin-batch-invite-toggle');
         const adminGenerateInviteButton = document.getElementById('admin-generate-invite-button');
         const adminAddUserStatusEl = document.getElementById('admin-add-user-status');
         const adminLogoutButton = document.getElementById('admin-logout-button');
@@ -2624,15 +2643,28 @@
             }
             adminGenerateInviteButton.disabled = true;
             try {
-                const { data, error } = await supabaseClient.rpc('admin_generate_app_user_invitation_code', {
-                    p_admin_username: adminUser.username,
-                    p_admin_password: adminPassword,
-                    p_valid_from: todayIsoDate(),
-                    p_expires_on: plusDaysIsoDate(365)
-                });
-                if (error) throw error;
-                adminInviteCodeOutput.value = String(data?.code || '').trim();
-                setAddUserStatus(`Invitation code generated. Valid through ${data?.expires_on || plusDaysIsoDate(365)}.`);
+                if (adminBatchInviteToggle?.checked) {
+                    const { data, error } = await supabaseClient.rpc('admin_generate_app_user_invitation_codes_batch', {
+                        p_admin_username: adminUser.username,
+                        p_admin_password: adminPassword,
+                        p_batch_size: 100,
+                        p_valid_from: todayIsoDate(),
+                        p_expires_on: plusDaysIsoDate(365)
+                    });
+                    if (error) throw error;
+                    adminInviteCodeOutput.value = '';
+                    setAddUserStatus(`${Number(data?.generated_count || 100)} invitation codes generated and stored. Valid through ${data?.expires_on || plusDaysIsoDate(365)}.`);
+                } else {
+                    const { data, error } = await supabaseClient.rpc('admin_generate_app_user_invitation_code', {
+                        p_admin_username: adminUser.username,
+                        p_admin_password: adminPassword,
+                        p_valid_from: todayIsoDate(),
+                        p_expires_on: plusDaysIsoDate(365)
+                    });
+                    if (error) throw error;
+                    adminInviteCodeOutput.value = String(data?.code || '').trim();
+                    setAddUserStatus(`Invitation code generated. Valid through ${data?.expires_on || plusDaysIsoDate(365)}.`);
+                }
             } catch (error) {
                 setAddUserStatus(error.message || 'Invitation code generation failed.', true);
             } finally {
