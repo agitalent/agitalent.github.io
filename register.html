@@ -40,7 +40,7 @@
                 radial-gradient(circle at top left, rgba(71, 229, 165, 0.12), transparent 28%),
                 radial-gradient(circle at 80% 10%, rgba(127, 255, 212, 0.08), transparent 24%),
                 linear-gradient(180deg, #07110f 0%, #091612 52%, #06100d 100%);
-            overflow-x: hidden;
+            overflow-x: auto;
         }
         h1, h2, h3 { font-family: 'Untitled Serif', serif; font-weight: 400; }
         .container {
@@ -203,15 +203,21 @@
             font-weight: 700;
         }
         @media (max-width: 900px) {
-            .grid { grid-template-columns: 1fr; }
-            .section + .section { border-left: 0; border-top: 1px solid var(--line); }
-            .form-grid { grid-template-columns: 1fr; }
-            .topbar { flex-direction: column; align-items: stretch; }
+            .grid {
+                grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+                min-width: 1040px;
+            }
+            .section + .section { border-left: 1px solid var(--line); border-top: 0; }
+            .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .topbar { flex-direction: row; align-items: center; }
         }
         @media (max-width: 640px) {
-            .container { padding: 24px 16px 56px; }
-            .section { padding: 22px 20px; }
-            .actions { flex-wrap: wrap; }
+            .container {
+                padding: 40px 28px 80px;
+                min-width: 1120px;
+            }
+            .section { padding: 28px 34px 34px; }
+            .actions { flex-wrap: nowrap; }
         }
     </style>
 </head>

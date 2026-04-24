@@ -43,7 +43,7 @@
                 radial-gradient(circle at top left, rgba(71, 229, 165, 0.12), transparent 28%),
                 radial-gradient(circle at 80% 10%, rgba(127, 255, 212, 0.08), transparent 24%),
                 linear-gradient(180deg, #07110f 0%, #091612 52%, #06100d 100%);
-            overflow-x: hidden;
+            overflow-x: auto;
         }
         h1, h2, h3 {
             font-family: 'Untitled Serif', serif;
@@ -752,47 +752,46 @@
         }
         @media (max-width: 1040px) {
             .signup-promo {
-                grid-template-columns: 1fr;
+                grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+                min-width: 1040px;
             }
             .layout {
-                grid-template-columns: 1fr;
+                grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
+                min-width: 1100px;
             }
             .panel + .panel {
-                border-left: 0;
-                border-top: 1px solid var(--line);
+                border-left: 1px solid var(--line);
+                border-top: 0;
             }
         }
         @media (max-width: 720px) {
             .container {
-                padding: 24px 16px 60px;
+                padding: 36px 24px 80px;
+                min-width: 1280px;
             }
             .topbar {
-                flex-direction: column;
-                align-items: stretch;
+                flex-direction: row;
+                align-items: center;
             }
             .topbar-actions,
             .topbar-user {
-                width: 100%;
-                justify-content: flex-start;
-            }
-            .hero-head,
-            .panel {
-                padding: 22px 20px;
+                width: auto;
+                justify-content: flex-end;
             }
             .field-grid,
             .admin-grid,
             .editor-grid,
             .schedule-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
             .dashboard-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
             .dashboard-grid.admin-mode {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
             }
             .signup-promo {
-                padding: 22px 20px;
+                padding: 28px 32px;
             }
         }
     </style>
