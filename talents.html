@@ -803,14 +803,16 @@
         }
         @media (max-width: 1040px) {
             .signup-promo {
-                grid-template-columns: 1fr;
+                grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+                min-width: 1040px;
             }
             .layout {
-                grid-template-columns: 1fr;
+                grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
+                min-width: 1100px;
             }
             .panel + .panel {
-                border-left: 0;
-                border-top: 1px solid var(--line);
+                border-left: 1px solid var(--line);
+                border-top: 0;
             }
         }
         @media (max-width: 720px) {
@@ -847,6 +849,9 @@
             }
             .dashboard-grid.admin-mode {
                 grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+            .signup-promo {
+                padding: 28px 32px;
             }
         }
     </style>
