@@ -1222,7 +1222,10 @@
             'delivery_route',
             'status',
             'created_at',
-            'updated_at'
+            'updated_at',
+            '_candidate_email',
+            '_scheduleDraft',
+            '_emailDraft'
         ]);
         const EDITABLE_PROFILE_FIELDS = [
             'agent_type',
@@ -1255,7 +1258,7 @@
             seniority: 'brief_background'
         };
         const REQUIRED_FIELDS = new Set(['agent_type', 'name_or_handle', 'status']);
-        const PUBLIC_PROFILE_SELECT = 'id, agent_type, name_or_handle, location, domain_focus, seniority, skills, needs, recent_evidence, status, created_at, updated_at';
+        const PUBLIC_PROFILE_SELECT = 'id, agent_type, name_or_handle, email, location, domain_focus, seniority, skills, needs, recent_evidence, status, created_at, updated_at';
         const SIGNED_OUT_PROFILE_SELECT = 'id, name_or_handle, seniority, location, "Recently_Contacted", created_at, updated_at';
         const SIGNED_OUT_VISIBLE_PROFILE_FIELDS = new Set(['seniority', 'location', 'Recently_Contacted']);
 
@@ -1409,7 +1412,10 @@
                     updated_at: row.updated_at
                 }));
             }
-            return rows.map(({ email, bio_link, ...rest }) => rest);
+            return rows.map(({ email, bio_link, ...rest }) => ({
+                ...rest,
+                _candidate_email: String(email || '').trim()
+            }));
         };
         const collectNamedFields = (form) => {
             const fields = {};
@@ -1631,31 +1637,22 @@
             };
         };
         const formatCalendarStamp = (date, hour, minute) => `${String(date || '').replace(/-/g, '')}T${zeroPad(hour)}${zeroPad(minute)}00`;
-        const buildManualScheduleUrl = (profile, values) => {
-            const candidateName = String(profile?.name_or_handle || profile?.name || 'Candidate').trim();
-            const company = String(values?.company || '').trim();
-            const role = String(values?.role || '').trim();
-            const contact = String(values?.contact || '').trim();
+        const buildManualScheduleUrl = (profile, values, draft) => {
+            const candidateEmail = String(profile?._candidate_email || profile?.email || '').trim();
             const timezone = String(values?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC').trim();
             const startStamp = formatCalendarStamp(values?.date, values?.hour, values?.minute);
-            const endParts = addMinutesToScheduleParts(values?.date, values?.hour, values?.minute, 30);
+            const endParts = addMinutesToScheduleParts(values?.date, values?.hour, values?.minute, 15);
             const endStamp = formatCalendarStamp(endParts.date, endParts.hour, endParts.minute);
-            const details = [
-                `Candidate: ${candidateName}`,
-                `Company: ${company}`,
-                `Role: ${role}`,
-                `Preferred contact: ${contact}`,
-                '',
-                'Review this draft event and confirm sending manually.'
-            ].join('\n');
             const params = new URLSearchParams({
                 action: 'TEMPLATE',
-                text: `${company} ${role} conversation with ${candidateName}`.trim(),
+                text: String(draft?.subject || '').trim(),
                 dates: `${startStamp}/${endStamp}`,
                 ctz: timezone,
-                details,
-                location: contact
+                details: `${String(draft?.body || '').trim()}\n\nReview this draft event and confirm sending manually.`
             });
+            if (candidateEmail) {
+                params.set('add', candidateEmail);
+            }
             return `https://calendar.google.com/calendar/render?${params.toString()}`;
         };
 
@@ -1757,6 +1754,7 @@
                 };
             }
         };
+        const generateScheduleDraft = async (profile, values) => generateEmailDraft(profile, values);
 
         const renderDashboardChart = (element, points) => {
             if (!element) return;
@@ -3191,15 +3189,19 @@
                     } else {
                         const profile = currentRows.find((row) => row.id === profileId);
                         if (!profile) throw new Error('Profile not found.');
+                        if (!String(profile._candidate_email || '').trim()) {
+                            throw new Error('Candidate email is required to prefill the calendar invitation.');
+                        }
                         setStatus('Generating schedule draft...');
                         applyOutreachDefaultsLocally(payload);
-                        const calendarUrl = buildManualScheduleUrl(profile, payload);
+                        const draft = await generateScheduleDraft(profile, payload);
+                        const calendarUrl = buildManualScheduleUrl(profile, payload, draft);
                         const draftWindow = window.open(calendarUrl, '_blank', 'noopener');
                         if (!draftWindow) {
                             window.location.href = calendarUrl;
                         }
                         schedulingProfileId = null;
-                        setStatus('Schedule draft opened in Google Calendar. Review it there and confirm sending manually.');
+                        setStatus('Schedule draft opened in Google Calendar with the subject, attendee, and description prefilled. Review it there and confirm sending manually.');
                     }
                     renderRows(currentRows);
                 } catch (error) {
