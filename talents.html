@@ -72,6 +72,9 @@
             flex-wrap: wrap;
             justify-content: flex-end;
         }
+        .topbar-user {
+            position: relative;
+        }
         .brand {
             display: inline-flex;
             align-items: center;
@@ -89,6 +92,57 @@
             background: rgba(71, 229, 165, 0.08);
             color: rgba(239, 248, 244, 0.94);
             font-weight: 700;
+            max-width: 100%;
+            overflow-wrap: anywhere;
+            cursor: pointer;
+        }
+        .user-chip::after {
+            content: '▾';
+            margin-left: 10px;
+            font-size: 0.82rem;
+            color: rgba(127, 255, 212, 0.88);
+        }
+        .account-card {
+            position: absolute;
+            top: calc(100% + 12px);
+            right: 0;
+            width: min(320px, 78vw);
+            display: none;
+            padding: 16px;
+            border-radius: 22px;
+            border: 1px solid rgba(127, 255, 212, 0.16);
+            background: linear-gradient(180deg, rgba(12, 28, 23, 0.98), rgba(8, 19, 15, 0.96));
+            box-shadow: 0 28px 70px rgba(0, 0, 0, 0.34);
+            backdrop-filter: blur(18px);
+            z-index: 20;
+            gap: 12px;
+        }
+        .account-card.open {
+            display: grid;
+        }
+        .account-card-row {
+            display: grid;
+            gap: 4px;
+            padding: 12px 14px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.03);
+        }
+        .account-card-label {
+            font-size: 11px;
+            letter-spacing: 0.11em;
+            text-transform: uppercase;
+            color: rgba(239, 248, 244, 0.58);
+            font-weight: 700;
+        }
+        .account-card-value {
+            color: var(--text);
+            font-size: 0.98rem;
+            line-height: 1.5;
+        }
+        .account-card-actions {
+            display: grid;
+            gap: 10px;
         }
         .brand-mark {
             width: 24px;
@@ -806,8 +860,21 @@
                 <button class="button" data-icon="✦" id="topbar-signup-button" type="button">Sign Up</button>
             </div>
             <div class="topbar-user" id="topbar-user" style="display:none;">
-                <div class="user-chip" id="topbar-username">username</div>
-                <button class="button-secondary" data-icon="⇠" id="topbar-logout-button" type="button">Logout</button>
+                <button class="user-chip" id="topbar-username" type="button" aria-expanded="false" aria-controls="topbar-account-card">username</button>
+                <div class="account-card" id="topbar-account-card">
+                    <div class="account-card-row">
+                        <div class="account-card-label">Account valid date</div>
+                        <div class="account-card-value" id="account-valid-date">-</div>
+                    </div>
+                    <div class="account-card-row">
+                        <div class="account-card-label">Account expire date</div>
+                        <div class="account-card-value" id="account-expire-date">-</div>
+                    </div>
+                    <div class="account-card-actions">
+                        <button class="button-secondary" data-icon="◌" id="topbar-change-password-button" type="button">Password Reset</button>
+                        <button class="button-secondary button-danger" data-icon="⇠" id="topbar-logout-button" type="button">Logout</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1019,6 +1086,32 @@
         </div>
     </div>
 
+    <div class="modal-backdrop" id="change-password-modal" aria-hidden="true">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="change-password-modal-title">
+            <div class="modal-head">
+                <div>
+                    <h3 data-icon="◌" id="change-password-modal-title">Password Reset</h3>
+                    <p class="modal-copy">Update your account password. Your session will continue with the new password after a successful change.</p>
+                </div>
+                <button class="modal-close" type="button" data-close-modal="change-password-modal" aria-label="Close change password window">✕</button>
+            </div>
+            <div class="stack" style="margin-top:0;">
+                <div class="field">
+                    <label data-icon="◌" for="change-password-current">Current Password</label>
+                    <input id="change-password-current" type="password" autocomplete="current-password" placeholder="Current password">
+                </div>
+                <div class="field">
+                    <label data-icon="◌" for="change-password-new">New Password</label>
+                    <input id="change-password-new" type="password" autocomplete="new-password" placeholder="New password">
+                </div>
+            </div>
+            <div class="actions">
+                <button class="button" data-icon="✓" id="change-password-submit" type="button">Password Reset</button>
+            </div>
+            <div class="modal-status" id="change-password-status"></div>
+        </div>
+    </div>
+
     <script>
         const SUPABASE_URL = 'https://zocovvewzpqxspysanyy.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvY292dmV3enBxeHNweXNhbnl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwODYwNTgsImV4cCI6MjA4OTY2MjA1OH0.8ekfJ3bcvG-AbLD39xUINwXrpO7RiH9PVgy-xMzeHbE';
@@ -1037,8 +1130,12 @@
         const topbarAuthActionsEl = document.getElementById('topbar-auth-actions');
         const topbarUserEl = document.getElementById('topbar-user');
         const topbarUsernameEl = document.getElementById('topbar-username');
+        const topbarAccountCardEl = document.getElementById('topbar-account-card');
+        const accountValidDateEl = document.getElementById('account-valid-date');
+        const accountExpireDateEl = document.getElementById('account-expire-date');
         const topbarLoginButton = document.getElementById('topbar-login-button');
         const topbarSignupButton = document.getElementById('topbar-signup-button');
+        const topbarChangePasswordButton = document.getElementById('topbar-change-password-button');
         const topbarLogoutButton = document.getElementById('topbar-logout-button');
         const prevButton = document.getElementById('prev-button');
         const nextButton = document.getElementById('next-button');
@@ -1084,6 +1181,11 @@
         const signupModalCodeInput = document.getElementById('signup-modal-code');
         const signupModalSubmitButton = document.getElementById('signup-modal-submit');
         const signupModalStatusEl = document.getElementById('signup-modal-status');
+        const changePasswordModalEl = document.getElementById('change-password-modal');
+        const changePasswordCurrentInput = document.getElementById('change-password-current');
+        const changePasswordNewInput = document.getElementById('change-password-new');
+        const changePasswordSubmitButton = document.getElementById('change-password-submit');
+        const changePasswordStatusEl = document.getElementById('change-password-status');
         const signupIssuedCodeEl = document.getElementById('signup-issued-code');
         const resultsMetaEl = document.getElementById('results-meta');
         const resultsEl = document.getElementById('results');
@@ -1338,6 +1440,23 @@
             .toUpperCase()
             .replace(/\s+/g, '')
             .replace(/[^A-Z0-9-]/g, '');
+        const formatAccountDate = (value) => {
+            const text = String(value || '').trim();
+            if (!text) return '-';
+            if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+            const date = new Date(text);
+            if (Number.isNaN(date.getTime())) return text;
+            return date.toISOString().slice(0, 10);
+        };
+        const setAccountCardOpen = (open) => {
+            if (!topbarAccountCardEl || !topbarUsernameEl) return;
+            topbarAccountCardEl.classList.toggle('open', open);
+            topbarUsernameEl.setAttribute('aria-expanded', open ? 'true' : 'false');
+        };
+        const refreshAccountCard = () => {
+            accountValidDateEl.textContent = formatAccountDate(adminUser?.valid_from);
+            accountExpireDateEl.textContent = formatAccountDate(adminUser?.expires_on);
+        };
 
         const renderIssuedInvitationCode = (payload) => {
             const code = String(payload?.code || '').trim();
@@ -1423,6 +1542,10 @@
             topbarAuthActionsEl.style.display = isLoggedIn() ? 'none' : 'inline-flex';
             topbarUserEl.style.display = isLoggedIn() ? 'inline-flex' : 'none';
             topbarUsernameEl.textContent = username || 'username';
+            refreshAccountCard();
+            if (!isLoggedIn()) {
+                setAccountCardOpen(false);
+            }
             dashboardPrimaryTitleEl.textContent = 'New records, last 7 days';
             dashboardSecondaryTitleEl.textContent = isAdminLoggedIn() ? 'New users, last 7 days' : 'Email outreach, last 7 days';
             dashboardTertiaryTitleEl.textContent = 'New schedules, last 7 days';
@@ -2395,6 +2518,7 @@
             adminInviteCodeOutput.value = '';
             closeModal(loginModalEl);
             closeModal(signupModalEl);
+            closeModal(changePasswordModalEl);
             clearAdminSession();
             updateAdminUi();
             clearResultsForSignedOutState();
@@ -2513,6 +2637,19 @@
 
         adminLogoutButton.addEventListener('click', logoutCurrentUser);
         topbarLogoutButton.addEventListener('click', logoutCurrentUser);
+        topbarUsernameEl.addEventListener('click', () => {
+            if (!isLoggedIn()) return;
+            setAccountCardOpen(!topbarAccountCardEl.classList.contains('open'));
+        });
+        topbarChangePasswordButton.addEventListener('click', () => {
+            if (!isLoggedIn()) return;
+            setAccountCardOpen(false);
+            setModalStatus(changePasswordStatusEl, '', false);
+            changePasswordCurrentInput.value = '';
+            changePasswordNewInput.value = '';
+            openModal(changePasswordModalEl);
+            window.setTimeout(() => changePasswordCurrentInput.focus(), 0);
+        });
 
         topbarLoginButton.addEventListener('click', () => {
             setModalStatus(loginModalStatusEl, '', false);
@@ -2600,7 +2737,7 @@
             });
         });
 
-        [loginModalEl, signupModalEl].forEach((modal) => {
+        [loginModalEl, signupModalEl, changePasswordModalEl].forEach((modal) => {
             modal.addEventListener('click', (event) => {
                 if (event.target === modal) {
                     closeModal(modal);
@@ -2612,6 +2749,14 @@
             if (event.key !== 'Escape') return;
             closeModal(loginModalEl);
             closeModal(signupModalEl);
+            closeModal(changePasswordModalEl);
+            setAccountCardOpen(false);
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!topbarAccountCardEl.classList.contains('open')) return;
+            if (topbarUserEl.contains(event.target)) return;
+            setAccountCardOpen(false);
         });
 
         adminAddUserButton.addEventListener('click', async () => {
@@ -2768,6 +2913,10 @@
                 setAdminStatus('Enter username, current password, and new password.', true);
                 return;
             }
+            if (currentPassword === newPassword) {
+                setAdminStatus('New password must be different from the current password.', true);
+                return;
+            }
 
             adminResetPasswordSubmitButton.disabled = true;
             try {
@@ -2793,6 +2942,48 @@
                 setAdminStatus(error.message || 'Password reset failed.', true);
             } finally {
                 adminResetPasswordSubmitButton.disabled = false;
+            }
+        });
+        changePasswordSubmitButton.addEventListener('click', async () => {
+            if (!supabaseClient) {
+                setModalStatus(changePasswordStatusEl, 'Supabase client failed to initialize.', true);
+                return;
+            }
+            const username = adminUser?.username || '';
+            const currentPassword = changePasswordCurrentInput.value;
+            const newPassword = changePasswordNewInput.value;
+            if (!username || !currentPassword || !newPassword) {
+                setModalStatus(changePasswordStatusEl, 'Enter current password and new password.', true);
+                return;
+            }
+            if (currentPassword === newPassword) {
+                setModalStatus(changePasswordStatusEl, 'New password must be different from the current password.', true);
+                return;
+            }
+
+            changePasswordSubmitButton.disabled = true;
+            try {
+                const { data, error } = await supabaseClient.rpc('reset_app_user_password', {
+                    p_username: username,
+                    p_current_password: currentPassword,
+                    p_new_password: newPassword
+                });
+                if (error) throw error;
+                adminUser = data;
+                adminPassword = newPassword;
+                changePasswordCurrentInput.value = '';
+                changePasswordNewInput.value = '';
+                persistAdminSession();
+                await loadAccountSummary();
+                updateAdminUi();
+                await loadOutreachDefaults();
+                await loadDashboardMetrics();
+                setModalStatus(changePasswordStatusEl, 'Password changed successfully.');
+                window.setTimeout(() => closeModal(changePasswordModalEl), 500);
+            } catch (error) {
+                setModalStatus(changePasswordStatusEl, error.message || 'Password change failed.', true);
+            } finally {
+                changePasswordSubmitButton.disabled = false;
             }
         });
 
