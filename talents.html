@@ -43,7 +43,6 @@
                 radial-gradient(circle at top left, rgba(71, 229, 165, 0.12), transparent 28%),
                 radial-gradient(circle at 80% 10%, rgba(127, 255, 212, 0.08), transparent 24%),
                 linear-gradient(180deg, #07110f 0%, #091612 52%, #06100d 100%);
-            overflow-x: auto;
         }
         h1, h2, h3 {
             font-family: 'Untitled Serif', serif;
@@ -73,16 +72,12 @@
             flex-wrap: wrap;
             justify-content: flex-end;
         }
-        .topbar-user {
-            position: relative;
-        }
         .brand {
             display: inline-flex;
             align-items: center;
             gap: 12px;
             font-size: 0.92rem;
             color: rgba(255, 255, 255, 0.86);
-            min-width: 0;
         }
         .user-chip {
             display: inline-flex;
@@ -94,57 +89,6 @@
             background: rgba(71, 229, 165, 0.08);
             color: rgba(239, 248, 244, 0.94);
             font-weight: 700;
-            max-width: 100%;
-            overflow-wrap: anywhere;
-            cursor: pointer;
-        }
-        .user-chip::after {
-            content: '▾';
-            margin-left: 10px;
-            font-size: 0.82rem;
-            color: rgba(127, 255, 212, 0.88);
-        }
-        .account-card {
-            position: absolute;
-            top: calc(100% + 12px);
-            right: 0;
-            width: min(320px, 78vw);
-            display: none;
-            padding: 16px;
-            border-radius: 22px;
-            border: 1px solid rgba(127, 255, 212, 0.16);
-            background: linear-gradient(180deg, rgba(12, 28, 23, 0.98), rgba(8, 19, 15, 0.96));
-            box-shadow: 0 28px 70px rgba(0, 0, 0, 0.34);
-            backdrop-filter: blur(18px);
-            z-index: 20;
-            gap: 12px;
-        }
-        .account-card.open {
-            display: grid;
-        }
-        .account-card-row {
-            display: grid;
-            gap: 4px;
-            padding: 12px 14px;
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            background: rgba(255, 255, 255, 0.03);
-        }
-        .account-card-label {
-            font-size: 11px;
-            letter-spacing: 0.11em;
-            text-transform: uppercase;
-            color: rgba(239, 248, 244, 0.58);
-            font-weight: 700;
-        }
-        .account-card-value {
-            color: var(--text);
-            font-size: 0.98rem;
-            line-height: 1.5;
-        }
-        .account-card-actions {
-            display: grid;
-            gap: 10px;
         }
         .brand-mark {
             width: 24px;
@@ -204,7 +148,6 @@
             padding: 10px 14px;
             border-radius: 999px;
             background: rgba(71, 229, 165, 0.06);
-            max-width: 100%;
         }
         .hero {
             border: 1px solid var(--line);
@@ -370,7 +313,6 @@
             font-weight: 700;
             cursor: pointer;
             transition: transform 0.18s ease, border-color 0.18s ease;
-            max-width: 100%;
         }
         .button {
             border: 0;
@@ -498,55 +440,16 @@
             line-height: 1.7;
         }
         .signup-promo-visual {
-            position: relative;
             border-radius: 28px;
             overflow: hidden;
             border: 1px solid rgba(255, 255, 255, 0.08);
-            background:
-                radial-gradient(circle at top left, rgba(127, 255, 212, 0.14), transparent 32%),
-                linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
-            box-shadow:
-                inset 0 1px 0 rgba(255, 255, 255, 0.03),
-                0 22px 60px rgba(0, 0, 0, 0.3);
-            padding: 14px;
+            background: rgba(255, 255, 255, 0.03);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
         }
-        .signup-promo-visual::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background:
-                linear-gradient(135deg, rgba(71, 229, 165, 0.08), transparent 38%),
-                radial-gradient(circle at 82% 18%, rgba(127, 255, 212, 0.16), transparent 24%);
-            pointer-events: none;
-            z-index: 1;
-        }
-        .signup-promo-visual::after {
-            content: "Outreach flow preview";
-            position: absolute;
-            left: 28px;
-            bottom: 24px;
-            padding: 9px 14px;
-            border-radius: 999px;
-            border: 1px solid rgba(127, 255, 212, 0.22);
-            background: rgba(7, 17, 15, 0.72);
-            color: rgba(239, 248, 244, 0.88);
-            font-size: 11px;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            font-weight: 700;
-            backdrop-filter: blur(10px);
-            z-index: 2;
-        }
-        .signup-promo-image {
+        .signup-promo-visual svg {
             display: block;
             width: 100%;
             height: auto;
-            min-height: 100%;
-            border-radius: 22px;
-            border: 1px solid rgba(127, 255, 212, 0.14);
-            box-shadow:
-                0 18px 40px rgba(0, 0, 0, 0.28),
-                0 0 0 1px rgba(255, 255, 255, 0.03) inset;
         }
         .results-meta {
             color: var(--muted);
@@ -846,49 +749,32 @@
         }
         @media (max-width: 1040px) {
             .signup-promo {
-                grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
-                min-width: 1040px;
+                grid-template-columns: 1fr;
             }
             .layout {
-                grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
-                min-width: 1100px;
+                grid-template-columns: 1fr;
             }
             .panel + .panel {
-                border-left: 1px solid var(--line);
-                border-top: 0;
+                border-left: 0;
+                border-top: 1px solid var(--line);
             }
         }
         @media (max-width: 720px) {
             .container {
-                padding: 36px 24px 80px;
-                min-width: 1280px;
+                padding: 24px 16px 60px;
             }
-            .topbar {
-                flex-direction: row;
-                align-items: center;
-            }
-            .topbar-actions,
-            .topbar-user {
-                width: auto;
-                justify-content: flex-end;
+            .hero-head,
+            .panel {
+                padding: 22px 20px;
             }
             .field-grid,
             .admin-grid,
             .editor-grid,
             .schedule-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
+                grid-template-columns: 1fr;
             }
             .dashboard-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-            .dashboard-grid.user-mode {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-            }
-            .dashboard-grid.admin-mode {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-            }
-            .signup-promo {
-                padding: 28px 32px;
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -920,21 +806,8 @@
                 <button class="button" data-icon="✦" id="topbar-signup-button" type="button">Sign Up</button>
             </div>
             <div class="topbar-user" id="topbar-user" style="display:none;">
-                <button class="user-chip" id="topbar-username" type="button" aria-expanded="false" aria-controls="topbar-account-card">username</button>
-                <div class="account-card" id="topbar-account-card">
-                    <div class="account-card-row">
-                        <div class="account-card-label">Account valid date</div>
-                        <div class="account-card-value" id="account-valid-date">-</div>
-                    </div>
-                    <div class="account-card-row">
-                        <div class="account-card-label">Account expire date</div>
-                        <div class="account-card-value" id="account-expire-date">-</div>
-                    </div>
-                    <div class="account-card-actions">
-                        <button class="button-secondary" data-icon="◌" id="topbar-change-password-button" type="button">Password Reset</button>
-                        <button class="button-secondary button-danger" data-icon="⇠" id="topbar-logout-button" type="button">Logout</button>
-                    </div>
-                </div>
+                <div class="user-chip" id="topbar-username">username</div>
+                <button class="button-secondary" data-icon="⇠" id="topbar-logout-button" type="button">Logout</button>
             </div>
         </div>
 
@@ -958,14 +831,44 @@
             </div>
             <div class="signup-promo" id="signup-promo">
                 <div class="signup-promo-copy">
-                    <strong data-icon="✦">Sign up to enjoy more smooth and automatic outreach.</strong>
+                    <strong data-icon="✦">Sign up to enjoy more smooth and automatic candidate outreach.</strong>
                     <p>Unlock richer profile details, smoother outreach actions, and a faster candidate workflow that stays aligned with the page style.</p>
                     <div class="actions" style="margin-top:0;">
                         <button class="button-secondary" data-icon="✦" id="signup-promo-button" type="button">Sign Up To Unlock More</button>
                     </div>
                 </div>
                 <div class="signup-promo-visual" aria-hidden="true">
-                    <img class="signup-promo-image" src="assets-outreach-promo.png" alt="" loading="lazy">
+                    <svg viewBox="0 0 620 360" xmlns="http://www.w3.org/2000/svg" role="img">
+                        <defs>
+                            <linearGradient id="promo-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#0c201b"/>
+                                <stop offset="100%" stop-color="#0a1714"/>
+                            </linearGradient>
+                            <linearGradient id="promo-accent" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#7fffd4"/>
+                                <stop offset="100%" stop-color="#47e5a5"/>
+                            </linearGradient>
+                        </defs>
+                        <rect width="620" height="360" fill="url(#promo-bg)"/>
+                        <circle cx="126" cy="86" r="74" fill="rgba(127,255,212,0.10)"/>
+                        <circle cx="522" cy="298" r="82" fill="rgba(71,229,165,0.10)"/>
+                        <rect x="42" y="56" width="258" height="248" rx="28" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.10)"/>
+                        <rect x="72" y="92" width="90" height="14" rx="7" fill="rgba(239,248,244,0.82)"/>
+                        <rect x="72" y="124" width="182" height="10" rx="5" fill="rgba(239,248,244,0.28)"/>
+                        <rect x="72" y="146" width="156" height="10" rx="5" fill="rgba(239,248,244,0.22)"/>
+                        <rect x="72" y="192" width="196" height="76" rx="22" fill="rgba(71,229,165,0.10)" stroke="rgba(71,229,165,0.26)"/>
+                        <rect x="98" y="218" width="114" height="12" rx="6" fill="url(#promo-accent)"/>
+                        <rect x="98" y="242" width="138" height="10" rx="5" fill="rgba(239,248,244,0.32)"/>
+                        <path d="M330 180h84" stroke="rgba(127,255,212,0.55)" stroke-width="10" stroke-linecap="round"/>
+                        <path d="M392 150l42 30-42 30" fill="none" stroke="url(#promo-accent)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+                        <rect x="446" y="74" width="128" height="88" rx="24" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.12)"/>
+                        <rect x="472" y="102" width="58" height="12" rx="6" fill="rgba(239,248,244,0.84)"/>
+                        <rect x="472" y="126" width="74" height="10" rx="5" fill="rgba(239,248,244,0.24)"/>
+                        <rect x="428" y="210" width="150" height="100" rx="28" fill="rgba(255,255,255,0.05)" stroke="rgba(127,255,212,0.16)"/>
+                        <rect x="456" y="238" width="94" height="12" rx="6" fill="url(#promo-accent)"/>
+                        <rect x="456" y="262" width="82" height="10" rx="5" fill="rgba(239,248,244,0.26)"/>
+                        <rect x="456" y="282" width="102" height="10" rx="5" fill="rgba(239,248,244,0.18)"/>
+                    </svg>
                 </div>
             </div>
             <div class="layout">
@@ -1116,32 +1019,6 @@
         </div>
     </div>
 
-    <div class="modal-backdrop" id="change-password-modal" aria-hidden="true">
-        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="change-password-modal-title">
-            <div class="modal-head">
-                <div>
-                    <h3 data-icon="◌" id="change-password-modal-title">Password Reset</h3>
-                    <p class="modal-copy">Update your account password. Your session will continue with the new password after a successful change.</p>
-                </div>
-                <button class="modal-close" type="button" data-close-modal="change-password-modal" aria-label="Close change password window">✕</button>
-            </div>
-            <div class="stack" style="margin-top:0;">
-                <div class="field">
-                    <label data-icon="◌" for="change-password-current">Current Password</label>
-                    <input id="change-password-current" type="password" autocomplete="current-password" placeholder="Current password">
-                </div>
-                <div class="field">
-                    <label data-icon="◌" for="change-password-new">New Password</label>
-                    <input id="change-password-new" type="password" autocomplete="new-password" placeholder="New password">
-                </div>
-            </div>
-            <div class="actions">
-                <button class="button" data-icon="✓" id="change-password-submit" type="button">Password Reset</button>
-            </div>
-            <div class="modal-status" id="change-password-status"></div>
-        </div>
-    </div>
-
     <script>
         const SUPABASE_URL = 'https://zocovvewzpqxspysanyy.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvY292dmV3enBxeHNweXNhbnl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwODYwNTgsImV4cCI6MjA4OTY2MjA1OH0.8ekfJ3bcvG-AbLD39xUINwXrpO7RiH9PVgy-xMzeHbE';
@@ -1160,12 +1037,8 @@
         const topbarAuthActionsEl = document.getElementById('topbar-auth-actions');
         const topbarUserEl = document.getElementById('topbar-user');
         const topbarUsernameEl = document.getElementById('topbar-username');
-        const topbarAccountCardEl = document.getElementById('topbar-account-card');
-        const accountValidDateEl = document.getElementById('account-valid-date');
-        const accountExpireDateEl = document.getElementById('account-expire-date');
         const topbarLoginButton = document.getElementById('topbar-login-button');
         const topbarSignupButton = document.getElementById('topbar-signup-button');
-        const topbarChangePasswordButton = document.getElementById('topbar-change-password-button');
         const topbarLogoutButton = document.getElementById('topbar-logout-button');
         const prevButton = document.getElementById('prev-button');
         const nextButton = document.getElementById('next-button');
@@ -1211,11 +1084,6 @@
         const signupModalCodeInput = document.getElementById('signup-modal-code');
         const signupModalSubmitButton = document.getElementById('signup-modal-submit');
         const signupModalStatusEl = document.getElementById('signup-modal-status');
-        const changePasswordModalEl = document.getElementById('change-password-modal');
-        const changePasswordCurrentInput = document.getElementById('change-password-current');
-        const changePasswordNewInput = document.getElementById('change-password-new');
-        const changePasswordSubmitButton = document.getElementById('change-password-submit');
-        const changePasswordStatusEl = document.getElementById('change-password-status');
         const signupIssuedCodeEl = document.getElementById('signup-issued-code');
         const resultsMetaEl = document.getElementById('results-meta');
         const resultsEl = document.getElementById('results');
@@ -1228,10 +1096,7 @@
             'delivery_route',
             'status',
             'created_at',
-            'updated_at',
-            '_candidate_email',
-            '_scheduleDraft',
-            '_emailDraft'
+            'updated_at'
         ]);
         const EDITABLE_PROFILE_FIELDS = [
             'agent_type',
@@ -1264,7 +1129,7 @@
             seniority: 'brief_background'
         };
         const REQUIRED_FIELDS = new Set(['agent_type', 'name_or_handle', 'status']);
-        const PUBLIC_PROFILE_SELECT = 'id, agent_type, name_or_handle, email, location, domain_focus, seniority, skills, needs, recent_evidence, status, created_at, updated_at';
+        const PUBLIC_PROFILE_SELECT = 'id, agent_type, name_or_handle, location, domain_focus, seniority, skills, needs, recent_evidence, status, created_at, updated_at';
         const SIGNED_OUT_PROFILE_SELECT = 'id, name_or_handle, seniority, location, "Recently_Contacted", created_at, updated_at';
         const SIGNED_OUT_VISIBLE_PROFILE_FIELDS = new Set(['seniority', 'location', 'Recently_Contacted']);
 
@@ -1342,7 +1207,6 @@
         const isLoggedIn = () => Boolean(adminUser?.username);
         const isAdminLoggedIn = () => Boolean(adminUser?.username && adminUser?.rights === 'admin');
         const canUseEmailTools = () => isLoggedIn();
-        const canUseScheduleTools = () => isLoggedIn();
         const isProfileSelectedForSchedule = (profileId) => selectedScheduleProfileIds.includes(profileId);
         const selectedScheduleProfilesInOrder = () => currentRows.filter((row) => isProfileSelectedForSchedule(row.id));
         const firstSelectedScheduleProfile = () => selectedScheduleProfilesInOrder()[0] || null;
@@ -1418,10 +1282,7 @@
                     updated_at: row.updated_at
                 }));
             }
-            return rows.map(({ email, bio_link, ...rest }) => ({
-                ...rest,
-                _candidate_email: String(email || '').trim()
-            }));
+            return rows.map(({ email, bio_link, ...rest }) => rest);
         };
         const collectNamedFields = (form) => {
             const fields = {};
@@ -1472,23 +1333,6 @@
             .toUpperCase()
             .replace(/\s+/g, '')
             .replace(/[^A-Z0-9-]/g, '');
-        const formatAccountDate = (value) => {
-            const text = String(value || '').trim();
-            if (!text) return '-';
-            if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
-            const date = new Date(text);
-            if (Number.isNaN(date.getTime())) return text;
-            return date.toISOString().slice(0, 10);
-        };
-        const setAccountCardOpen = (open) => {
-            if (!topbarAccountCardEl || !topbarUsernameEl) return;
-            topbarAccountCardEl.classList.toggle('open', open);
-            topbarUsernameEl.setAttribute('aria-expanded', open ? 'true' : 'false');
-        };
-        const refreshAccountCard = () => {
-            accountValidDateEl.textContent = formatAccountDate(adminUser?.valid_from);
-            accountExpireDateEl.textContent = formatAccountDate(adminUser?.expires_on);
-        };
 
         const renderIssuedInvitationCode = (payload) => {
             const code = String(payload?.code || '').trim();
@@ -1574,10 +1418,6 @@
             topbarAuthActionsEl.style.display = isLoggedIn() ? 'none' : 'inline-flex';
             topbarUserEl.style.display = isLoggedIn() ? 'inline-flex' : 'none';
             topbarUsernameEl.textContent = username || 'username';
-            refreshAccountCard();
-            if (!isLoggedIn()) {
-                setAccountCardOpen(false);
-            }
             dashboardPrimaryTitleEl.textContent = 'New records, last 7 days';
             dashboardSecondaryTitleEl.textContent = isAdminLoggedIn() ? 'New users, last 7 days' : 'Email outreach, last 7 days';
             dashboardTertiaryTitleEl.textContent = 'New schedules, last 7 days';
@@ -1632,35 +1472,6 @@
         };
 
         const escapeMailto = (value) => encodeURIComponent(String(value || ''));
-        const zeroPad = (value) => String(value).padStart(2, '0');
-        const addMinutesToScheduleParts = (date, hour, minute, minutesToAdd) => {
-            const [year, month, day] = String(date || '').split('-').map((part) => Number(part));
-            const shifted = new Date(Date.UTC(year, (month || 1) - 1, day || 1, Number(hour) || 0, (Number(minute) || 0) + Number(minutesToAdd || 0), 0));
-            return {
-                date: `${shifted.getUTCFullYear()}-${zeroPad(shifted.getUTCMonth() + 1)}-${zeroPad(shifted.getUTCDate())}`,
-                hour: zeroPad(shifted.getUTCHours()),
-                minute: zeroPad(shifted.getUTCMinutes())
-            };
-        };
-        const formatCalendarStamp = (date, hour, minute) => `${String(date || '').replace(/-/g, '')}T${zeroPad(hour)}${zeroPad(minute)}00`;
-        const buildManualScheduleUrl = (profile, values, draft) => {
-            const candidateEmail = String(profile?._candidate_email || profile?.email || '').trim();
-            const timezone = String(values?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC').trim();
-            const startStamp = formatCalendarStamp(values?.date, values?.hour, values?.minute);
-            const endParts = addMinutesToScheduleParts(values?.date, values?.hour, values?.minute, 15);
-            const endStamp = formatCalendarStamp(endParts.date, endParts.hour, endParts.minute);
-            const params = new URLSearchParams({
-                action: 'TEMPLATE',
-                text: String(draft?.subject || '').trim(),
-                dates: `${startStamp}/${endStamp}`,
-                ctz: timezone,
-                details: String(draft?.body || '').trim()
-            });
-            if (candidateEmail) {
-                params.set('add', candidateEmail);
-            }
-            return `https://calendar.google.com/calendar/render?${params.toString()}`;
-        };
 
         const buildOpportunityParagraph = (company, role) => `${String(company || '').trim()} is currently hiring ${String(role || '').trim()}.`;
         const truncateWords = (text, maxWords) => String(text || '').trim().split(/\s+/).filter(Boolean).slice(0, maxWords).join(' ');
@@ -1760,7 +1571,6 @@
                 };
             }
         };
-        const generateScheduleDraft = async (profile, values) => generateEmailDraft(profile, values);
 
         const renderDashboardChart = (element, points) => {
             if (!element) return;
@@ -2049,7 +1859,7 @@
 
         const renderSchedulePanel = (profile) => {
             const values = profile._scheduleDraft || scheduleDefaults();
-            const selectedProfiles = isAdminLoggedIn() ? selectedScheduleProfilesInOrder() : [];
+            const selectedProfiles = selectedScheduleProfilesInOrder();
             const selectionCount = selectedProfiles.length;
             const timezoneOptionsHtml = timeZoneOptions.map((zone) => {
                 const selected = zone === values.timezone ? ' selected' : '';
@@ -2057,10 +1867,6 @@
             }).join('');
             const disabledAttr = sendingScheduleProfileId === profile.id ? ' disabled' : '';
             const sendDisabledAttr = !isScheduleComplete(values) || sendingScheduleProfileId === profile.id ? ' disabled' : '';
-            const sendLabel = selectionCount > 1 ? `Send to ${selectionCount} selected` : 'Send';
-            const statusText = isAdminLoggedIn()
-                ? `This queues a Google Calendar invitation now. The selected date and time are the meeting time.${selectionCount > 1 ? ` The same schedule will be used for ${selectionCount} selected records on this page.` : ''}`
-                : 'This opens a prefilled Google Calendar draft. Review the event there and confirm sending manually.';
             return `
                 <div class="schedule-panel">
                     <div class="schedule-grid" data-schedule-form="${escapeHtml(profile.id)}">
@@ -2113,9 +1919,9 @@
                     </div>
                     <div class="card-actions">
                         <button class="button-secondary" data-icon="×" type="button" data-action="cancel-schedule" data-id="${escapeHtml(profile.id)}"${disabledAttr}>Cancel</button>
-                        <button class="button" data-icon="↗" type="button" data-action="send-schedule" data-id="${escapeHtml(profile.id)}"${sendDisabledAttr}>${sendLabel}</button>
+                        <button class="button" data-icon="↗" type="button" data-action="send-schedule" data-id="${escapeHtml(profile.id)}"${sendDisabledAttr}>${selectionCount > 1 ? `Send to ${selectionCount} selected` : 'Send'}</button>
                     </div>
-                    <div class="schedule-status">${escapeHtml(statusText)}</div>
+                    <div class="schedule-status">This queues a Google Calendar invitation now. The selected date and time are the meeting time.${selectionCount > 1 ? ` The same schedule will be used for ${selectionCount} selected records on this page.` : ''}</div>
                 </div>
             `;
         };
@@ -2129,7 +1935,7 @@
 
             resultsEl.innerHTML = rows.map((profile) => {
                 const isEditing = isAdminLoggedIn() && editingProfileId === profile.id;
-                const isScheduling = canUseScheduleTools() && schedulingProfileId === profile.id;
+                const isScheduling = isAdminLoggedIn() && schedulingProfileId === profile.id;
                 const isEmailing = canUseEmailTools() && emailingProfileId === profile.id;
                 let bodyHtml = '';
                 let actionsHtml = '';
@@ -2154,11 +1960,11 @@
                         })
                         .filter(Boolean)
                         .join('');
-                    actionsHtml = (isAdminLoggedIn() || canUseEmailTools() || canUseScheduleTools())
+                    actionsHtml = (isAdminLoggedIn() || canUseEmailTools())
                     ? `
                         <div class="card-actions">
                             ${isAdminLoggedIn() ? `<button class="button-secondary" data-icon="✎" type="button" data-action="edit-profile" data-id="${escapeHtml(profile.id)}">Edit</button>` : ''}
-                            ${canUseScheduleTools() ? `<button class="button-secondary" data-icon="↗" type="button" data-action="open-schedule" data-id="${escapeHtml(profile.id)}">Schedule</button>` : ''}
+                            ${isAdminLoggedIn() ? `<button class="button-secondary" data-icon="↗" type="button" data-action="open-schedule" data-id="${escapeHtml(profile.id)}">Schedule</button>` : ''}
                             <button class="button-secondary" data-icon="✉" type="button" data-action="open-email" data-id="${escapeHtml(profile.id)}">Email</button>
                         </div>
                     `
@@ -2416,7 +2222,6 @@
                 }
                 adminUser = data;
                 adminPassword = password;
-                await loadAccountSummary();
                 adminUsernameInput.value = username;
                 adminPasswordInput.value = '';
             } catch (_error) {
@@ -2434,24 +2239,6 @@
                 p_username: adminUser.username,
                 p_password: adminPassword
             };
-        };
-
-        const loadAccountSummary = async () => {
-            if (!supabaseClient || !isLoggedIn() || !adminPassword) return;
-            try {
-                const { data, error } = await supabaseClient.rpc('get_app_user_account_summary', {
-                    ...authRpcCredentials()
-                });
-                if (error) throw error;
-                if (data && typeof data === 'object') {
-                    adminUser = {
-                        ...adminUser,
-                        ...data
-                    };
-                }
-            } catch (_error) {
-                // Keep the current session usable even if account summary RPC is not available yet.
-            }
         };
 
         const adminRpcCredentials = () => {
@@ -2503,7 +2290,6 @@
         const completeAuthenticatedSession = async (data, password, { closeElement = null } = {}) => {
             adminUser = data;
             adminPassword = password;
-            await loadAccountSummary();
             adminUsernameInput.value = data?.username || '';
             adminPasswordInput.value = '';
             persistAdminSession();
@@ -2570,8 +2356,6 @@
             adminInviteCodeOutput.value = '';
             closeModal(loginModalEl);
             closeModal(signupModalEl);
-            closeModal(changePasswordModalEl);
-            setAccountCardOpen(false);
             clearAdminSession();
             updateAdminUi();
             clearResultsForSignedOutState();
@@ -2690,19 +2474,6 @@
 
         adminLogoutButton.addEventListener('click', logoutCurrentUser);
         topbarLogoutButton.addEventListener('click', logoutCurrentUser);
-        topbarUsernameEl.addEventListener('click', () => {
-            if (!isLoggedIn()) return;
-            setAccountCardOpen(!topbarAccountCardEl.classList.contains('open'));
-        });
-        topbarChangePasswordButton.addEventListener('click', () => {
-            if (!isLoggedIn()) return;
-            setAccountCardOpen(false);
-            setModalStatus(changePasswordStatusEl, '', false);
-            changePasswordCurrentInput.value = '';
-            changePasswordNewInput.value = '';
-            openModal(changePasswordModalEl);
-            window.setTimeout(() => changePasswordCurrentInput.focus(), 0);
-        });
 
         topbarLoginButton.addEventListener('click', () => {
             setModalStatus(loginModalStatusEl, '', false);
@@ -2790,7 +2561,7 @@
             });
         });
 
-        [loginModalEl, signupModalEl, changePasswordModalEl].forEach((modal) => {
+        [loginModalEl, signupModalEl].forEach((modal) => {
             modal.addEventListener('click', (event) => {
                 if (event.target === modal) {
                     closeModal(modal);
@@ -2802,13 +2573,6 @@
             if (event.key !== 'Escape') return;
             closeModal(loginModalEl);
             closeModal(signupModalEl);
-            closeModal(changePasswordModalEl);
-            setAccountCardOpen(false);
-        });
-        document.addEventListener('click', (event) => {
-            if (!topbarAccountCardEl.classList.contains('open')) return;
-            if (topbarUserEl.contains(event.target)) return;
-            setAccountCardOpen(false);
         });
 
         adminAddUserButton.addEventListener('click', async () => {
@@ -2965,10 +2729,6 @@
                 setAdminStatus('Enter username, current password, and new password.', true);
                 return;
             }
-            if (currentPassword === newPassword) {
-                setAdminStatus('New password must be different from the current password.', true);
-                return;
-            }
 
             adminResetPasswordSubmitButton.disabled = true;
             try {
@@ -2996,48 +2756,6 @@
                 adminResetPasswordSubmitButton.disabled = false;
             }
         });
-        changePasswordSubmitButton.addEventListener('click', async () => {
-            if (!supabaseClient) {
-                setModalStatus(changePasswordStatusEl, 'Supabase client failed to initialize.', true);
-                return;
-            }
-            const username = adminUser?.username || '';
-            const currentPassword = changePasswordCurrentInput.value;
-            const newPassword = changePasswordNewInput.value;
-            if (!username || !currentPassword || !newPassword) {
-                setModalStatus(changePasswordStatusEl, 'Enter current password and new password.', true);
-                return;
-            }
-            if (currentPassword === newPassword) {
-                setModalStatus(changePasswordStatusEl, 'New password must be different from the current password.', true);
-                return;
-            }
-
-            changePasswordSubmitButton.disabled = true;
-            try {
-                const { data, error } = await supabaseClient.rpc('reset_app_user_password', {
-                    p_username: username,
-                    p_current_password: currentPassword,
-                    p_new_password: newPassword
-                });
-                if (error) throw error;
-                adminUser = data;
-                adminPassword = newPassword;
-                changePasswordCurrentInput.value = '';
-                changePasswordNewInput.value = '';
-                persistAdminSession();
-                await loadAccountSummary();
-                updateAdminUi();
-                await loadOutreachDefaults();
-                await loadDashboardMetrics();
-                setModalStatus(changePasswordStatusEl, 'Password changed successfully.');
-                window.setTimeout(() => closeModal(changePasswordModalEl), 500);
-            } catch (error) {
-                setModalStatus(changePasswordStatusEl, error.message || 'Password change failed.', true);
-            } finally {
-                changePasswordSubmitButton.disabled = false;
-            }
-        });
 
         resultsEl.addEventListener('click', async (event) => {
             const button = event.target.closest('button[data-action]');
@@ -3061,11 +2779,11 @@
             }
 
             if (action === 'open-schedule') {
-                if (!canUseScheduleTools()) {
-                    setAdminStatus('Log in to use scheduling.', true);
+                if (!isAdminLoggedIn()) {
+                    setAdminStatus('Log in with admin rights to use scheduling.', true);
                     return;
                 }
-                if (isAdminLoggedIn() && !isProfileSelectedForSchedule(profileId)) {
+                if (!isProfileSelectedForSchedule(profileId)) {
                     selectedScheduleProfileIds = [profileId];
                 }
                 schedulingProfileId = profileId;
@@ -3161,63 +2879,35 @@
             if (action === 'send-schedule') {
                 try {
                     const payload = parseScheduleForm(profileId);
+                    const targets = selectedScheduleProfilesInOrder();
+                    const profiles = targets.length ? targets : currentRows.filter((row) => row.id === profileId);
+                    if (!profiles.length) throw new Error('Profile not found.');
                     sendingScheduleProfileId = profileId;
+                    setStatus(profiles.length > 1 ? `Queueing ${profiles.length} Google Calendar invitations...` : 'Queueing Google Calendar invitation...');
                     renderRows(currentRows);
-                    if (isAdminLoggedIn()) {
-                        const targets = selectedScheduleProfilesInOrder();
-                        const profiles = targets.length ? targets : currentRows.filter((row) => row.id === profileId);
-                        if (!profiles.length) throw new Error('Profile not found.');
-                        setStatus(profiles.length > 1 ? `Queueing ${profiles.length} Google Calendar invitations...` : 'Queueing Google Calendar invitation...');
-                        let lastScheduledFor = '';
-                        for (const profile of profiles) {
-                            const { data, error } = await supabaseClient.rpc('admin_enqueue_schedule_invite', {
-                                ...authRpcCredentials(),
-                                p_profile_id: profile.id,
-                                p_schedule: payload
-                            });
-                            if (error) throw error;
-                            lastScheduledFor = data?.scheduled_for || lastScheduledFor;
-                        }
-                        applyOutreachDefaultsLocally(payload);
-                        currentRows = currentRows.map((row) => (
-                            profiles.some((profile) => profile.id === row.id)
-                                ? { ...row, Recently_Contacted: true }
-                                : row
-                        ));
-                        schedulingProfileId = null;
-                        selectedScheduleProfileIds = [];
-                        await loadDashboardMetrics();
-                        if (profiles.length > 1) {
-                            setStatus(lastScheduledFor ? `${profiles.length} invitations queued. The online worker should send them within about 5-10 minutes; the selected time remains the meeting time (${lastScheduledFor}).` : `${profiles.length} invitations queued for Google Calendar delivery.`);
-                        } else {
-                            setStatus(lastScheduledFor ? `Invitation queued. The online worker should send it within about 5-10 minutes; the selected time remains the meeting time (${lastScheduledFor}).` : 'Invitation queued for Google Calendar delivery.');
-                        }
-                    } else {
-                        const profile = currentRows.find((row) => row.id === profileId);
-                        if (!profile) throw new Error('Profile not found.');
-                        if (!String(profile._candidate_email || '').trim()) {
-                            throw new Error('Candidate email is required to prefill the calendar invitation.');
-                        }
-                        setStatus('Generating schedule draft...');
-                        applyOutreachDefaultsLocally(payload);
-                        const draft = await generateScheduleDraft(profile, payload);
-                        const { error } = await supabaseClient.rpc('log_schedule_outreach', {
+                    let lastScheduledFor = '';
+                    for (const profile of profiles) {
+                        const { data, error } = await supabaseClient.rpc('admin_enqueue_schedule_invite', {
                             ...authRpcCredentials(),
-                            p_profile_id: profileId,
-                            p_schedule: payload,
-                            p_invite_title: draft.subject,
-                            p_invite_content: draft.body
+                            p_profile_id: profile.id,
+                            p_schedule: payload
                         });
                         if (error) throw error;
-                        currentRows = currentRows.map((row) => row.id === profileId ? { ...row, Recently_Contacted: true } : row);
-                        await loadDashboardMetrics();
-                        const calendarUrl = buildManualScheduleUrl(profile, payload, draft);
-                        const draftWindow = window.open(calendarUrl, '_blank', 'noopener');
-                        if (!draftWindow) {
-                            window.location.href = calendarUrl;
-                        }
-                        schedulingProfileId = null;
-                        setStatus('Schedule draft opened in Google Calendar with the subject, attendee, and description prefilled. Review it there and confirm sending manually.');
+                        lastScheduledFor = data?.scheduled_for || lastScheduledFor;
+                    }
+                    applyOutreachDefaultsLocally(payload);
+                    currentRows = currentRows.map((row) => (
+                        profiles.some((profile) => profile.id === row.id)
+                            ? { ...row, Recently_Contacted: true }
+                            : row
+                    ));
+                    schedulingProfileId = null;
+                    selectedScheduleProfileIds = [];
+                    await loadDashboardMetrics();
+                    if (profiles.length > 1) {
+                        setStatus(lastScheduledFor ? `${profiles.length} invitations queued. The online worker should send them within about 5-10 minutes; the selected time remains the meeting time (${lastScheduledFor}).` : `${profiles.length} invitations queued for Google Calendar delivery.`);
+                    } else {
+                        setStatus(lastScheduledFor ? `Invitation queued. The online worker should send it within about 5-10 minutes; the selected time remains the meeting time (${lastScheduledFor}).` : 'Invitation queued for Google Calendar delivery.');
                     }
                     renderRows(currentRows);
                 } catch (error) {

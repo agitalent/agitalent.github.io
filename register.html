@@ -40,7 +40,6 @@
                 radial-gradient(circle at top left, rgba(71, 229, 165, 0.12), transparent 28%),
                 radial-gradient(circle at 80% 10%, rgba(127, 255, 212, 0.08), transparent 24%),
                 linear-gradient(180deg, #07110f 0%, #091612 52%, #06100d 100%);
-            overflow-x: auto;
         }
         h1, h2, h3 { font-family: 'Untitled Serif', serif; font-weight: 400; }
         .container {
@@ -62,7 +61,6 @@
             padding: 10px 14px;
             border-radius: 999px;
             background: rgba(71, 229, 165, 0.06);
-            max-width: 100%;
         }
         [data-icon]::before {
             content: attr(data-icon);
@@ -159,7 +157,6 @@
             color: #062018;
             background: linear-gradient(180deg, #7fffd4, #47e5a5);
             cursor: pointer;
-            max-width: 100%;
         }
         .status {
             margin-top: 16px;
@@ -196,28 +193,15 @@
             justify-content: space-between;
             gap: 12px;
             margin-bottom: 8px;
-            flex-wrap: wrap;
         }
         .score {
             color: var(--accent);
             font-weight: 700;
         }
         @media (max-width: 900px) {
-            .grid {
-                grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
-                min-width: 1040px;
-            }
-            .section + .section { border-left: 1px solid var(--line); border-top: 0; }
-            .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            .topbar { flex-direction: row; align-items: center; }
-        }
-        @media (max-width: 640px) {
-            .container {
-                padding: 40px 28px 80px;
-                min-width: 1120px;
-            }
-            .section { padding: 28px 34px 34px; }
-            .actions { flex-wrap: nowrap; }
+            .grid { grid-template-columns: 1fr; }
+            .section + .section { border-left: 0; border-top: 1px solid var(--line); }
+            .form-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -373,9 +357,6 @@
         const profileParseButton = document.getElementById('profile-parse-button');
         const profileParseStatus = document.getElementById('profile-parse-status');
         let latestProfileParseRequest = 0;
-        let emailDuplicateCheckTimer = null;
-        let emailDuplicateCheckSequence = 0;
-        let pendingEmailDuplicateCheck = null;
 
         const setStatus = (message) => { hubStatus.textContent = message; };
         const setSkillReminderVisible = (visible) => {
@@ -431,10 +412,6 @@
             .replace(/\s*\.\s*/g, '.')
             .replace(/\s+/g, '')
             .trim();
-        const normalizeStoredEmail = (value) => {
-            const cleaned = normalizeEmailInputValue(value);
-            return cleaned ? cleaned.toLowerCase() : null;
-        };
         const attachEmailAutocorrect = (input) => {
             if (!input) return;
             const applyNormalization = () => {
@@ -661,7 +638,7 @@
         const buildProfilePayload = () => ({
             agent_type: 'job_seeker',
             name_or_handle: document.getElementById('display-name').value.trim(),
-            email: normalizeStoredEmail(document.getElementById('email').value) || null,
+            email: document.getElementById('email').value.trim() || null,
             bio_link: document.getElementById('bio-link').value.trim() || null,
             location: document.getElementById('location').value.trim() || null,
             timezone: null,
@@ -676,7 +653,7 @@
         });
         const buildNeedPayload = () => ({
             contact_name: document.getElementById('display-name').value.trim() || null,
-            email: normalizeStoredEmail(document.getElementById('need-email').value) || null,
+            email: document.getElementById('need-email').value.trim() || null,
             company_name: document.getElementById('company-name').value.trim() || null,
             role_title: document.getElementById('role-title').value.trim() || null,
             post_link: document.getElementById('post-link').value.trim() || null,
@@ -736,131 +713,8 @@
             const message = String(error?.message || error || '');
             return message.includes("Could not find the 'email' column of 'needs' in the schema cache");
         };
-        const isDuplicateEmailConstraintError = (error) => {
-            const message = String(error?.message || error || '').toLowerCase();
-            const details = String(error?.details || '').toLowerCase();
-            return error?.code === '23505' && (message.includes('email') || details.includes('email'));
-        };
-        const findExistingRecordByEmail = async (email) => {
-            const normalizedEmail = normalizeStoredEmail(email);
-            if (!normalizedEmail) return null;
-
-            const { data: profileRows, error: profileError } = await supabaseClient
-                .from('profiles')
-                .select('id, email, name_or_handle')
-                .eq('email', normalizedEmail)
-                .limit(1);
-            if (profileError) throw profileError;
-            if (profileRows && profileRows[0]) {
-                return {
-                    table: 'profiles',
-                    label: profileRows[0].name_or_handle || 'existing profile',
-                    email: profileRows[0].email || normalizedEmail
-                };
-            }
-
-            const { data: needRows, error: needError } = await supabaseClient
-                .from('needs')
-                .select('id, email, contact_name, role_title')
-                .eq('email', normalizedEmail)
-                .limit(1);
-            if (needError) {
-                if (isMissingNeedsEmailColumnError(needError)) return null;
-                throw needError;
-            }
-            if (needRows && needRows[0]) {
-                return {
-                    table: 'needs',
-                    label: needRows[0].contact_name || needRows[0].role_title || 'existing job record',
-                    email: needRows[0].email || normalizedEmail
-                };
-            }
-
-            return null;
-        };
-        const clearEmailDuplicateState = (input) => {
-            if (!input) return;
-            input.dataset.duplicateCheckedEmail = '';
-            input.dataset.duplicateStatus = '';
-            input.setCustomValidity('');
-        };
-        const applyEmailDuplicateResult = (input, existingRecord, normalizedEmail) => {
-            if (!input) return;
-            input.dataset.duplicateCheckedEmail = normalizedEmail || '';
-            if (existingRecord) {
-                input.dataset.duplicateStatus = 'duplicate';
-                input.setCustomValidity(`This email is already registered in ${existingRecord.table} for ${existingRecord.label}.`);
-                input.reportValidity();
-                setStatus(`Duplicate email blocked. ${existingRecord.email} already exists in ${existingRecord.table} for ${existingRecord.label}.`);
-                return;
-            }
-            input.dataset.duplicateStatus = normalizedEmail ? 'available' : '';
-            input.setCustomValidity('');
-            if (normalizedEmail) {
-                setStatus('Email is available.');
-            }
-        };
-        const runEmailDuplicateCheck = async (input) => {
-            const normalizedEmail = normalizeStoredEmail(input?.value);
-            if (!input || !normalizedEmail || !input.validity.valid) {
-                clearEmailDuplicateState(input);
-                return null;
-            }
-            const requestId = ++emailDuplicateCheckSequence;
-            const checkPromise = findExistingRecordByEmail(normalizedEmail)
-                .then((existingRecord) => {
-                    if (requestId !== emailDuplicateCheckSequence) return null;
-                    applyEmailDuplicateResult(input, existingRecord, normalizedEmail);
-                    return existingRecord;
-                })
-                .catch((error) => {
-                    if (requestId !== emailDuplicateCheckSequence) return null;
-                    clearEmailDuplicateState(input);
-                    const message = error instanceof Error ? error.message : String(error || 'Unknown email lookup error');
-                    setStatus(`Email check failed: ${message}`);
-                    return null;
-                })
-                .finally(() => {
-                    if (pendingEmailDuplicateCheck === checkPromise) {
-                        pendingEmailDuplicateCheck = null;
-                    }
-                });
-            pendingEmailDuplicateCheck = checkPromise;
-            return checkPromise;
-        };
-        const scheduleEmailDuplicateCheck = (input) => {
-            if (!input) return;
-            const normalizedEmail = normalizeStoredEmail(input.value);
-            clearTimeout(emailDuplicateCheckTimer);
-            if (!normalizedEmail || !input.validity.valid) {
-                clearEmailDuplicateState(input);
-                return;
-            }
-            emailDuplicateCheckTimer = window.setTimeout(() => {
-                pendingEmailDuplicateCheck = runEmailDuplicateCheck(input);
-            }, 250);
-        };
-        const attachEmailDuplicateCheck = (input) => {
-            if (!input) return;
-            input.addEventListener('input', () => {
-                input.setCustomValidity('');
-                scheduleEmailDuplicateCheck(input);
-            });
-            input.addEventListener('blur', () => {
-                input.setCustomValidity('');
-                clearTimeout(emailDuplicateCheckTimer);
-                pendingEmailDuplicateCheck = runEmailDuplicateCheck(input);
-            });
-            input.addEventListener('change', () => {
-                input.setCustomValidity('');
-                clearTimeout(emailDuplicateCheckTimer);
-                pendingEmailDuplicateCheck = runEmailDuplicateCheck(input);
-            });
-        };
         attachEmailAutocorrect(emailInput);
         attachEmailAutocorrect(needEmailInput);
-        attachEmailDuplicateCheck(emailInput);
-        attachEmailDuplicateCheck(needEmailInput);
         if (profileParseButton) profileParseButton.addEventListener('click', handleProfileParseClick);
         recordKind.addEventListener('change', toggleFields);
         toggleFields();
@@ -876,16 +730,6 @@
             setStatus(`Writing ${isProfile ? 'profile' : 'job'} to the shared hub...`);
             setSkillReminderVisible(false);
             try {
-                if (pendingEmailDuplicateCheck) {
-                    await pendingEmailDuplicateCheck;
-                }
-                if (payload.email) {
-                    const existingRecord = await findExistingRecordByEmail(payload.email);
-                    if (existingRecord) {
-                        throw new Error(`Duplicate email blocked. ${existingRecord.email} already exists in ${existingRecord.table} for ${existingRecord.label}.`);
-                    }
-                }
-
                 let insertPayload = payload;
                 let insertedRows;
                 let error;
@@ -899,12 +743,7 @@
                     ({ data: insertedRows, error } = await supabaseClient.from(table).insert(insertPayload).select('*'));
                 }
 
-                if (error) {
-                    if (isDuplicateEmailConstraintError(error) && payload.email) {
-                        throw new Error(`Duplicate email blocked. ${payload.email} is already stored in the hub.`);
-                    }
-                    throw error;
-                }
+                if (error) throw error;
                 const inserted = insertedRows && insertedRows[0] ? insertedRows[0] : payload;
                 try {
                     await insertHubEvent(isProfile ? 'NEW_PROFILE' : 'NEW_NEED', isProfile ? 'profile' : 'need', inserted.id, isProfile ? 'job_seeker' : 'recruiter', inserted);
