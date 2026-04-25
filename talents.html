@@ -271,6 +271,9 @@
             gap: 18px;
             width: 100%;
         }
+        .dashboard-grid.user-mode {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
         .dashboard-grid.admin-mode {
             grid-template-columns: repeat(3, minmax(0, 1fr));
         }
@@ -877,6 +880,9 @@
             }
             .dashboard-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .dashboard-grid.user-mode {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
             }
             .dashboard-grid.admin-mode {
                 grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1575,7 +1581,7 @@
             dashboardPrimaryTitleEl.textContent = 'New records, last 7 days';
             dashboardSecondaryTitleEl.textContent = isAdminLoggedIn() ? 'New users, last 7 days' : 'Email outreach, last 7 days';
             dashboardTertiaryTitleEl.textContent = 'New schedules, last 7 days';
-            document.getElementById('dashboard-tertiary-card').style.display = isAdminLoggedIn() ? '' : 'none';
+            document.getElementById('dashboard-tertiary-card').style.display = isLoggedIn() ? '' : 'none';
             setAdminStatus(
                 isLoggedIn()
                     ? (isAdminLoggedIn()
@@ -1648,7 +1654,7 @@
                 text: String(draft?.subject || '').trim(),
                 dates: `${startStamp}/${endStamp}`,
                 ctz: timezone,
-                details: `${String(draft?.body || '').trim()}\n\nReview this draft event and confirm sending manually.`
+                details: String(draft?.body || '').trim()
             });
             if (candidateEmail) {
                 params.set('add', candidateEmail);
@@ -1795,7 +1801,7 @@
             }
             renderDashboardChart(dashboardNewRecordsChartEl, data?.new_records_last_7d || []);
             renderDashboardChart(dashboardNewUsersChartEl, data?.email_outreach_last_7d || []);
-            renderDashboardChart(dashboardSentSchedulesChartEl, data?.email_outreach_last_7d || []);
+            renderDashboardChart(dashboardSentSchedulesChartEl, data?.sent_schedules_last_7d || []);
         };
 
         const applyRecentContactFlags = async (rows) => {
@@ -3195,6 +3201,16 @@
                         setStatus('Generating schedule draft...');
                         applyOutreachDefaultsLocally(payload);
                         const draft = await generateScheduleDraft(profile, payload);
+                        const { error } = await supabaseClient.rpc('log_schedule_outreach', {
+                            ...authRpcCredentials(),
+                            p_profile_id: profileId,
+                            p_schedule: payload,
+                            p_invite_title: draft.subject,
+                            p_invite_content: draft.body
+                        });
+                        if (error) throw error;
+                        currentRows = currentRows.map((row) => row.id === profileId ? { ...row, Recently_Contacted: true } : row);
+                        await loadDashboardMetrics();
                         const calendarUrl = buildManualScheduleUrl(profile, payload, draft);
                         const draftWindow = window.open(calendarUrl, '_blank', 'noopener');
                         if (!draftWindow) {
