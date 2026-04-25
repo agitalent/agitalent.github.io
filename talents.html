@@ -1096,7 +1096,8 @@
             'delivery_route',
             'status',
             'created_at',
-            'updated_at'
+            'updated_at',
+            '_candidate_email'
         ]);
         const EDITABLE_PROFILE_FIELDS = [
             'agent_type',
@@ -1129,7 +1130,7 @@
             seniority: 'brief_background'
         };
         const REQUIRED_FIELDS = new Set(['agent_type', 'name_or_handle', 'status']);
-        const PUBLIC_PROFILE_SELECT = 'id, agent_type, name_or_handle, location, domain_focus, seniority, skills, needs, recent_evidence, status, created_at, updated_at';
+        const PUBLIC_PROFILE_SELECT = 'id, agent_type, name_or_handle, email, location, domain_focus, seniority, skills, needs, recent_evidence, status, created_at, updated_at';
         const SIGNED_OUT_PROFILE_SELECT = 'id, name_or_handle, seniority, location, "Recently_Contacted", created_at, updated_at';
         const SIGNED_OUT_VISIBLE_PROFILE_FIELDS = new Set(['seniority', 'location', 'Recently_Contacted']);
 
@@ -1207,6 +1208,7 @@
         const isLoggedIn = () => Boolean(adminUser?.username);
         const isAdminLoggedIn = () => Boolean(adminUser?.username && adminUser?.rights === 'admin');
         const canUseEmailTools = () => isLoggedIn();
+        const canUseScheduleTools = () => isLoggedIn();
         const isProfileSelectedForSchedule = (profileId) => selectedScheduleProfileIds.includes(profileId);
         const selectedScheduleProfilesInOrder = () => currentRows.filter((row) => isProfileSelectedForSchedule(row.id));
         const firstSelectedScheduleProfile = () => selectedScheduleProfilesInOrder()[0] || null;
@@ -1282,7 +1284,10 @@
                     updated_at: row.updated_at
                 }));
             }
-            return rows.map(({ email, bio_link, ...rest }) => rest);
+            return rows.map(({ email, bio_link, ...rest }) => ({
+                ...rest,
+                _candidate_email: String(email || '').trim()
+            }));
         };
         const collectNamedFields = (form) => {
             const fields = {};
@@ -1472,6 +1477,35 @@
         };
 
         const escapeMailto = (value) => encodeURIComponent(String(value || ''));
+        const zeroPad = (value) => String(value).padStart(2, '0');
+        const addMinutesToScheduleParts = (date, hour, minute, minutesToAdd) => {
+            const [year, month, day] = String(date || '').split('-').map((part) => Number(part));
+            const shifted = new Date(Date.UTC(year, (month || 1) - 1, day || 1, Number(hour) || 0, (Number(minute) || 0) + Number(minutesToAdd || 0), 0));
+            return {
+                date: `${shifted.getUTCFullYear()}-${zeroPad(shifted.getUTCMonth() + 1)}-${zeroPad(shifted.getUTCDate())}`,
+                hour: zeroPad(shifted.getUTCHours()),
+                minute: zeroPad(shifted.getUTCMinutes())
+            };
+        };
+        const formatCalendarStamp = (date, hour, minute) => `${String(date || '').replace(/-/g, '')}T${zeroPad(hour)}${zeroPad(minute)}00`;
+        const buildManualScheduleUrl = (profile, values, draft) => {
+            const candidateEmail = String(profile?._candidate_email || profile?.email || '').trim();
+            const timezone = String(values?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC').trim();
+            const startStamp = formatCalendarStamp(values?.date, values?.hour, values?.minute);
+            const endParts = addMinutesToScheduleParts(values?.date, values?.hour, values?.minute, 15);
+            const endStamp = formatCalendarStamp(endParts.date, endParts.hour, endParts.minute);
+            const params = new URLSearchParams({
+                action: 'TEMPLATE',
+                text: String(draft?.subject || '').trim(),
+                dates: `${startStamp}/${endStamp}`,
+                ctz: timezone,
+                details: String(draft?.body || '').trim()
+            });
+            if (candidateEmail) {
+                params.set('add', candidateEmail);
+            }
+            return `https://calendar.google.com/calendar/render?${params.toString()}`;
+        };
 
         const buildOpportunityParagraph = (company, role) => `${String(company || '').trim()} is currently hiring ${String(role || '').trim()}.`;
         const truncateWords = (text, maxWords) => String(text || '').trim().split(/\s+/).filter(Boolean).slice(0, maxWords).join(' ');
@@ -1571,6 +1605,7 @@
                 };
             }
         };
+        const generateScheduleDraft = async (profile, values) => generateEmailDraft(profile, values);
 
         const renderDashboardChart = (element, points) => {
             if (!element) return;
@@ -1859,7 +1894,7 @@
 
         const renderSchedulePanel = (profile) => {
             const values = profile._scheduleDraft || scheduleDefaults();
-            const selectedProfiles = selectedScheduleProfilesInOrder();
+            const selectedProfiles = isAdminLoggedIn() ? selectedScheduleProfilesInOrder() : [];
             const selectionCount = selectedProfiles.length;
             const timezoneOptionsHtml = timeZoneOptions.map((zone) => {
                 const selected = zone === values.timezone ? ' selected' : '';
@@ -1867,6 +1902,10 @@
             }).join('');
             const disabledAttr = sendingScheduleProfileId === profile.id ? ' disabled' : '';
             const sendDisabledAttr = !isScheduleComplete(values) || sendingScheduleProfileId === profile.id ? ' disabled' : '';
+            const sendLabel = selectionCount > 1 ? `Send to ${selectionCount} selected` : 'Send';
+            const statusText = isAdminLoggedIn()
+                ? `This queues a Google Calendar invitation now. The selected date and time are the meeting time.${selectionCount > 1 ? ` The same schedule will be used for ${selectionCount} selected records on this page.` : ''}`
+                : 'This opens a prefilled Google Calendar draft. Review the event there and confirm sending manually.';
             return `
                 <div class="schedule-panel">
                     <div class="schedule-grid" data-schedule-form="${escapeHtml(profile.id)}">
@@ -1919,9 +1958,9 @@
                     </div>
                     <div class="card-actions">
                         <button class="button-secondary" data-icon="×" type="button" data-action="cancel-schedule" data-id="${escapeHtml(profile.id)}"${disabledAttr}>Cancel</button>
-                        <button class="button" data-icon="↗" type="button" data-action="send-schedule" data-id="${escapeHtml(profile.id)}"${sendDisabledAttr}>${selectionCount > 1 ? `Send to ${selectionCount} selected` : 'Send'}</button>
+                        <button class="button" data-icon="↗" type="button" data-action="send-schedule" data-id="${escapeHtml(profile.id)}"${sendDisabledAttr}>${sendLabel}</button>
                     </div>
-                    <div class="schedule-status">This queues a Google Calendar invitation now. The selected date and time are the meeting time.${selectionCount > 1 ? ` The same schedule will be used for ${selectionCount} selected records on this page.` : ''}</div>
+                    <div class="schedule-status">${escapeHtml(statusText)}</div>
                 </div>
             `;
         };
@@ -1935,7 +1974,7 @@
 
             resultsEl.innerHTML = rows.map((profile) => {
                 const isEditing = isAdminLoggedIn() && editingProfileId === profile.id;
-                const isScheduling = isAdminLoggedIn() && schedulingProfileId === profile.id;
+                const isScheduling = canUseScheduleTools() && schedulingProfileId === profile.id;
                 const isEmailing = canUseEmailTools() && emailingProfileId === profile.id;
                 let bodyHtml = '';
                 let actionsHtml = '';
@@ -1960,11 +1999,11 @@
                         })
                         .filter(Boolean)
                         .join('');
-                    actionsHtml = (isAdminLoggedIn() || canUseEmailTools())
+                    actionsHtml = (isAdminLoggedIn() || canUseEmailTools() || canUseScheduleTools())
                     ? `
                         <div class="card-actions">
                             ${isAdminLoggedIn() ? `<button class="button-secondary" data-icon="✎" type="button" data-action="edit-profile" data-id="${escapeHtml(profile.id)}">Edit</button>` : ''}
-                            ${isAdminLoggedIn() ? `<button class="button-secondary" data-icon="↗" type="button" data-action="open-schedule" data-id="${escapeHtml(profile.id)}">Schedule</button>` : ''}
+                            ${canUseScheduleTools() ? `<button class="button-secondary" data-icon="↗" type="button" data-action="open-schedule" data-id="${escapeHtml(profile.id)}">Schedule</button>` : ''}
                             <button class="button-secondary" data-icon="✉" type="button" data-action="open-email" data-id="${escapeHtml(profile.id)}">Email</button>
                         </div>
                     `
@@ -2779,11 +2818,11 @@
             }
 
             if (action === 'open-schedule') {
-                if (!isAdminLoggedIn()) {
-                    setAdminStatus('Log in with admin rights to use scheduling.', true);
+                if (!canUseScheduleTools()) {
+                    setAdminStatus('Log in to use scheduling.', true);
                     return;
                 }
-                if (!isProfileSelectedForSchedule(profileId)) {
+                if (isAdminLoggedIn() && !isProfileSelectedForSchedule(profileId)) {
                     selectedScheduleProfileIds = [profileId];
                 }
                 schedulingProfileId = profileId;
@@ -2879,35 +2918,63 @@
             if (action === 'send-schedule') {
                 try {
                     const payload = parseScheduleForm(profileId);
-                    const targets = selectedScheduleProfilesInOrder();
-                    const profiles = targets.length ? targets : currentRows.filter((row) => row.id === profileId);
-                    if (!profiles.length) throw new Error('Profile not found.');
                     sendingScheduleProfileId = profileId;
-                    setStatus(profiles.length > 1 ? `Queueing ${profiles.length} Google Calendar invitations...` : 'Queueing Google Calendar invitation...');
                     renderRows(currentRows);
-                    let lastScheduledFor = '';
-                    for (const profile of profiles) {
-                        const { data, error } = await supabaseClient.rpc('admin_enqueue_schedule_invite', {
+                    if (isAdminLoggedIn()) {
+                        const targets = selectedScheduleProfilesInOrder();
+                        const profiles = targets.length ? targets : currentRows.filter((row) => row.id === profileId);
+                        if (!profiles.length) throw new Error('Profile not found.');
+                        setStatus(profiles.length > 1 ? `Queueing ${profiles.length} Google Calendar invitations...` : 'Queueing Google Calendar invitation...');
+                        let lastScheduledFor = '';
+                        for (const profile of profiles) {
+                            const { data, error } = await supabaseClient.rpc('admin_enqueue_schedule_invite', {
+                                ...authRpcCredentials(),
+                                p_profile_id: profile.id,
+                                p_schedule: payload
+                            });
+                            if (error) throw error;
+                            lastScheduledFor = data?.scheduled_for || lastScheduledFor;
+                        }
+                        applyOutreachDefaultsLocally(payload);
+                        currentRows = currentRows.map((row) => (
+                            profiles.some((profile) => profile.id === row.id)
+                                ? { ...row, Recently_Contacted: true }
+                                : row
+                        ));
+                        schedulingProfileId = null;
+                        selectedScheduleProfileIds = [];
+                        await loadDashboardMetrics();
+                        if (profiles.length > 1) {
+                            setStatus(lastScheduledFor ? `${profiles.length} invitations queued. The online worker should send them within about 5-10 minutes; the selected time remains the meeting time (${lastScheduledFor}).` : `${profiles.length} invitations queued for Google Calendar delivery.`);
+                        } else {
+                            setStatus(lastScheduledFor ? `Invitation queued. The online worker should send it within about 5-10 minutes; the selected time remains the meeting time (${lastScheduledFor}).` : 'Invitation queued for Google Calendar delivery.');
+                        }
+                    } else {
+                        const profile = currentRows.find((row) => row.id === profileId);
+                        if (!profile) throw new Error('Profile not found.');
+                        if (!String(profile._candidate_email || '').trim()) {
+                            throw new Error('Candidate email is required to prefill the calendar invitation.');
+                        }
+                        setStatus('Generating schedule draft...');
+                        applyOutreachDefaultsLocally(payload);
+                        const draft = await generateScheduleDraft(profile, payload);
+                        const { error } = await supabaseClient.rpc('log_schedule_outreach', {
                             ...authRpcCredentials(),
-                            p_profile_id: profile.id,
-                            p_schedule: payload
+                            p_profile_id: profileId,
+                            p_schedule: payload,
+                            p_invite_title: draft.subject,
+                            p_invite_content: draft.body
                         });
                         if (error) throw error;
-                        lastScheduledFor = data?.scheduled_for || lastScheduledFor;
-                    }
-                    applyOutreachDefaultsLocally(payload);
-                    currentRows = currentRows.map((row) => (
-                        profiles.some((profile) => profile.id === row.id)
-                            ? { ...row, Recently_Contacted: true }
-                            : row
-                    ));
-                    schedulingProfileId = null;
-                    selectedScheduleProfileIds = [];
-                    await loadDashboardMetrics();
-                    if (profiles.length > 1) {
-                        setStatus(lastScheduledFor ? `${profiles.length} invitations queued. The online worker should send them within about 5-10 minutes; the selected time remains the meeting time (${lastScheduledFor}).` : `${profiles.length} invitations queued for Google Calendar delivery.`);
-                    } else {
-                        setStatus(lastScheduledFor ? `Invitation queued. The online worker should send it within about 5-10 minutes; the selected time remains the meeting time (${lastScheduledFor}).` : 'Invitation queued for Google Calendar delivery.');
+                        currentRows = currentRows.map((row) => row.id === profileId ? { ...row, Recently_Contacted: true } : row);
+                        await loadDashboardMetrics();
+                        const calendarUrl = buildManualScheduleUrl(profile, payload, draft);
+                        const draftWindow = window.open(calendarUrl, '_blank', 'noopener');
+                        if (!draftWindow) {
+                            window.location.href = calendarUrl;
+                        }
+                        schedulingProfileId = null;
+                        setStatus('Schedule draft opened in Google Calendar with the subject, attendee, and description prefilled. Review it there and confirm sending manually.');
                     }
                     renderRows(currentRows);
                 } catch (error) {
