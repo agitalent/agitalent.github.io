@@ -814,21 +814,39 @@
             }
         }
         @media (max-width: 720px) {
-            .container {
-                padding: 24px 16px 60px;
+            html,
+            body {
+                min-width: 1280px;
+                overflow-x: auto;
             }
-            .hero-head,
-            .panel {
-                padding: 22px 20px;
+            .container {
+                padding: 36px 24px 80px;
+                width: 1280px;
+                min-width: 1280px;
+            }
+            .topbar {
+                flex-direction: row;
+                align-items: center;
+            }
+            .topbar-actions,
+            .topbar-user {
+                width: auto;
+                justify-content: flex-end;
             }
             .field-grid,
             .admin-grid,
             .editor-grid,
             .schedule-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
             .dashboard-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .dashboard-grid.user-mode {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+            .dashboard-grid.admin-mode {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
             }
         }
     </style>

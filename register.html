@@ -199,9 +199,27 @@
             font-weight: 700;
         }
         @media (max-width: 900px) {
-            .grid { grid-template-columns: 1fr; }
-            .section + .section { border-left: 0; border-top: 1px solid var(--line); }
-            .form-grid { grid-template-columns: 1fr; }
+            .grid {
+                grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+                min-width: 1040px;
+            }
+            .section + .section { border-left: 1px solid var(--line); border-top: 0; }
+            .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .topbar { flex-direction: row; align-items: center; }
+        }
+        @media (max-width: 640px) {
+            html,
+            body {
+                min-width: 1120px;
+                overflow-x: auto;
+            }
+            .container {
+                padding: 40px 28px 80px;
+                width: 1120px;
+                min-width: 1120px;
+            }
+            .section { padding: 28px 34px 34px; }
+            .actions { flex-wrap: nowrap; }
         }
     </style>
 </head>
