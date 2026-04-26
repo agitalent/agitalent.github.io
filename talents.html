@@ -1033,6 +1033,10 @@
                                     <input id="admin-batch-invite-toggle" type="checkbox">
                                     <span>Batch</span>
                                 </label>
+                                <label class="checkbox-inline" for="admin-trial-invite-toggle">
+                                    <input id="admin-trial-invite-toggle" type="checkbox">
+                                    <span>trial</span>
+                                </label>
                                 <button class="button-secondary" data-icon="◇" id="admin-generate-invite-button" type="button">Generate Invitation Code</button>
                             </div>
                             <div class="admin-status" id="admin-add-user-status"></div>
@@ -1219,6 +1223,7 @@
         const adminDeleteUserButton = document.getElementById('admin-delete-user-button');
         const adminInviteCodeOutput = document.getElementById('admin-invite-code-output');
         const adminBatchInviteToggle = document.getElementById('admin-batch-invite-toggle');
+        const adminTrialInviteToggle = document.getElementById('admin-trial-invite-toggle');
         const adminGenerateInviteButton = document.getElementById('admin-generate-invite-button');
         const adminAddUserStatusEl = document.getElementById('admin-add-user-status');
         const adminLogoutButton = document.getElementById('admin-logout-button');
@@ -1523,12 +1528,13 @@
         const renderIssuedInvitationCode = (payload) => {
             const code = String(payload?.code || '').trim();
             if (!code) return;
+            const isTrial = Boolean(payload?.is_trial);
             signupModalCodeInput.value = code;
             signupIssuedCodeEl.style.display = '';
             signupIssuedCodeEl.innerHTML = `
                 <strong>Your invitation code</strong>
                 <div>${escapeHtml(code)}</div>
-                <div>No expiration</div>
+                <div>${isTrial ? '3-day trial starts after sign up' : 'No expiration'}</div>
             `;
         };
 
@@ -2566,6 +2572,9 @@
                 throw new Error('Sign up failed.');
             }
             await completeAuthenticatedSession(data, password, { closeElement });
+            if (data?.is_trial) {
+                setAdminStatus('Enjoy 3-day trial.', false);
+            }
         };
 
         const logoutCurrentUser = () => {
@@ -2883,7 +2892,9 @@
             }
             adminGenerateInviteButton.disabled = true;
             try {
-                if (adminBatchInviteToggle?.checked) {
+                const useTrialInvite = Boolean(adminTrialInviteToggle?.checked);
+                const useBatchInvite = Boolean(adminBatchInviteToggle?.checked) && !useTrialInvite;
+                if (useBatchInvite) {
                     const batchSize = 100;
                     const validFrom = todayIsoDate();
                     let generatedCount = 0;
@@ -2891,7 +2902,8 @@
                         const { error } = await supabaseClient.rpc('admin_generate_app_user_invitation_code', {
                             p_admin_username: adminUser.username,
                             p_admin_password: adminPassword,
-                            p_valid_from: validFrom
+                            p_valid_from: validFrom,
+                            p_is_trial: false
                         });
                         if (error) throw error;
                         generatedCount += 1;
@@ -2902,11 +2914,12 @@
                     const { data, error } = await supabaseClient.rpc('admin_generate_app_user_invitation_code', {
                         p_admin_username: adminUser.username,
                         p_admin_password: adminPassword,
-                        p_valid_from: todayIsoDate()
+                        p_valid_from: todayIsoDate(),
+                        p_is_trial: useTrialInvite
                     });
                     if (error) throw error;
                     adminInviteCodeOutput.value = String(data?.code || '').trim();
-                    setAddUserStatus('Invitation code generated with no expiration.');
+                    setAddUserStatus(useTrialInvite ? '3-day trial invitation code generated.' : 'Invitation code generated with no expiration.');
                 }
             } catch (error) {
                 setAddUserStatus(error.message || 'Invitation code generation failed.', true);
