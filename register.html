@@ -714,7 +714,7 @@
             duplicateEmailState = nextState;
             updateSubmitAvailability();
         };
-        const checkDuplicateEmail = async ({ showAlert = false } = {}) => {
+        const checkDuplicateEmail = async () => {
             if (!supabaseClient) return false;
             const { isProfile, input, email, table } = currentEmailContext();
             if (input && input.value !== email) {
@@ -737,10 +737,10 @@
             const isDuplicate = Array.isArray(data) && data.length > 0;
             setDuplicateEmailState({ checking: false, duplicate: isDuplicate, email, table });
             if (isDuplicate) {
-                setStatus(`Duplicate email found. ${recordKind.value === 'profile' ? 'Profile' : 'Job'} registration is disabled.`);
-                if (showAlert) {
-                    window.alert('This email already exists in the current records. Registration is disabled.');
+                if (input) {
+                    input.value = '';
                 }
+                setDuplicateEmailState({ checking: false, duplicate: false, email: '', table: '' });
             }
             return isDuplicate;
         };
@@ -800,14 +800,14 @@
             input.addEventListener('input', handleEmailDuplicateReset);
             input.addEventListener('blur', async () => {
                 try {
-                    await checkDuplicateEmail({ showAlert: true });
+                    await checkDuplicateEmail();
                 } catch (error) {
                     setStatus(`Email check failed: ${error.message}`);
                 }
             });
             input.addEventListener('change', async () => {
                 try {
-                    await checkDuplicateEmail({ showAlert: true });
+                    await checkDuplicateEmail();
                 } catch (error) {
                     setStatus(`Email check failed: ${error.message}`);
                 }
@@ -826,7 +826,7 @@
                 return;
             }
             try {
-                const duplicateFound = await checkDuplicateEmail({ showAlert: true });
+                const duplicateFound = await checkDuplicateEmail();
                 if (duplicateFound) {
                     return;
                 }
