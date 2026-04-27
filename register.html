@@ -375,6 +375,7 @@
         const profileParseButton = document.getElementById('profile-parse-button');
         const profileParseStatus = document.getElementById('profile-parse-status');
         let latestProfileParseRequest = 0;
+        let duplicateEmailState = { checking: false, duplicate: false, email: '', table: '' };
 
         const setStatus = (message) => { hubStatus.textContent = message; };
         const setSkillReminderVisible = (visible) => {
@@ -388,8 +389,12 @@
         const resetFormForProfileMode = () => {
             registerForm.reset();
             recordKind.value = 'profile';
+            setDuplicateEmailState({ checking: false, duplicate: false, email: '', table: '' });
             toggleFields();
             setProfileParseStatus('Click Parse to extract profile fields.');
+        };
+        const updateSubmitAvailability = () => {
+            submitButton.disabled = duplicateEmailState.checking || duplicateEmailState.duplicate;
         };
         const bailianJson = async (messages) => {
             const response = await fetch(`${BAILIAN_BASE_URL}/chat/completions`, {
@@ -694,6 +699,51 @@
             hiring_constraints: toList(document.getElementById('hiring-constraints').value),
             status: 'open'
         });
+        const currentEmailContext = () => {
+            const isProfile = recordKind.value === 'profile';
+            const input = isProfile ? emailInput : needEmailInput;
+            const email = normalizeEmailInputValue(input?.value || '');
+            return {
+                isProfile,
+                input,
+                email,
+                table: isProfile ? 'profiles' : 'needs'
+            };
+        };
+        const setDuplicateEmailState = (nextState) => {
+            duplicateEmailState = nextState;
+            updateSubmitAvailability();
+        };
+        const checkDuplicateEmail = async ({ showAlert = false } = {}) => {
+            if (!supabaseClient) return false;
+            const { isProfile, input, email, table } = currentEmailContext();
+            if (input && input.value !== email) {
+                input.value = email;
+            }
+            if (!email) {
+                setDuplicateEmailState({ checking: false, duplicate: false, email: '', table: '' });
+                return false;
+            }
+            setDuplicateEmailState({ checking: true, duplicate: false, email, table });
+            const { data, error } = await supabaseClient.from(table).select('id').ilike('email', email).limit(1);
+            if (error) {
+                if (!isProfile && isMissingNeedsEmailColumnError(error)) {
+                    setDuplicateEmailState({ checking: false, duplicate: false, email, table });
+                    return false;
+                }
+                setDuplicateEmailState({ checking: false, duplicate: false, email, table });
+                throw error;
+            }
+            const isDuplicate = Array.isArray(data) && data.length > 0;
+            setDuplicateEmailState({ checking: false, duplicate: isDuplicate, email, table });
+            if (isDuplicate) {
+                setStatus(`Duplicate email found. ${recordKind.value === 'profile' ? 'Profile' : 'Job'} registration is disabled.`);
+                if (showAlert) {
+                    window.alert('This email already exists in the current records. Registration is disabled.');
+                }
+            }
+            return isDuplicate;
+        };
         const scoreProfileAgainstNeed = (profile, need) => {
             const profileSkills = tokenSet(profile.skills || []);
             const profileEducation = tokenSet([profile.seniority || '']);
@@ -742,13 +792,46 @@
         };
         attachEmailAutocorrect(emailInput);
         attachEmailAutocorrect(needEmailInput);
+        const handleEmailDuplicateReset = () => {
+            setDuplicateEmailState({ checking: false, duplicate: false, email: '', table: '' });
+        };
+        [emailInput, needEmailInput].forEach((input) => {
+            if (!input) return;
+            input.addEventListener('input', handleEmailDuplicateReset);
+            input.addEventListener('blur', async () => {
+                try {
+                    await checkDuplicateEmail({ showAlert: true });
+                } catch (error) {
+                    setStatus(`Email check failed: ${error.message}`);
+                }
+            });
+            input.addEventListener('change', async () => {
+                try {
+                    await checkDuplicateEmail({ showAlert: true });
+                } catch (error) {
+                    setStatus(`Email check failed: ${error.message}`);
+                }
+            });
+        });
         if (profileParseButton) profileParseButton.addEventListener('click', handleProfileParseClick);
-        recordKind.addEventListener('change', toggleFields);
+        recordKind.addEventListener('change', () => {
+            handleEmailDuplicateReset();
+            toggleFields();
+        });
         toggleFields();
         registerForm.addEventListener('submit', async (event) => {
             event.preventDefault();
             if (!supabaseClient) {
                 setStatus('The hub client failed to initialize.');
+                return;
+            }
+            try {
+                const duplicateFound = await checkDuplicateEmail({ showAlert: true });
+                if (duplicateFound) {
+                    return;
+                }
+            } catch (error) {
+                setStatus(`Email check failed: ${error.message}`);
                 return;
             }
             const isProfile = recordKind.value === 'profile';
@@ -811,6 +894,7 @@
                 if (isProfile) {
                     resetFormForProfileMode();
                 }
+                handleEmailDuplicateReset();
                 setStatus(`Stored successfully. ${bestMatch ? `Top match score: ${bestMatch.score}%` : 'No direct match yet.'}`);
                 setSkillReminderVisible(true);
             } catch (error) {
