@@ -2225,9 +2225,14 @@
             const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
             const showingStart = totalCount === 0 ? 0 : currentOffset + 1;
             const showingEnd = totalCount === 0 ? 0 : currentOffset + lastRowsLength;
-            const summary = activePrompt
-                ? `Showing ${showingStart}-${showingEnd} of ${totalCount} results for "${activePrompt}".`
-                : `Showing ${showingStart}-${showingEnd} of ${totalCount} latest profiles.`;
+            const shouldHideTotalProfiles = isLoggedIn() && !isAdminLoggedIn();
+            const summary = shouldHideTotalProfiles
+                ? (activePrompt
+                    ? `Showing ${showingStart}-${showingEnd} results for "${activePrompt}".`
+                    : `Showing ${showingStart}-${showingEnd} latest profiles.`)
+                : (activePrompt
+                    ? `Showing ${showingStart}-${showingEnd} of ${totalCount} results for "${activePrompt}".`
+                    : `Showing ${showingStart}-${showingEnd} of ${totalCount} latest profiles.`);
             resultsMetaEl.textContent = summary;
             prevButton.disabled = currentOffset === 0;
             nextButton.disabled = currentOffset + PAGE_SIZE >= totalCount;
