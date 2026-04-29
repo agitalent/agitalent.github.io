@@ -926,6 +926,7 @@
                         <div class="account-card-value" id="account-expire-date">-</div>
                     </div>
                     <div class="account-card-actions">
+                        <button class="button-secondary" data-icon="↻" id="topbar-renew-button" type="button" style="display:none;">Renew Plan</button>
                         <button class="button-secondary" data-icon="◌" id="topbar-change-password-button" type="button">Password Reset</button>
                         <button class="button-secondary button-danger" data-icon="⇠" id="topbar-logout-button" type="button">Logout</button>
                     </div>
@@ -1183,6 +1184,34 @@
         </div>
     </div>
 
+    <div class="modal-backdrop" id="renew-plan-modal" aria-hidden="true">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="renew-plan-modal-title">
+            <div class="modal-head">
+                <div>
+                    <h3 data-icon="↻" id="renew-plan-modal-title">Renew Plan</h3>
+                    <p class="modal-copy">Pay USD 50 with PayPal to renew your plan. Active accounts extend from the current expire date. Expired accounts restart from the latest paid date.</p>
+                </div>
+                <button class="modal-close" type="button" data-close-modal="renew-plan-modal" aria-label="Close renew plan window">✕</button>
+            </div>
+            <div class="purchase-box">
+                <strong data-icon="◎">Current Account Dates</strong>
+                <div class="field-grid" style="margin-top:12px;">
+                    <div class="field">
+                        <label data-icon="◌" for="renew-plan-valid-date">Account valid date</label>
+                        <input id="renew-plan-valid-date" type="text" readonly>
+                    </div>
+                    <div class="field">
+                        <label data-icon="◌" for="renew-plan-expire-date">Account expire date</label>
+                        <input id="renew-plan-expire-date" type="text" readonly>
+                    </div>
+                </div>
+                <div class="purchase-price" style="margin-top:14px;">USD 50</div>
+                <div id="renew-paypal-button-container" style="margin-top:14px;"></div>
+            </div>
+            <div class="modal-status" id="renew-plan-status"></div>
+        </div>
+    </div>
+
     <script>
         const SUPABASE_URL = 'https://zocovvewzpqxspysanyy.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvY292dmV3enBxeHNweXNhbnl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwODYwNTgsImV4cCI6MjA4OTY2MjA1OH0.8ekfJ3bcvG-AbLD39xUINwXrpO7RiH9PVgy-xMzeHbE';
@@ -1207,6 +1236,7 @@
         const topbarLoginButton = document.getElementById('topbar-login-button');
         const topbarSignupButton = document.getElementById('topbar-signup-button');
         const topbarChangePasswordButton = document.getElementById('topbar-change-password-button');
+        const topbarRenewButton = document.getElementById('topbar-renew-button');
         const topbarLogoutButton = document.getElementById('topbar-logout-button');
         const prevButton = document.getElementById('prev-button');
         const nextButton = document.getElementById('next-button');
@@ -1268,6 +1298,10 @@
         const inviteEmailCodePreviewEl = document.getElementById('invite-email-code-preview');
         const inviteEmailSendButton = document.getElementById('invite-email-send-button');
         const inviteEmailStatusEl = document.getElementById('invite-email-status');
+        const renewPlanModalEl = document.getElementById('renew-plan-modal');
+        const renewPlanValidDateInput = document.getElementById('renew-plan-valid-date');
+        const renewPlanExpireDateInput = document.getElementById('renew-plan-expire-date');
+        const renewPlanStatusEl = document.getElementById('renew-plan-status');
         const signupIssuedCodeEl = document.getElementById('signup-issued-code');
         const resultsMetaEl = document.getElementById('results-meta');
         const resultsEl = document.getElementById('results');
@@ -1337,6 +1371,8 @@
         let resetPasswordOpen = false;
         let adminTargetUser = null;
         let paypalButtonsRendered = false;
+        let renewPaypalButtonsRendered = false;
+        let accessWindowTimer = null;
         let latestTrialInvitationCode = '';
         let outreachDefaults = {
             company: '',
@@ -1510,6 +1546,10 @@
             inviteEmailStatusEl.textContent = message;
             inviteEmailStatusEl.classList.toggle('error', isError);
         };
+        const setRenewPlanStatus = (message, isError = false) => {
+            renewPlanStatusEl.textContent = message;
+            renewPlanStatusEl.classList.toggle('error', isError);
+        };
 
         const openModal = (element) => {
             if (!element) return;
@@ -1553,7 +1593,7 @@
             const body = [
                 `Hi ${inviteeName},`,
                 'https://www.agitalent.tech/talents.html',
-                'a novel way to approach AI talents',
+                'A novel way to approach AI talents',
                 `Use this trial invitation code to sign up: ${code}`,
                 'AGT Talent Team'
             ].join('\n\n');
@@ -1567,6 +1607,43 @@
             if (Number.isNaN(date.getTime())) return text;
             return date.toISOString().slice(0, 10);
         };
+        const parseIsoDateToUtcMs = (value) => {
+            const text = String(value || '').trim();
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return null;
+            return Date.parse(`${text}T00:00:00Z`);
+        };
+        const isAccountExpired = (user = adminUser) => {
+            if (!user || user.rights === 'admin') return false;
+            const validFromMs = parseIsoDateToUtcMs(user.valid_from);
+            const expireMs = parseIsoDateToUtcMs(user.expires_on);
+            const todayMs = parseIsoDateToUtcMs(todayIsoDate());
+            if (validFromMs === null || todayMs === null) return false;
+            if (todayMs < validFromMs) return true;
+            if (expireMs !== null && todayMs > expireMs) return true;
+            return false;
+        };
+        const canRenewCurrentPlan = (user = adminUser) => Boolean(
+            user
+            && user.rights !== 'admin'
+            && !isAccountExpired(user)
+            && parseIsoDateToUtcMs(user.expires_on) !== null
+        );
+        const validateActiveAccessWindow = () => {
+            if (!isLoggedIn() || adminUser?.rights === 'admin') return true;
+            if (!isAccountExpired(adminUser)) return true;
+            logoutCurrentUser('Your account has expired. Please sign in again after renewing your plan.');
+            return false;
+        };
+        const startAccessWindowMonitor = () => {
+            if (accessWindowTimer) {
+                window.clearInterval(accessWindowTimer);
+                accessWindowTimer = null;
+            }
+            if (!isLoggedIn() || adminUser?.rights === 'admin') return;
+            accessWindowTimer = window.setInterval(() => {
+                validateActiveAccessWindow();
+            }, 15 * 1000);
+        };
         const setAccountCardOpen = (open) => {
             if (!topbarAccountCardEl || !topbarUsernameEl) return;
             topbarAccountCardEl.classList.toggle('open', open);
@@ -1575,6 +1652,9 @@
         const refreshAccountCard = () => {
             accountValidDateEl.textContent = formatAccountDate(adminUser?.valid_from);
             accountExpireDateEl.textContent = formatAccountDate(adminUser?.expires_on);
+            renewPlanValidDateInput.value = formatAccountDate(adminUser?.valid_from);
+            renewPlanExpireDateInput.value = formatAccountDate(adminUser?.expires_on);
+            topbarRenewButton.style.display = canRenewCurrentPlan() ? '' : 'none';
         };
 
         const renderIssuedInvitationCode = (payload) => {
@@ -1632,6 +1712,61 @@
             }).render(container);
             paypalButtonsRendered = true;
         };
+        const ensureRenewPayPalButtonsRendered = () => {
+            if (renewPaypalButtonsRendered || !window.paypal) return;
+            const container = document.getElementById('renew-paypal-button-container');
+            if (!container) return;
+            window.paypal.Buttons({
+                style: {
+                    layout: 'vertical',
+                    shape: 'pill',
+                    color: 'gold',
+                    label: 'paypal'
+                },
+                createOrder(_data, actions) {
+                    return actions.order.create({
+                        purchase_units: [{
+                            amount: {
+                                currency_code: 'USD',
+                                value: '50.00'
+                            },
+                            description: 'AGI Talent annual plan renewal'
+                        }]
+                    });
+                },
+                async onApprove(_data, actions) {
+                    if (!supabaseClient || !isLoggedIn() || !adminPassword) {
+                        throw new Error('User login is required.');
+                    }
+                    setRenewPlanStatus('Payment approved. Renewing your plan...');
+                    const order = await actions.order.capture();
+                    const orderId = String(order?.id || '').trim();
+                    if (!orderId) {
+                        throw new Error('PayPal order id was missing.');
+                    }
+                    const { data, error } = await supabaseClient.rpc('renew_paid_app_user_plan', {
+                        p_username: adminUser.username,
+                        p_password: adminPassword,
+                        p_paypal_order_id: orderId
+                    });
+                    if (error) throw error;
+                    if (!data || !data.username) {
+                        throw new Error('Renewal failed.');
+                    }
+                    adminUser = {
+                        ...adminUser,
+                        ...data
+                    };
+                    persistAdminSession();
+                    updateAdminUi();
+                    setRenewPlanStatus('Payment complete. Your plan has been renewed.');
+                },
+                onError(error) {
+                    setRenewPlanStatus(error?.message || 'PayPal payment failed.', true);
+                }
+            }).render(container);
+            renewPaypalButtonsRendered = true;
+        };
 
         const updateResetPasswordUi = () => {
             const visible = resetPasswordOpen;
@@ -1688,6 +1823,7 @@
             }
             updateUserOperationUi();
             updateResetPasswordUi();
+            startAccessWindowMonitor();
         };
 
         const clearResultsForSignedOutState = () => {
@@ -2577,6 +2713,21 @@
             updateUserOperationUi();
         };
 
+        const loadAccountSummary = async () => {
+            if (!supabaseClient || !isLoggedIn() || !adminPassword) return null;
+            const { data, error } = await supabaseClient.rpc('authenticate_app_user', {
+                p_username: adminUser.username,
+                p_password: adminPassword
+            });
+            if (error) throw error;
+            if (!data || !data.username) {
+                throw new Error('Account summary could not be loaded.');
+            }
+            adminUser = data;
+            persistAdminSession();
+            return data;
+        };
+
         const completeAuthenticatedSession = async (data, password, { closeElement = null } = {}) => {
             adminUser = data;
             adminPassword = password;
@@ -2584,6 +2735,7 @@
             adminPasswordInput.value = '';
             persistAdminSession();
             updateAdminUi();
+            if (!validateActiveAccessWindow()) return;
             await loadOutreachDefaults();
             await loadDashboardMetrics();
             await runSearch(false);
@@ -2637,23 +2789,28 @@
             }
         };
 
-        const logoutCurrentUser = () => {
+        const logoutCurrentUser = (statusMessage = 'Login is required to browse candidate records.') => {
             adminUser = null;
             adminPassword = '';
             adminTargetUser = null;
             outreachDefaults = { company: '', role: '', contact: '' };
             editingProfileId = null;
             resetPasswordOpen = false;
+            if (accessWindowTimer) {
+                window.clearInterval(accessWindowTimer);
+                accessWindowTimer = null;
+            }
             adminUsernameInput.disabled = false;
             adminPasswordInput.disabled = false;
             adminInviteCodeOutput.value = '';
             closeModal(loginModalEl);
             closeModal(signupModalEl);
             closeModal(changePasswordModalEl);
+            closeModal(renewPlanModalEl);
             clearAdminSession();
             updateAdminUi();
             clearResultsForSignedOutState();
-            setStatus('Login is required to browse candidate records.');
+            setStatus(statusMessage);
         };
 
         const runSearch = async (usePrompt) => {
@@ -2781,6 +2938,14 @@
             openModal(changePasswordModalEl);
             window.setTimeout(() => changePasswordCurrentInput.focus(), 0);
         });
+        topbarRenewButton.addEventListener('click', () => {
+            if (!canRenewCurrentPlan()) return;
+            setAccountCardOpen(false);
+            setRenewPlanStatus('', false);
+            refreshAccountCard();
+            openModal(renewPlanModalEl);
+            ensureRenewPayPalButtonsRendered();
+        });
 
         topbarLoginButton.addEventListener('click', () => {
             setModalStatus(loginModalStatusEl, '', false);
@@ -2868,7 +3033,7 @@
             });
         });
 
-        [loginModalEl, signupModalEl, changePasswordModalEl, inviteEmailModalEl].forEach((modal) => {
+        [loginModalEl, signupModalEl, changePasswordModalEl, inviteEmailModalEl, renewPlanModalEl].forEach((modal) => {
             modal.addEventListener('click', (event) => {
                 if (event.target === modal) {
                     closeModal(modal);
@@ -2882,6 +3047,7 @@
             closeModal(signupModalEl);
             closeModal(changePasswordModalEl);
             closeModal(inviteEmailModalEl);
+            closeModal(renewPlanModalEl);
             setAccountCardOpen(false);
         });
 
