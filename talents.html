@@ -732,6 +732,17 @@
         .invite-email-trigger.visible {
             display: inline-flex;
         }
+        .icon-only-action {
+            width: 52px;
+            height: 52px;
+            padding: 0;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+        }
+        .icon-only-action[data-icon]::before {
+            margin-right: 0;
+        }
         .invite-email-card {
             margin-top: 18px;
             padding: 18px;
@@ -831,27 +842,24 @@
             line-height: 1.5;
         }
         @media (max-width: 1040px) {
-            .signup-promo {
-                grid-template-columns: 1fr;
-            }
-            .layout {
-                grid-template-columns: 1fr;
-            }
-            .panel + .panel {
-                border-left: 0;
-                border-top: 1px solid var(--line);
-            }
-        }
-        @media (max-width: 720px) {
             html,
             body {
-                min-width: 1280px;
+                min-width: 1368px;
                 overflow-x: auto;
             }
             .container {
-                padding: 36px 24px 80px;
-                width: 1280px;
-                min-width: 1280px;
+                width: 1368px;
+                min-width: 1368px;
+            }
+            .signup-promo {
+                grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+            }
+            .layout {
+                grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
+            }
+            .panel + .panel {
+                border-left: 1px solid var(--line);
+                border-top: 0;
             }
             .topbar {
                 flex-direction: row;
@@ -992,7 +1000,7 @@
                                     <span>trial</span>
                                 </label>
                                 <button class="button-secondary" data-icon="◇" id="admin-generate-invite-button" type="button">Generate Invitation Code</button>
-                                <button class="button-secondary invite-email-trigger" data-icon="✉" id="admin-reveal-email-button" type="button">Reveal Email</button>
+                                <button class="button-secondary invite-email-trigger icon-only-action" data-icon="✉" id="admin-reveal-email-button" type="button" aria-label="Reveal Email"></button>
                             </div>
                             <div class="admin-status" id="admin-add-user-status"></div>
                         </div>
@@ -1543,11 +1551,12 @@
         const buildTrialInviteMailto = ({ inviteeName, inviteeEmail, code }) => {
             const subject = 'Automatically Reach Out Top AI Talents';
             const body = [
-                `Hi, ${inviteeName}`,
-                'https://www.agitalent.tech/talents.html, a novel way to approach AI talents',
+                `Hi ${inviteeName},`,
+                'https://www.agitalent.tech/talents.html',
+                'a novel way to approach AI talents',
                 `Use this trial invitation code to sign up: ${code}`,
                 'AGT Talent Team'
-            ].join('\n');
+            ].join('\n\n');
             return `mailto:${encodeURIComponent(inviteeEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
         };
         const formatAccountDate = (value) => {
