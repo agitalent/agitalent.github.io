@@ -726,6 +726,34 @@
             text-decoration: underline;
             text-underline-offset: 2px;
         }
+        .invite-email-trigger {
+            display: none;
+        }
+        .invite-email-trigger.visible {
+            display: inline-flex;
+        }
+        .invite-email-card {
+            margin-top: 18px;
+            padding: 18px;
+            border-radius: 22px;
+            border: 1px solid rgba(127, 255, 212, 0.14);
+            background: rgba(255, 255, 255, 0.03);
+        }
+        .invite-email-card strong {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 1rem;
+        }
+        .invite-email-code {
+            margin-top: 8px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px dashed rgba(127, 255, 212, 0.2);
+            background: rgba(71, 229, 165, 0.05);
+            color: var(--text);
+            font-size: 0.95rem;
+            letter-spacing: 0.06em;
+        }
         .default-toggle {
             display: inline-flex;
             align-items: center;
@@ -804,16 +832,14 @@
         }
         @media (max-width: 1040px) {
             .signup-promo {
-                grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
-                min-width: 1040px;
+                grid-template-columns: 1fr;
             }
             .layout {
-                grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
-                min-width: 1100px;
+                grid-template-columns: 1fr;
             }
             .panel + .panel {
-                border-left: 1px solid var(--line);
-                border-top: 0;
+                border-left: 0;
+                border-top: 1px solid var(--line);
             }
         }
         @media (max-width: 720px) {
@@ -850,9 +876,6 @@
             }
             .dashboard-grid.admin-mode {
                 grid-template-columns: repeat(3, minmax(0, 1fr));
-            }
-            .signup-promo {
-                padding: 28px 32px;
             }
         }
     </style>
@@ -969,6 +992,7 @@
                                     <span>trial</span>
                                 </label>
                                 <button class="button-secondary" data-icon="◇" id="admin-generate-invite-button" type="button">Generate Invitation Code</button>
+                                <button class="button-secondary invite-email-trigger" data-icon="✉" id="admin-reveal-email-button" type="button">Reveal Email</button>
                             </div>
                             <div class="admin-status" id="admin-add-user-status"></div>
                         </div>
@@ -1109,6 +1133,48 @@
         </div>
     </div>
 
+    <div class="modal-backdrop" id="invite-email-modal" aria-hidden="true">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="invite-email-modal-title">
+            <div class="modal-head">
+                <div>
+                    <h3 data-icon="✉" id="invite-email-modal-title">Trial Invitation Email</h3>
+                    <p class="modal-copy">Capture the invitee details, then open a prefilled email draft in your local mail app.</p>
+                </div>
+                <button class="modal-close" type="button" data-close-modal="invite-email-modal" aria-label="Close invitation email window">✕</button>
+            </div>
+            <div class="invite-email-card">
+                <strong data-icon="◇">Invitee Card</strong>
+                <div class="field-grid">
+                    <div class="field">
+                        <label data-icon="◎" for="invite-email-name">Invitee Name</label>
+                        <input id="invite-email-name" type="text" autocomplete="off" placeholder="Taylor Chen">
+                    </div>
+                    <div class="field">
+                        <label data-icon="✉" for="invite-email-address">Email</label>
+                        <input id="invite-email-address" type="email" autocomplete="off" placeholder="taylor@example.com">
+                    </div>
+                    <div class="field">
+                        <label data-icon="▣" for="invite-email-company">Company</label>
+                        <input id="invite-email-company" type="text" autocomplete="off" placeholder="OpenAI">
+                    </div>
+                    <div class="field">
+                        <label data-icon="◌" for="invite-email-role">Role</label>
+                        <input id="invite-email-role" type="text" autocomplete="off" placeholder="Research Engineer">
+                    </div>
+                </div>
+                <div class="field" style="margin-top:12px;">
+                    <label data-icon="◇" for="invite-email-code">Trial Invitation Code</label>
+                    <input id="invite-email-code" type="text" readonly>
+                </div>
+                <div class="invite-email-code" id="invite-email-code-preview">No trial invitation code generated yet.</div>
+                <div class="actions" style="margin-top:14px;">
+                    <button class="button" data-icon="✉" id="invite-email-send-button" type="button">Send</button>
+                </div>
+            </div>
+            <div class="modal-status" id="invite-email-status"></div>
+        </div>
+    </div>
+
     <script>
         const SUPABASE_URL = 'https://zocovvewzpqxspysanyy.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvY292dmV3enBxeHNweXNhbnl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwODYwNTgsImV4cCI6MjA4OTY2MjA1OH0.8ekfJ3bcvG-AbLD39xUINwXrpO7RiH9PVgy-xMzeHbE';
@@ -1156,6 +1222,7 @@
         const adminBatchInviteToggle = document.getElementById('admin-batch-invite-toggle');
         const adminTrialInviteToggle = document.getElementById('admin-trial-invite-toggle');
         const adminGenerateInviteButton = document.getElementById('admin-generate-invite-button');
+        const adminRevealEmailButton = document.getElementById('admin-reveal-email-button');
         const adminAddUserStatusEl = document.getElementById('admin-add-user-status');
         const adminLogoutButton = document.getElementById('admin-logout-button');
         const adminAuthStatusEl = document.getElementById('admin-auth-status');
@@ -1184,6 +1251,15 @@
         const changePasswordNewInput = document.getElementById('change-password-new');
         const changePasswordSubmitButton = document.getElementById('change-password-submit');
         const changePasswordStatusEl = document.getElementById('change-password-status');
+        const inviteEmailModalEl = document.getElementById('invite-email-modal');
+        const inviteEmailNameInput = document.getElementById('invite-email-name');
+        const inviteEmailAddressInput = document.getElementById('invite-email-address');
+        const inviteEmailCompanyInput = document.getElementById('invite-email-company');
+        const inviteEmailRoleInput = document.getElementById('invite-email-role');
+        const inviteEmailCodeInput = document.getElementById('invite-email-code');
+        const inviteEmailCodePreviewEl = document.getElementById('invite-email-code-preview');
+        const inviteEmailSendButton = document.getElementById('invite-email-send-button');
+        const inviteEmailStatusEl = document.getElementById('invite-email-status');
         const signupIssuedCodeEl = document.getElementById('signup-issued-code');
         const resultsMetaEl = document.getElementById('results-meta');
         const resultsEl = document.getElementById('results');
@@ -1253,6 +1329,7 @@
         let resetPasswordOpen = false;
         let adminTargetUser = null;
         let paypalButtonsRendered = false;
+        let latestTrialInvitationCode = '';
         let outreachDefaults = {
             company: '',
             role: '',
@@ -1421,6 +1498,11 @@
             adminAddUserStatusEl.classList.toggle('error', isError);
         };
 
+        const setInviteEmailStatus = (message, isError = false) => {
+            inviteEmailStatusEl.textContent = message;
+            inviteEmailStatusEl.classList.toggle('error', isError);
+        };
+
         const openModal = (element) => {
             if (!element) return;
             element.classList.add('open');
@@ -1438,6 +1520,36 @@
             .toUpperCase()
             .replace(/\s+/g, '')
             .replace(/[^A-Z0-9-]/g, '');
+        const isTrialInvitationReady = () => Boolean(
+            isAdminLoggedIn()
+            && Boolean(adminTrialInviteToggle?.checked)
+            && !Boolean(adminBatchInviteToggle?.checked)
+            && normalizeInvitationCode(adminInviteCodeOutput.value || latestTrialInvitationCode)
+        );
+        const syncInviteEmailCodeUi = () => {
+            const code = normalizeInvitationCode(adminInviteCodeOutput.value || latestTrialInvitationCode);
+            inviteEmailCodeInput.value = code;
+            inviteEmailCodePreviewEl.textContent = code || 'No trial invitation code generated yet.';
+        };
+        const updateInviteEmailAction = () => {
+            const visible = isTrialInvitationReady();
+            adminRevealEmailButton.classList.toggle('visible', visible);
+            adminRevealEmailButton.disabled = !visible;
+            if (!visible && inviteEmailModalEl.classList.contains('open')) {
+                closeModal(inviteEmailModalEl);
+            }
+            syncInviteEmailCodeUi();
+        };
+        const buildTrialInviteMailto = ({ inviteeName, inviteeEmail, code }) => {
+            const subject = 'Automatically Reach Out Top AI Talents';
+            const body = [
+                `Hi, ${inviteeName}`,
+                'https://www.agitalent.tech/talents.html, a novel way to approach AI talents',
+                `Use this trial invitation code to sign up: ${code}`,
+                'AGT Talent Team'
+            ].join('\n');
+            return `mailto:${encodeURIComponent(inviteeEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        };
         const formatAccountDate = (value) => {
             const text = String(value || '').trim();
             if (!text) return '-';
@@ -1523,6 +1635,7 @@
             adminAddUserButton.textContent = adminTargetUser ? 'Renew User' : 'Create User';
             adminDeleteUserButton.disabled = !isAdminLoggedIn() || !username || !adminTargetUser;
             adminGenerateInviteButton.disabled = !isAdminLoggedIn();
+            updateInviteEmailAction();
         };
 
         const updateAdminUi = () => {
@@ -1561,6 +1674,8 @@
                 setAddUserStatus('', false);
                 adminTargetUser = null;
                 adminInviteCodeOutput.value = '';
+                latestTrialInvitationCode = '';
+                setInviteEmailStatus('', false);
             }
             updateUserOperationUi();
             updateResetPasswordUi();
@@ -2744,7 +2859,7 @@
             });
         });
 
-        [loginModalEl, signupModalEl, changePasswordModalEl].forEach((modal) => {
+        [loginModalEl, signupModalEl, changePasswordModalEl, inviteEmailModalEl].forEach((modal) => {
             modal.addEventListener('click', (event) => {
                 if (event.target === modal) {
                     closeModal(modal);
@@ -2757,6 +2872,7 @@
             closeModal(loginModalEl);
             closeModal(signupModalEl);
             closeModal(changePasswordModalEl);
+            closeModal(inviteEmailModalEl);
             setAccountCardOpen(false);
         });
 
@@ -2845,6 +2961,7 @@
                         generatedCount += 1;
                     }
                     adminInviteCodeOutput.value = '';
+                    latestTrialInvitationCode = '';
                     setAddUserStatus(`${generatedCount} invitation codes generated and stored with no expiration.`);
                 } else {
                     const { data, error } = await supabaseClient.rpc('admin_generate_app_user_invitation_code', {
@@ -2855,6 +2972,7 @@
                     });
                     if (error) throw error;
                     adminInviteCodeOutput.value = String(data?.code || '').trim();
+                    latestTrialInvitationCode = useTrialInvite ? String(data?.code || '').trim() : '';
                     setAddUserStatus(useTrialInvite ? '3-day trial invitation code generated.' : 'Invitation code generated with no expiration.');
                 }
             } catch (error) {
@@ -2862,6 +2980,76 @@
             } finally {
                 adminGenerateInviteButton.disabled = false;
                 updateUserOperationUi();
+            }
+        });
+
+        [adminTrialInviteToggle, adminBatchInviteToggle].forEach((input) => {
+            input.addEventListener('change', () => {
+                if (input === adminBatchInviteToggle && adminBatchInviteToggle.checked) {
+                    adminTrialInviteToggle.checked = false;
+                }
+                if (input === adminTrialInviteToggle && adminTrialInviteToggle.checked) {
+                    adminBatchInviteToggle.checked = false;
+                }
+                updateUserOperationUi();
+            });
+        });
+
+        adminInviteCodeOutput.addEventListener('input', updateInviteEmailAction);
+
+        adminRevealEmailButton.addEventListener('click', () => {
+            if (!isTrialInvitationReady()) {
+                setAddUserStatus('Generate a single trial invitation code first.', true);
+                return;
+            }
+            inviteEmailCompanyInput.value = normalizedOutreachDefaults().company;
+            inviteEmailRoleInput.value = normalizedOutreachDefaults().role;
+            syncInviteEmailCodeUi();
+            setInviteEmailStatus('', false);
+            openModal(inviteEmailModalEl);
+        });
+
+        inviteEmailSendButton.addEventListener('click', async () => {
+            if (!supabaseClient) {
+                setInviteEmailStatus('Supabase client failed to initialize.', true);
+                return;
+            }
+            if (!isAdminLoggedIn()) {
+                setInviteEmailStatus('Admin rights are required.', true);
+                return;
+            }
+            const inviteeName = String(inviteEmailNameInput.value || '').trim();
+            const inviteeEmail = String(inviteEmailAddressInput.value || '').trim();
+            const company = String(inviteEmailCompanyInput.value || '').trim();
+            const role = String(inviteEmailRoleInput.value || '').trim();
+            const code = normalizeInvitationCode(inviteEmailCodeInput.value || latestTrialInvitationCode);
+            if (!inviteeName || !inviteeEmail || !company || !role || !code) {
+                setInviteEmailStatus('Invitee name, email, company, role, and trial code are required.', true);
+                return;
+            }
+            inviteEmailSendButton.disabled = true;
+            setInviteEmailStatus('Saving client talent and opening your email draft...');
+            try {
+                const { error } = await supabaseClient.rpc('admin_save_client_talent', {
+                    p_admin_username: adminUser.username,
+                    p_admin_password: adminPassword,
+                    p_invitee_name: inviteeName,
+                    p_invitee_email: inviteeEmail,
+                    p_company: company,
+                    p_role: role,
+                    p_invitation_code: code
+                });
+                if (error) throw error;
+                window.location.href = buildTrialInviteMailto({
+                    inviteeName,
+                    inviteeEmail,
+                    code
+                });
+                setInviteEmailStatus('Invitee saved. Your local email handler should open with the draft.', false);
+            } catch (error) {
+                setInviteEmailStatus(error.message || 'Failed to save invitee details.', true);
+            } finally {
+                inviteEmailSendButton.disabled = false;
             }
         });
 

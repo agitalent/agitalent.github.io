@@ -375,7 +375,6 @@
         const profileParseButton = document.getElementById('profile-parse-button');
         const profileParseStatus = document.getElementById('profile-parse-status');
         let latestProfileParseRequest = 0;
-        let duplicateEmailState = { checking: false, duplicate: false, email: '', table: '' };
 
         const setStatus = (message) => { hubStatus.textContent = message; };
         const setSkillReminderVisible = (visible) => {
@@ -389,12 +388,8 @@
         const resetFormForProfileMode = () => {
             registerForm.reset();
             recordKind.value = 'profile';
-            setDuplicateEmailState({ checking: false, duplicate: false, email: '', table: '' });
             toggleFields();
             setProfileParseStatus('Click Parse to extract profile fields.');
-        };
-        const updateSubmitAvailability = () => {
-            submitButton.disabled = duplicateEmailState.checking || duplicateEmailState.duplicate;
         };
         const bailianJson = async (messages) => {
             const response = await fetch(`${BAILIAN_BASE_URL}/chat/completions`, {
@@ -424,16 +419,7 @@
         const toList = (value) => String(value || '').split(/[\n,;]+/).map((item) => item.trim()).filter(Boolean);
         const normalize = (value) => String(value || '').toLowerCase().trim();
         const tokenSet = (value) => new Set(toList(value).flatMap((item) => normalize(item).split(/\s+/)).filter(Boolean));
-        const decodePercentEncodedText = (value) => {
-            let decoded = String(value || '');
-            for (let index = 0; index < 3; index += 1) {
-                const next = decoded.replace(/%([0-9a-f]{2})/gi, (_match, hex) => String.fromCharCode(parseInt(hex, 16)));
-                if (next === decoded) break;
-                decoded = next;
-            }
-            return decoded;
-        };
-        const normalizeEmailInputValue = (value) => decodePercentEncodedText(value)
+        const normalizeEmailInputValue = (value) => String(value || '')
             .replace(/\s*\(\s*at\s*\)\s*/gi, '@')
             .replace(/\s*\[\s*at\s*\]\s*/gi, '@')
             .replace(/\s+at\s+/gi, '@')
@@ -699,51 +685,6 @@
             hiring_constraints: toList(document.getElementById('hiring-constraints').value),
             status: 'open'
         });
-        const currentEmailContext = () => {
-            const isProfile = recordKind.value === 'profile';
-            const input = isProfile ? emailInput : needEmailInput;
-            const email = normalizeEmailInputValue(input?.value || '');
-            return {
-                isProfile,
-                input,
-                email,
-                table: isProfile ? 'profiles' : 'needs'
-            };
-        };
-        const setDuplicateEmailState = (nextState) => {
-            duplicateEmailState = nextState;
-            updateSubmitAvailability();
-        };
-        const checkDuplicateEmail = async () => {
-            if (!supabaseClient) return false;
-            const { isProfile, input, email, table } = currentEmailContext();
-            if (input && input.value !== email) {
-                input.value = email;
-            }
-            if (!email) {
-                setDuplicateEmailState({ checking: false, duplicate: false, email: '', table: '' });
-                return false;
-            }
-            setDuplicateEmailState({ checking: true, duplicate: false, email, table });
-            const { data, error } = await supabaseClient.from(table).select('id').ilike('email', email).limit(1);
-            if (error) {
-                if (!isProfile && isMissingNeedsEmailColumnError(error)) {
-                    setDuplicateEmailState({ checking: false, duplicate: false, email, table });
-                    return false;
-                }
-                setDuplicateEmailState({ checking: false, duplicate: false, email, table });
-                throw error;
-            }
-            const isDuplicate = Array.isArray(data) && data.length > 0;
-            setDuplicateEmailState({ checking: false, duplicate: isDuplicate, email, table });
-            if (isDuplicate) {
-                if (input) {
-                    input.value = '';
-                }
-                setDuplicateEmailState({ checking: false, duplicate: false, email: '', table: '' });
-            }
-            return isDuplicate;
-        };
         const scoreProfileAgainstNeed = (profile, need) => {
             const profileSkills = tokenSet(profile.skills || []);
             const profileEducation = tokenSet([profile.seniority || '']);
@@ -792,46 +733,13 @@
         };
         attachEmailAutocorrect(emailInput);
         attachEmailAutocorrect(needEmailInput);
-        const handleEmailDuplicateReset = () => {
-            setDuplicateEmailState({ checking: false, duplicate: false, email: '', table: '' });
-        };
-        [emailInput, needEmailInput].forEach((input) => {
-            if (!input) return;
-            input.addEventListener('input', handleEmailDuplicateReset);
-            input.addEventListener('blur', async () => {
-                try {
-                    await checkDuplicateEmail();
-                } catch (error) {
-                    setStatus(`Email check failed: ${error.message}`);
-                }
-            });
-            input.addEventListener('change', async () => {
-                try {
-                    await checkDuplicateEmail();
-                } catch (error) {
-                    setStatus(`Email check failed: ${error.message}`);
-                }
-            });
-        });
         if (profileParseButton) profileParseButton.addEventListener('click', handleProfileParseClick);
-        recordKind.addEventListener('change', () => {
-            handleEmailDuplicateReset();
-            toggleFields();
-        });
+        recordKind.addEventListener('change', toggleFields);
         toggleFields();
         registerForm.addEventListener('submit', async (event) => {
             event.preventDefault();
             if (!supabaseClient) {
                 setStatus('The hub client failed to initialize.');
-                return;
-            }
-            try {
-                const duplicateFound = await checkDuplicateEmail();
-                if (duplicateFound) {
-                    return;
-                }
-            } catch (error) {
-                setStatus(`Email check failed: ${error.message}`);
                 return;
             }
             const isProfile = recordKind.value === 'profile';
@@ -894,7 +802,6 @@
                 if (isProfile) {
                     resetFormForProfileMode();
                 }
-                handleEmailDuplicateReset();
                 setStatus(`Stored successfully. ${bestMatch ? `Top match score: ${bestMatch.score}%` : 'No direct match yet.'}`);
                 setSkillReminderVisible(true);
             } catch (error) {
