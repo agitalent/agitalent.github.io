@@ -836,6 +836,27 @@
         .schedule-grid .field.wide {
             grid-column: 1 / -1;
         }
+        .outreach-mode-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+        .outreach-mode-option {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(127, 255, 212, 0.16);
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--muted);
+            cursor: pointer;
+        }
+        .outreach-mode-option input {
+            margin: 0;
+            accent-color: #7fffd4;
+        }
         .schedule-status {
             margin-top: 10px;
             color: var(--muted);
@@ -1377,9 +1398,12 @@
         let outreachDefaults = {
             company: '',
             role: '',
-            contact: ''
+            contact: '',
+            mode: 'hiring_talents'
         };
         const ADMIN_SESSION_KEY = 'talentsAdminSession';
+        const OUTREACH_MODE_HIRING = 'hiring_talents';
+        const OUTREACH_MODE_SEEKING = 'seeking_jobs';
 
         const setStatus = (message, isError = false) => {
             statusEl.textContent = message;
@@ -1440,10 +1464,39 @@
             value.setDate(value.getDate() + days);
             return value.toISOString().slice(0, 10);
         };
+        const normalizeOutreachMode = (value) => (
+            String(value || '').trim() === OUTREACH_MODE_SEEKING ? OUTREACH_MODE_SEEKING : OUTREACH_MODE_HIRING
+        );
+        const outreachModeConfig = (mode) => {
+            const normalizedMode = normalizeOutreachMode(mode);
+            if (normalizedMode === OUTREACH_MODE_SEEKING) {
+                return {
+                    mode: normalizedMode,
+                    companyLabel: 'Your Name',
+                    roleLabel: 'Specialized Domain',
+                    contactLabel: 'Your Profile Link',
+                    companyPlaceholder: 'Alex Chen',
+                    rolePlaceholder: 'Agentic coding systems',
+                    contactPlaceholder: 'https://linkedin.com/in/alexchen',
+                    completionMessage: 'Complete your name, specialized domain, and profile link before sending.'
+                };
+            }
+            return {
+                mode: normalizedMode,
+                companyLabel: 'Company',
+                roleLabel: 'Role',
+                contactLabel: 'Preferred Contact Means',
+                companyPlaceholder: 'OpenAI',
+                rolePlaceholder: 'Research Engineer',
+                contactPlaceholder: 'email@example.com or WeChat: agitalent',
+                completionMessage: 'Complete company, role, and preferred contact before sending.'
+            };
+        };
         const normalizedOutreachDefaults = () => ({
             company: String(outreachDefaults.company || '').trim(),
             role: String(outreachDefaults.role || '').trim(),
-            contact: String(outreachDefaults.contact || '').trim()
+            contact: String(outreachDefaults.contact || '').trim(),
+            outreach_mode: normalizeOutreachMode(outreachDefaults.mode)
         });
         const profileSelectColumns = () => (
             isAdminLoggedIn()
@@ -1482,6 +1535,7 @@
         };
         const applyOutreachDefaultsLocally = (values) => {
             if (!values || typeof values !== 'object') return;
+            outreachDefaults.mode = normalizeOutreachMode(values.outreach_mode);
             if (values.save_company_default && values.company) {
                 outreachDefaults.company = String(values.company).trim();
             }
@@ -1515,6 +1569,14 @@
             form.querySelectorAll('[name]').forEach((input) => {
                 if (input instanceof HTMLInputElement && input.type === 'checkbox') {
                     fields[input.name] = Boolean(input.checked);
+                    return;
+                }
+                if (input instanceof HTMLInputElement && input.type === 'radio') {
+                    if (input.checked) {
+                        fields[input.name] = String(input.value || '').trim();
+                    } else if (!(input.name in fields)) {
+                        fields[input.name] = '';
+                    }
                     return;
                 }
                 fields[input.name] = String(input.value || '').trim();
@@ -1889,11 +1951,20 @@
             return `https://calendar.google.com/calendar/render?${params.toString()}`;
         };
 
-        const buildOpportunityParagraph = (company, role) => `${String(company || '').trim()} is currently hiring ${String(role || '').trim()}.`;
+        const buildOpportunityParagraph = (mode, company, role) => (
+            normalizeOutreachMode(mode) === OUTREACH_MODE_SEEKING
+                ? `${String(company || '').trim()} is currently seek roles in ${String(role || '').trim()}.`
+                : `${String(company || '').trim()} is currently hiring ${String(role || '').trim()}.`
+        );
         const truncateWords = (text, maxWords) => String(text || '').trim().split(/\s+/).filter(Boolean).slice(0, maxWords).join(' ');
         const buildInvitationSubject = (summary) => {
             const normalizedSummary = truncateWords(summary || 'background', 12) || 'background';
             return truncateWords(`Superb opportunity matching your ${normalizedSummary}`, 20);
+        };
+        const shouldRetryLegacyEmailOutreachRpc = (error) => {
+            const message = String(error?.message || error?.details || error?.hint || '').toLowerCase();
+            return message.includes('log_email_outreach')
+                && (message.includes('function') || message.includes('signature') || message.includes('no function matches'));
         };
 
         const replaceInvitePlaceholders = (text, { candidateName, company, role, contact }) => {
@@ -1950,9 +2021,19 @@
             const company = String(values.company || '').trim();
             const role = String(values.role || '').trim();
             const contact = String(values.contact || '').trim();
+            const mode = normalizeOutreachMode(values.outreach_mode);
             const context = { candidateName, company, role, contact };
             try {
-                const payload = await bailianJson([
+                const payload = await bailianJson(mode === OUTREACH_MODE_SEEKING ? [
+                    { role: 'system', content: 'Return JSON only: {"paragraph2":""}.' },
+                    {
+                        role: 'user',
+                        content: (
+                            `Candidate name: ${candidateName}. Seniority: ${seniority}. Seeking domain: ${role}. Profile link: ${contact}. ` +
+                            'Paragraph2 only: write one concise sentence, under 30 words, highlighting the candidate background and fit for the specialized domain.'
+                        )
+                    }
+                ] : [
                     { role: 'system', content: 'Return JSON only: {"background_summary":"", "paragraph2":""}.' },
                     {
                         role: 'user',
@@ -1963,13 +2044,17 @@
                         )
                     }
                 ]);
-                const title = buildInvitationSubject(replaceInvitePlaceholders(String(payload?.background_summary || seniority).trim(), context));
+                const title = mode === OUTREACH_MODE_SEEKING
+                    ? 'Apply for roles if your team can kindly provide a fit.'
+                    : buildInvitationSubject(replaceInvitePlaceholders(String(payload?.background_summary || seniority).trim(), context));
                 const paragraph2 = replaceInvitePlaceholders(String(payload?.paragraph2 || `Your ${seniority} background and expertise stand out.`).trim(), context);
                 const body = [
                     `Hi ${candidateName},`,
                     paragraph2,
-                    buildOpportunityParagraph(company, role),
-                    `Feel free to reach out via ${contact}.`
+                    buildOpportunityParagraph(mode, company, role),
+                    mode === OUTREACH_MODE_SEEKING
+                        ? `My profile link is ${contact}.`
+                        : `Feel free to reach out via ${contact}.`
                 ].join('\n\n');
                 return {
                     subject: title,
@@ -1977,12 +2062,18 @@
                 };
             } catch (_error) {
                 return {
-                    subject: buildInvitationSubject(seniority),
+                    subject: mode === OUTREACH_MODE_SEEKING
+                        ? 'Apply for roles if your team can kindly provide a fit.'
+                        : buildInvitationSubject(seniority),
                     body: [
                         `Hi ${candidateName},`,
-                        `Your ${seniority} background and expertise stand out.`,
-                        buildOpportunityParagraph(company, role),
-                        `Feel free to reach out via ${contact}.`
+                        mode === OUTREACH_MODE_SEEKING
+                            ? `My ${seniority} background and expertise could be a fit for ${role}.`
+                            : `Your ${seniority} background and expertise stand out.`,
+                        buildOpportunityParagraph(mode, company, role),
+                        mode === OUTREACH_MODE_SEEKING
+                            ? `My profile link is ${contact}.`
+                            : `Feel free to reach out via ${contact}.`
                     ].join('\n\n')
                 };
             }
@@ -2227,42 +2318,88 @@
             };
         };
 
+        const renderOutreachModeOptions = (profileId, values, prefix) => {
+            const selectedMode = normalizeOutreachMode(values.outreach_mode);
+            return `
+                <div class="field wide">
+                    <label>Outreach Type</label>
+                    <div class="outreach-mode-group">
+                        <label class="outreach-mode-option" for="${prefix}-mode-hiring-${escapeHtml(profileId)}">
+                            <input id="${prefix}-mode-hiring-${escapeHtml(profileId)}" name="outreach_mode" type="radio" value="${OUTREACH_MODE_HIRING}" ${selectedMode === OUTREACH_MODE_HIRING ? 'checked' : ''}>
+                            hiring talents
+                        </label>
+                        <label class="outreach-mode-option" for="${prefix}-mode-seeking-${escapeHtml(profileId)}">
+                            <input id="${prefix}-mode-seeking-${escapeHtml(profileId)}" name="outreach_mode" type="radio" value="${OUTREACH_MODE_SEEKING}" ${selectedMode === OUTREACH_MODE_SEEKING ? 'checked' : ''}>
+                            seeking jobs
+                        </label>
+                    </div>
+                </div>
+            `;
+        };
+
+        const applyOutreachModePresentation = (form, mode) => {
+            if (!form) return;
+            const config = outreachModeConfig(mode);
+            const labelMap = {
+                company: config.companyLabel,
+                role: config.roleLabel,
+                contact: config.contactLabel
+            };
+            const placeholderMap = {
+                company: config.companyPlaceholder,
+                role: config.rolePlaceholder,
+                contact: config.contactPlaceholder
+            };
+            form.querySelectorAll('[data-outreach-label]').forEach((element) => {
+                const key = element.getAttribute('data-outreach-label');
+                if (!key || !(key in labelMap)) return;
+                element.textContent = labelMap[key];
+            });
+            form.querySelectorAll('[data-outreach-input]').forEach((element) => {
+                const key = element.getAttribute('data-outreach-input');
+                if (!key || !(key in placeholderMap)) return;
+                element.setAttribute('placeholder', placeholderMap[key]);
+            });
+        };
+
         const renderEmailPanel = (profile) => {
             const values = profile._emailDraft || emailDefaults();
+            const config = outreachModeConfig(values.outreach_mode);
             const disabledAttr = sendingEmailProfileId === profile.id ? ' disabled' : '';
             const sendDisabledAttr = !isEmailComplete(values) || sendingEmailProfileId === profile.id ? ' disabled' : '';
             return `
                 <div class="schedule-panel">
                     <div class="schedule-grid" data-email-form="${escapeHtml(profile.id)}">
+                        ${!isAdminLoggedIn() ? renderOutreachModeOptions(profile.id, values, 'email') : ''}
                         <div class="field">
                             <div class="field-label-row">
-                                <label for="email-company-${escapeHtml(profile.id)}">Company</label>
+                                <label data-outreach-label="company" for="email-company-${escapeHtml(profile.id)}">${escapeHtml(config.companyLabel)}</label>
                                 <label class="default-toggle" for="email-save-company-${escapeHtml(profile.id)}">
                                     <input id="email-save-company-${escapeHtml(profile.id)}" name="save_company_default" type="checkbox" ${values.save_company_default ? 'checked' : ''}>
                                     Save as default
                                 </label>
                             </div>
-                            <input id="email-company-${escapeHtml(profile.id)}" name="company" type="text" value="${escapeHtml(values.company)}" placeholder="OpenAI">
+                            <input data-outreach-input="company" id="email-company-${escapeHtml(profile.id)}" name="company" type="text" value="${escapeHtml(values.company)}" placeholder="${escapeHtml(config.companyPlaceholder)}">
                         </div>
                         <div class="field">
                             <div class="field-label-row">
-                                <label for="email-role-${escapeHtml(profile.id)}">Role</label>
+                                <label data-outreach-label="role" for="email-role-${escapeHtml(profile.id)}">${escapeHtml(config.roleLabel)}</label>
                                 <label class="default-toggle" for="email-save-role-${escapeHtml(profile.id)}">
                                     <input id="email-save-role-${escapeHtml(profile.id)}" name="save_role_default" type="checkbox" ${values.save_role_default ? 'checked' : ''}>
                                     Save as default
                                 </label>
                             </div>
-                            <input id="email-role-${escapeHtml(profile.id)}" name="role" type="text" value="${escapeHtml(values.role)}" placeholder="Research Engineer">
+                            <input data-outreach-input="role" id="email-role-${escapeHtml(profile.id)}" name="role" type="text" value="${escapeHtml(values.role)}" placeholder="${escapeHtml(config.rolePlaceholder)}">
                         </div>
                         <div class="field wide">
                             <div class="field-label-row">
-                                <label for="email-contact-${escapeHtml(profile.id)}">Preferred Contact Means</label>
+                                <label data-outreach-label="contact" for="email-contact-${escapeHtml(profile.id)}">${escapeHtml(config.contactLabel)}</label>
                                 <label class="default-toggle" for="email-save-contact-${escapeHtml(profile.id)}">
                                     <input id="email-save-contact-${escapeHtml(profile.id)}" name="save_contact_default" type="checkbox" ${values.save_contact_default ? 'checked' : ''}>
                                     Save as default
                                 </label>
                             </div>
-                            <input id="email-contact-${escapeHtml(profile.id)}" name="contact" type="text" value="${escapeHtml(values.contact)}" placeholder="email@example.com or WeChat: agitalent">
+                            <input data-outreach-input="contact" id="email-contact-${escapeHtml(profile.id)}" name="contact" type="text" value="${escapeHtml(values.contact)}" placeholder="${escapeHtml(config.contactPlaceholder)}">
                         </div>
                     </div>
                     <div class="card-actions">
@@ -2276,6 +2413,7 @@
 
         const renderSchedulePanel = (profile) => {
             const values = profile._scheduleDraft || scheduleDefaults();
+            const config = outreachModeConfig(values.outreach_mode);
             const selectedProfiles = isAdminLoggedIn() ? selectedScheduleProfilesInOrder() : [];
             const selectionCount = selectedProfiles.length;
             const timezoneOptionsHtml = timeZoneOptions.map((zone) => {
@@ -2291,6 +2429,7 @@
             return `
                 <div class="schedule-panel">
                     <div class="schedule-grid" data-schedule-form="${escapeHtml(profile.id)}">
+                        ${!isAdminLoggedIn() ? renderOutreachModeOptions(profile.id, values, 'schedule') : ''}
                         <div class="field">
                             <label for="schedule-date-${escapeHtml(profile.id)}">Date</label>
                             <input id="schedule-date-${escapeHtml(profile.id)}" name="date" type="date" value="${escapeHtml(values.date)}">
@@ -2309,33 +2448,33 @@
                         </div>
                         <div class="field">
                             <div class="field-label-row">
-                                <label for="schedule-company-${escapeHtml(profile.id)}">Company</label>
+                                <label data-outreach-label="company" for="schedule-company-${escapeHtml(profile.id)}">${escapeHtml(config.companyLabel)}</label>
                                 <label class="default-toggle" for="schedule-save-company-${escapeHtml(profile.id)}">
                                     <input id="schedule-save-company-${escapeHtml(profile.id)}" name="save_company_default" type="checkbox" ${values.save_company_default ? 'checked' : ''}>
                                     Save as default
                                 </label>
                             </div>
-                            <input id="schedule-company-${escapeHtml(profile.id)}" name="company" type="text" value="${escapeHtml(values.company)}" placeholder="OpenAI">
+                            <input data-outreach-input="company" id="schedule-company-${escapeHtml(profile.id)}" name="company" type="text" value="${escapeHtml(values.company)}" placeholder="${escapeHtml(config.companyPlaceholder)}">
                         </div>
                         <div class="field">
                             <div class="field-label-row">
-                                <label for="schedule-role-${escapeHtml(profile.id)}">Role</label>
+                                <label data-outreach-label="role" for="schedule-role-${escapeHtml(profile.id)}">${escapeHtml(config.roleLabel)}</label>
                                 <label class="default-toggle" for="schedule-save-role-${escapeHtml(profile.id)}">
                                     <input id="schedule-save-role-${escapeHtml(profile.id)}" name="save_role_default" type="checkbox" ${values.save_role_default ? 'checked' : ''}>
                                     Save as default
                                 </label>
                             </div>
-                            <input id="schedule-role-${escapeHtml(profile.id)}" name="role" type="text" value="${escapeHtml(values.role)}" placeholder="Research Engineer">
+                            <input data-outreach-input="role" id="schedule-role-${escapeHtml(profile.id)}" name="role" type="text" value="${escapeHtml(values.role)}" placeholder="${escapeHtml(config.rolePlaceholder)}">
                         </div>
                         <div class="field wide">
                             <div class="field-label-row">
-                                <label for="schedule-contact-${escapeHtml(profile.id)}">Preferred Contact Means</label>
+                                <label data-outreach-label="contact" for="schedule-contact-${escapeHtml(profile.id)}">${escapeHtml(config.contactLabel)}</label>
                                 <label class="default-toggle" for="schedule-save-contact-${escapeHtml(profile.id)}">
                                     <input id="schedule-save-contact-${escapeHtml(profile.id)}" name="save_contact_default" type="checkbox" ${values.save_contact_default ? 'checked' : ''}>
                                     Save as default
                                 </label>
                             </div>
-                            <input id="schedule-contact-${escapeHtml(profile.id)}" name="contact" type="text" value="${escapeHtml(values.contact)}" placeholder="email@example.com or WeChat: agitalent">
+                            <input data-outreach-input="contact" id="schedule-contact-${escapeHtml(profile.id)}" name="contact" type="text" value="${escapeHtml(values.contact)}" placeholder="${escapeHtml(config.contactPlaceholder)}">
                         </div>
                     </div>
                     <div class="card-actions">
@@ -2553,8 +2692,9 @@
                 throw new Error('The schedule form could not be found.');
             }
             const fields = collectNamedFields(form);
+            const mode = normalizeOutreachMode(fields.outreach_mode);
             if (!fields.date || !fields.timezone || fields.hour === '' || fields.minute === '' || !fields.company || !fields.role || !fields.contact) {
-                throw new Error('Complete all schedule fields before sending.');
+                throw new Error(outreachModeConfig(mode).completionMessage);
             }
             const hour = Number(fields.hour);
             const minute = Number(fields.minute);
@@ -2569,6 +2709,7 @@
                 timezone: fields.timezone,
                 hour: String(hour).padStart(2, '0'),
                 minute: String(minute).padStart(2, '0'),
+                outreach_mode: mode,
                 company: fields.company,
                 role: fields.role,
                 contact: fields.contact,
@@ -2584,10 +2725,12 @@
                 throw new Error('The email form could not be found.');
             }
             const fields = collectNamedFields(form);
+            const mode = normalizeOutreachMode(fields.outreach_mode);
             if (!fields.company || !fields.role || !fields.contact) {
-                throw new Error('Complete company, role, and preferred contact before sending.');
+                throw new Error(outreachModeConfig(mode).completionMessage);
             }
             return {
+                outreach_mode: mode,
                 company: fields.company,
                 role: fields.role,
                 contact: fields.contact,
@@ -2603,6 +2746,7 @@
             const profile = currentRows.find((row) => row.id === profileId);
             if (!profile) return;
             const values = collectNamedFields(form);
+            applyOutreachModePresentation(form, values.outreach_mode);
             profile._scheduleDraft = values;
             const sendButton = resultsEl.querySelector(`button[data-action="send-schedule"][data-id="${CSS.escape(profileId)}"]`);
             if (sendButton) {
@@ -2616,6 +2760,7 @@
             const profile = currentRows.find((row) => row.id === profileId);
             if (!profile) return;
             const values = collectNamedFields(form);
+            applyOutreachModePresentation(form, values.outreach_mode);
             profile._emailDraft = values;
             const sendButton = resultsEl.querySelector(`button[data-action="send-email"][data-id="${CSS.escape(profileId)}"]`);
             if (sendButton) {
@@ -2675,7 +2820,7 @@
         };
 
         const loadOutreachDefaults = async () => {
-            outreachDefaults = { company: '', role: '', contact: '' };
+            outreachDefaults = { company: '', role: '', contact: '', mode: OUTREACH_MODE_HIRING };
             if (!supabaseClient || !isLoggedIn() || !adminPassword) return;
             try {
                 const { data, error } = await supabaseClient.rpc('get_schedule_defaults', {
@@ -2685,10 +2830,11 @@
                 outreachDefaults = {
                     company: String(data?.company || '').trim(),
                     role: String(data?.role_title || '').trim(),
-                    contact: String(data?.preferred_contact || '').trim()
+                    contact: String(data?.preferred_contact || '').trim(),
+                    mode: normalizeOutreachMode(data?.outreach_mode)
                 };
             } catch (_error) {
-                outreachDefaults = { company: '', role: '', contact: '' };
+                outreachDefaults = { company: '', role: '', contact: '', mode: OUTREACH_MODE_HIRING };
             }
         };
 
@@ -2793,7 +2939,7 @@
             adminUser = null;
             adminPassword = '';
             adminTargetUser = null;
-            outreachDefaults = { company: '', role: '', contact: '' };
+            outreachDefaults = { company: '', role: '', contact: '', mode: OUTREACH_MODE_HIRING };
             editingProfileId = null;
             resetPasswordOpen = false;
             if (accessWindowTimer) {
@@ -3559,17 +3705,32 @@
                     setStatus('Generating email draft...');
                     renderRows(currentRows);
                     const draft = await generateEmailDraft(profile, payload);
-                    const { data, error } = await supabaseClient.rpc('log_email_outreach', {
+                    const rpcArgs = {
                         ...authRpcCredentials(),
                         p_profile_id: profileId,
                         p_company: payload.company,
                         p_role_title: payload.role,
                         p_preferred_contact: payload.contact,
                         p_subject: draft.subject,
+                        p_outreach_mode: payload.outreach_mode,
                         p_save_company_default: Boolean(payload.save_company_default),
                         p_save_role_default: Boolean(payload.save_role_default),
                         p_save_preferred_contact: Boolean(payload.save_contact_default)
-                    });
+                    };
+                    let { data, error } = await supabaseClient.rpc('log_email_outreach', rpcArgs);
+                    if (error && shouldRetryLegacyEmailOutreachRpc(error)) {
+                        ({ data, error } = await supabaseClient.rpc('log_email_outreach', {
+                            ...authRpcCredentials(),
+                            p_profile_id: profileId,
+                            p_company: payload.company,
+                            p_role_title: payload.role,
+                            p_preferred_contact: payload.contact,
+                            p_subject: draft.subject,
+                            p_save_company_default: Boolean(payload.save_company_default),
+                            p_save_role_default: Boolean(payload.save_role_default),
+                            p_save_preferred_contact: Boolean(payload.save_contact_default)
+                        }));
+                    }
                     if (error) throw error;
                     const recipientEmail = String(data?.recipient_email || '').trim();
                     if (!recipientEmail) {
