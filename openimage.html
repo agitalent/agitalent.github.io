@@ -37,12 +37,17 @@
     html, body {
       margin: 0;
       min-height: 100%;
+      min-width: 1360px;
       font-family: "Avenir Next", "Segoe UI", sans-serif;
       background:
         radial-gradient(circle at 10% 10%, rgba(255, 197, 94, 0.22), transparent 18%),
         radial-gradient(circle at 90% 0%, rgba(21, 128, 61, 0.10), transparent 18%),
         var(--bg);
       color: var(--text);
+    }
+
+    body {
+      overflow-x: auto;
     }
 
     body.modal-open {
@@ -59,7 +64,7 @@
     }
 
     .shell {
-      width: min(1400px, calc(100% - 32px));
+      width: 1400px;
       margin: 0 auto;
       padding: 20px 0 40px;
     }
@@ -762,52 +767,6 @@
       transform: translate(-50%, 0);
     }
 
-    @media (max-width: 1120px) {
-      .workspace,
-      .hero-grid,
-      .modal-card {
-        grid-template-columns: 1fr;
-      }
-
-      .filters {
-        position: static;
-      }
-
-      .modal-visual {
-        border-right: none;
-        border-bottom: 1px solid rgba(72, 41, 11, 0.08);
-      }
-    }
-
-    @media (max-width: 720px) {
-      .shell {
-        width: min(100% - 20px, 1400px);
-      }
-
-      .hero,
-      .filter-card,
-      .results-shell {
-        border-radius: 22px;
-      }
-
-      .hero {
-        padding: 22px;
-      }
-
-      .results-top,
-      .gallery-meta {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      .gallery {
-        grid-template-columns: 1fr;
-      }
-
-      .settings-grid {
-        grid-template-columns: 1fr;
-      }
-    }
   </style>
 </head>
 <body>
