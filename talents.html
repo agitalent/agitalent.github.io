@@ -1953,7 +1953,7 @@
 
         const buildOpportunityParagraph = (mode, company, role) => (
             normalizeOutreachMode(mode) === OUTREACH_MODE_SEEKING
-                ? `${String(company || '').trim()} is currently seek roles in ${String(role || '').trim()}.`
+                ? `${String(company || '').trim()} is currently seeking roles in ${String(role || '').trim()}.`
                 : `${String(company || '').trim()} is currently hiring ${String(role || '').trim()}.`
         );
         const truncateWords = (text, maxWords) => String(text || '').trim().split(/\s+/).filter(Boolean).slice(0, maxWords).join(' ');
@@ -2030,7 +2030,7 @@
                         role: 'user',
                         content: (
                             `Candidate name: ${candidateName}. Seniority: ${seniority}. Seeking domain: ${role}. Profile link: ${contact}. ` +
-                            'Paragraph2 only: write one concise sentence, under 30 words, highlighting the candidate background and fit for the specialized domain.'
+                            'Paragraph2 only: write one concise sentence, under 30 words, highlighting that the sender is a veteran in the specialized domain.'
                         )
                     }
                 ] : [
@@ -2068,7 +2068,7 @@
                     body: [
                         `Hi ${candidateName},`,
                         mode === OUTREACH_MODE_SEEKING
-                            ? `My ${seniority} background and expertise could be a fit for ${role}.`
+                            ? `I am a veteran in ${role}, with ${seniority} background and expertise.`
                             : `Your ${seniority} background and expertise stand out.`,
                         buildOpportunityParagraph(mode, company, role),
                         mode === OUTREACH_MODE_SEEKING
