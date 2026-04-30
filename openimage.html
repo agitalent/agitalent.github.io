@@ -1,0 +1,1636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenImage | AGI Talent</title>
+  <meta name="description" content="A searchable AI image and video prompt library with model filters, favorites, and prompt detail views.">
+  <style>
+    :root {
+      --bg: #f8f3ea;
+      --bg-strong: #efe2cf;
+      --panel: rgba(255, 251, 245, 0.82);
+      --panel-strong: rgba(255, 248, 239, 0.96);
+      --line: rgba(67, 42, 18, 0.12);
+      --text: #28170b;
+      --muted: #6b5745;
+      --accent: #0f766e;
+      --accent-2: #d97706;
+      --accent-3: #c2410c;
+      --shadow: 0 24px 60px rgba(72, 39, 11, 0.12);
+      --radius-xl: 28px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --radius-sm: 12px;
+      --hero-gradient:
+        radial-gradient(circle at top left, rgba(248, 180, 71, 0.34), transparent 34%),
+        radial-gradient(circle at top right, rgba(22, 163, 74, 0.18), transparent 30%),
+        linear-gradient(145deg, #fff9ef 0%, #f3e6d6 52%, #ede4da 100%);
+      --card-gradient:
+        linear-gradient(180deg, rgba(255,255,255,0.42), rgba(255,255,255,0.08)),
+        rgba(255, 251, 245, 0.7);
+      color-scheme: light;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 10% 10%, rgba(255, 197, 94, 0.22), transparent 18%),
+        radial-gradient(circle at 90% 0%, rgba(21, 128, 61, 0.10), transparent 18%),
+        var(--bg);
+      color: var(--text);
+    }
+
+    body.modal-open {
+      overflow: hidden;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button, input {
+      font: inherit;
+    }
+
+    .shell {
+      width: min(1400px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 20px 0 40px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 0 20px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background:
+        linear-gradient(135deg, rgba(15,118,110,0.96), rgba(217,119,6,0.92));
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #fffdf7;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 1.05rem;
+      box-shadow: 0 14px 30px rgba(15, 118, 110, 0.22);
+    }
+
+    .brand-text strong {
+      display: block;
+      font-size: 1rem;
+    }
+
+    .brand-text span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .ghost-button,
+    .solid-button,
+    .chip {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.68);
+      border-radius: 999px;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: transform 140ms ease, background 140ms ease, border-color 140ms ease;
+    }
+
+    .solid-button {
+      color: #fffaf0;
+      background: linear-gradient(135deg, var(--accent), #115e59);
+      border-color: rgba(17, 94, 89, 0.3);
+      box-shadow: 0 14px 28px rgba(15, 118, 110, 0.18);
+    }
+
+    .ghost-button:hover,
+    .solid-button:hover,
+    .chip:hover,
+    .icon-button:hover,
+    .card:hover {
+      transform: translateY(-1px);
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      background: var(--hero-gradient);
+      border: 1px solid rgba(115, 69, 18, 0.08);
+      border-radius: 34px;
+      box-shadow: var(--shadow);
+      padding: 34px;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -80px -80px auto;
+      width: 260px;
+      height: 260px;
+      background: radial-gradient(circle, rgba(15,118,110,0.14), transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.9fr);
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.7);
+      padding: 8px 12px;
+      color: var(--accent-3);
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .hero h1 {
+      margin: 16px 0 12px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(2.2rem, 5vw, 4.3rem);
+      line-height: 0.96;
+      letter-spacing: -0.04em;
+    }
+
+    .hero-copy {
+      max-width: 58ch;
+      color: var(--muted);
+      font-size: 1.02rem;
+      line-height: 1.65;
+      margin-bottom: 22px;
+    }
+
+    .hero-search {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .search-wrap {
+      position: relative;
+      flex: 1 1 360px;
+    }
+
+    .search-wrap input {
+      width: 100%;
+      border: 1px solid rgba(73, 46, 17, 0.12);
+      background: rgba(255,255,255,0.88);
+      padding: 16px 18px 16px 48px;
+      border-radius: 18px;
+      outline: none;
+      color: var(--text);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.65);
+    }
+
+    .search-wrap svg {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 20px;
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    .hero-stats,
+    .hero-shortcuts {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .stat-pill,
+    .shortcut-pill {
+      background: rgba(255,255,255,0.64);
+      border: 1px solid rgba(95, 60, 28, 0.11);
+      border-radius: 18px;
+      padding: 12px 14px;
+      min-width: 120px;
+      backdrop-filter: blur(6px);
+    }
+
+    .stat-pill strong,
+    .shortcut-pill strong {
+      display: block;
+      font-size: 1rem;
+    }
+
+    .stat-pill span,
+    .shortcut-pill span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.82rem;
+      margin-top: 4px;
+    }
+
+    .hero-panel {
+      background: rgba(255, 251, 245, 0.6);
+      border: 1px solid rgba(108, 67, 22, 0.1);
+      border-radius: 28px;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-height: 100%;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .panel-header h2,
+    .filter-section h3,
+    .section-title h2,
+    .modal-header h2 {
+      margin: 0;
+      font-size: 1rem;
+      letter-spacing: 0.01em;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .trend-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .trend-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.56);
+      border: 1px solid rgba(72, 41, 11, 0.08);
+    }
+
+    .trend-item strong {
+      display: block;
+      font-size: 0.94rem;
+    }
+
+    .trend-item span {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 300px minmax(0, 1fr);
+      gap: 24px;
+      margin-top: 26px;
+      align-items: start;
+    }
+
+    .filters {
+      position: sticky;
+      top: 18px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .filter-card,
+    .results-shell,
+    .modal-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .filter-card {
+      padding: 18px;
+    }
+
+    .filter-section {
+      display: grid;
+      gap: 12px;
+    }
+
+    .filter-section + .filter-section {
+      padding-top: 14px;
+      border-top: 1px solid rgba(72, 41, 11, 0.08);
+    }
+
+    .chip-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      padding: 10px 14px;
+      color: var(--muted);
+    }
+
+    .chip.active {
+      color: #fffef8;
+      background: linear-gradient(135deg, var(--accent-2), var(--accent-3));
+      border-color: transparent;
+      box-shadow: 0 12px 26px rgba(194, 65, 12, 0.18);
+    }
+
+    .results-shell {
+      overflow: hidden;
+    }
+
+    .results-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      padding: 22px 22px 12px;
+      border-bottom: 1px solid rgba(72, 41, 11, 0.08);
+      background: rgba(255, 251, 245, 0.72);
+    }
+
+    .section-title p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    .view-toggle {
+      display: inline-flex;
+      gap: 8px;
+      padding: 6px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.6);
+      border: 1px solid rgba(72, 41, 11, 0.08);
+    }
+
+    .view-toggle button {
+      border: none;
+      background: transparent;
+      border-radius: 999px;
+      padding: 10px 14px;
+      cursor: pointer;
+      color: var(--muted);
+    }
+
+    .view-toggle button.active {
+      background: #fffef9;
+      color: var(--text);
+      box-shadow: 0 10px 18px rgba(72, 41, 11, 0.08);
+    }
+
+    .gallery-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      padding: 0 22px 18px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .gallery {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      padding: 0 22px 22px;
+    }
+
+    .card {
+      border: 1px solid rgba(72, 41, 11, 0.08);
+      border-radius: 24px;
+      background: var(--card-gradient);
+      overflow: hidden;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+      transition: transform 180ms ease, box-shadow 180ms ease;
+      box-shadow: 0 16px 32px rgba(72, 41, 11, 0.08);
+    }
+
+    .card:hover {
+      box-shadow: 0 22px 38px rgba(72, 41, 11, 0.12);
+    }
+
+    .preview {
+      position: relative;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      border-bottom: 1px solid rgba(72, 41, 11, 0.08);
+    }
+
+    .preview::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0;
+      height: 56%;
+      background: linear-gradient(180deg, transparent, rgba(25, 15, 7, 0.45));
+    }
+
+    .preview.type-image {
+      aspect-ratio: 4 / 5;
+    }
+
+    .preview.type-video {
+      aspect-ratio: 9 / 16;
+    }
+
+    .preview-badges {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 1;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(255, 251, 245, 0.76);
+      border: 1px solid rgba(72, 41, 11, 0.10);
+      font-size: 0.77rem;
+      font-weight: 700;
+      backdrop-filter: blur(4px);
+    }
+
+    .badge.play {
+      background: rgba(15, 23, 42, 0.72);
+      color: #fffaf0;
+      border-color: rgba(255,255,255,0.16);
+    }
+
+    .preview-foot {
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      bottom: 12px;
+      z-index: 1;
+      color: #fffdf8;
+    }
+
+    .preview-foot strong {
+      display: block;
+      font-size: 1rem;
+      line-height: 1.2;
+      margin-bottom: 6px;
+      text-shadow: 0 6px 18px rgba(0,0,0,0.32);
+    }
+
+    .preview-foot span {
+      font-size: 0.82rem;
+      opacity: 0.92;
+    }
+
+    .card-body {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+      flex: 1;
+    }
+
+    .card-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .card-head h3 {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .card-head p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.86rem;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .icon-button {
+      width: 38px;
+      height: 38px;
+      border-radius: 999px;
+      border: 1px solid rgba(72, 41, 11, 0.08);
+      background: rgba(255,255,255,0.66);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+    }
+
+    .icon-button.active {
+      background: linear-gradient(135deg, rgba(217,119,6,0.18), rgba(194,65,12,0.20));
+      border-color: rgba(194,65,12,0.24);
+    }
+
+    .icon-button svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .tags {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.68);
+      border: 1px solid rgba(72, 41, 11, 0.08);
+      font-size: 0.77rem;
+      color: var(--muted);
+    }
+
+    .stats {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .empty-state {
+      padding: 38px 22px 30px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .load-more-wrap {
+      padding: 0 22px 24px;
+    }
+
+    .load-more-wrap button {
+      width: 100%;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(25, 15, 7, 0.42);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 20;
+    }
+
+    .modal.open {
+      display: flex;
+    }
+
+    .modal-card {
+      width: min(1160px, 100%);
+      max-height: calc(100vh - 40px);
+      overflow: auto;
+      background: var(--panel-strong);
+      display: grid;
+      grid-template-columns: minmax(0, 0.95fr) minmax(320px, 0.85fr);
+    }
+
+    .modal-visual {
+      padding: 18px;
+      border-right: 1px solid rgba(72, 41, 11, 0.08);
+    }
+
+    .modal-preview {
+      border-radius: 24px;
+      min-height: 100%;
+      background-size: cover;
+      background-position: center;
+      aspect-ratio: 4 / 5;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .modal-preview.type-video {
+      aspect-ratio: 9 / 16;
+    }
+
+    .modal-preview::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0;
+      height: 50%;
+      background: linear-gradient(180deg, transparent, rgba(25,15,7,0.4));
+    }
+
+    .modal-info {
+      padding: 22px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .modal-copy {
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .detail-block {
+      border: 1px solid rgba(72, 41, 11, 0.08);
+      border-radius: 20px;
+      background: rgba(255,255,255,0.62);
+      padding: 16px;
+    }
+
+    .detail-block h3 {
+      margin: 0 0 10px;
+      font-size: 0.92rem;
+    }
+
+    .detail-block p,
+    .detail-block pre {
+      margin: 0;
+      color: var(--muted);
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.62;
+    }
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .setting-pill {
+      border-radius: 16px;
+      padding: 12px;
+      background: rgba(255,255,255,0.68);
+      border: 1px solid rgba(72, 41, 11, 0.08);
+    }
+
+    .setting-pill strong {
+      display: block;
+      font-size: 0.78rem;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .setting-pill span {
+      display: block;
+      font-weight: 700;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translate(-50%, 16px);
+      background: rgba(20, 18, 16, 0.9);
+      color: #fffaf0;
+      padding: 12px 16px;
+      border-radius: 999px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 160ms ease, transform 160ms ease;
+      z-index: 30;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    @media (max-width: 1120px) {
+      .workspace,
+      .hero-grid,
+      .modal-card {
+        grid-template-columns: 1fr;
+      }
+
+      .filters {
+        position: static;
+      }
+
+      .modal-visual {
+        border-right: none;
+        border-bottom: 1px solid rgba(72, 41, 11, 0.08);
+      }
+    }
+
+    @media (max-width: 720px) {
+      .shell {
+        width: min(100% - 20px, 1400px);
+      }
+
+      .hero,
+      .filter-card,
+      .results-shell {
+        border-radius: 22px;
+      }
+
+      .hero {
+        padding: 22px;
+      }
+
+      .results-top,
+      .gallery-meta {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .gallery {
+        grid-template-columns: 1fr;
+      }
+
+      .settings-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="openimage.html">
+        <span class="brand-mark">OI</span>
+        <span class="brand-text">
+          <strong>OpenImage</strong>
+          <span>AGI Talent prompt library</span>
+        </span>
+      </a>
+      <div class="top-actions">
+        <button class="ghost-button" id="surprise-button" type="button">Surprise Me</button>
+        <button class="solid-button" id="copy-daily-button" type="button">Copy Daily Pick</button>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-grid">
+        <div>
+          <div class="eyebrow">Curated visual prompts</div>
+          <h1>Searchable prompts for cinematic images and short-form AI video.</h1>
+          <p class="hero-copy">
+            This page mirrors the modern prompt-library workflow: explore visual ideas, filter by model and style,
+            save favorites locally, and open a detail sheet with the full prompt, negative prompt, and settings.
+          </p>
+          <div class="hero-search">
+            <label class="search-wrap" for="search-input">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="M20 20l-3.5-3.5"></path>
+              </svg>
+              <input id="search-input" type="search" placeholder="Search title, prompt, tags, or model">
+            </label>
+            <button class="solid-button" id="clear-filters-button" type="button">Reset Filters</button>
+          </div>
+          <div class="hero-stats" id="hero-stats"></div>
+        </div>
+        <aside class="hero-panel">
+          <div class="panel-header">
+            <h2>Trending collections</h2>
+            <span class="muted">Updated live on page</span>
+          </div>
+          <div class="trend-list" id="trend-list"></div>
+          <div class="hero-shortcuts">
+            <div class="shortcut-pill">
+              <strong>Prompt detail</strong>
+              <span>One-click copy for prompt and negative prompt</span>
+            </div>
+            <div class="shortcut-pill">
+              <strong>Favorites</strong>
+              <span>Saved in your browser with no account required</span>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <div class="workspace">
+      <aside class="filters">
+        <section class="filter-card">
+          <div class="filter-section">
+            <h3>Media type</h3>
+            <div class="chip-row" id="type-chips"></div>
+          </div>
+          <div class="filter-section">
+            <h3>Model</h3>
+            <div class="chip-row" id="model-chips"></div>
+          </div>
+          <div class="filter-section">
+            <h3>Tag focus</h3>
+            <div class="chip-row" id="tag-chips"></div>
+          </div>
+        </section>
+      </aside>
+
+      <main class="results-shell">
+        <div class="results-top">
+          <div class="section-title">
+            <h2>Discover prompts</h2>
+            <p id="results-summary">Loading library...</p>
+          </div>
+          <div class="view-toggle" id="view-toggle">
+            <button class="active" data-view="all" type="button">All</button>
+            <button data-view="favorites" type="button">Favorites</button>
+          </div>
+        </div>
+        <div class="gallery-meta">
+          <span id="active-filters-label">All prompts are visible.</span>
+          <span id="daily-pick-label">Daily pick: loading...</span>
+        </div>
+        <div class="gallery" id="gallery"></div>
+        <div class="empty-state" id="empty-state" hidden>
+          No prompts match the current filters. Try another keyword, switch models, or clear favorites view.
+        </div>
+        <div class="load-more-wrap">
+          <button class="ghost-button" id="load-more-button" type="button">Load More</button>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div class="modal" id="detail-modal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-visual">
+        <div class="modal-preview" id="modal-preview"></div>
+      </div>
+      <div class="modal-info">
+        <div class="modal-header">
+          <div>
+            <h2 id="modal-title"></h2>
+            <p class="modal-copy" id="modal-subtitle"></p>
+          </div>
+          <button class="icon-button" id="close-modal-button" type="button" aria-label="Close details">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 6L6 18"></path>
+              <path d="M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="tags" id="modal-tags"></div>
+        <div class="settings-grid" id="modal-settings"></div>
+        <div class="detail-block">
+          <h3>Prompt</h3>
+          <p id="modal-prompt"></p>
+        </div>
+        <div class="detail-block">
+          <h3>Negative prompt</h3>
+          <p id="modal-negative"></p>
+        </div>
+        <div class="modal-actions">
+          <button class="solid-button" id="copy-prompt-button" type="button">Copy Prompt</button>
+          <button class="ghost-button" id="copy-negative-button" type="button">Copy Negative Prompt</button>
+          <button class="ghost-button" id="toggle-favorite-button" type="button">Save Favorite</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Copied.</div>
+
+  <script>
+    const promptLibrary = [
+      {
+        id: "coastal-editorial",
+        type: "image",
+        title: "Coastal Editorial Portrait",
+        model: "Flux Pro 1.1",
+        tags: ["editorial", "portrait", "golden hour"],
+        creator: "AGI Curated",
+        likes: 842,
+        uses: 6210,
+        aspect: "4:5",
+        duration: "Still image",
+        prompt: "A high-fashion editorial portrait on a windy Mediterranean coast, linen suit, amber sunset, medium format photography look, soft rim light, airborne sea mist, subtle motion in fabric, polished skin texture, premium magazine color grading, crisp facial detail, natural stance.",
+        negative: "low resolution, deformed hands, extra fingers, oversharpened skin, text, watermark, duplicate subject, oversaturated cyan, muddy shadows",
+        settings: { quality: "Ultra", style: "Editorial", camera: "Medium format", motion: "None" },
+        palette: ["#f2b35c", "#d96c3d", "#4f6b77"]
+      },
+      {
+        id: "rain-neon-runner",
+        type: "video",
+        title: "Neon Runner Alley",
+        model: "Kling 1.6",
+        tags: ["cyberpunk", "motion", "night city"],
+        creator: "Visual Sprint",
+        likes: 613,
+        uses: 4811,
+        aspect: "9:16",
+        duration: "8s loop",
+        prompt: "Athletic runner weaving through a neon alley after rainfall, handheld camera drift, glowing signage reflections, slow motion droplets, cinematic parallax, saturated magenta and teal, subtle vapor, dramatic pacing for short-form vertical video.",
+        negative: "stuttering motion, warped limbs, duplicated body, unreadable signage, flicker, sudden zoom, low-detail background",
+        settings: { quality: "High", style: "Cyberpunk", camera: "Handheld", motion: "Slow tracking" },
+        palette: ["#f72585", "#4cc9f0", "#1f2a44"]
+      },
+      {
+        id: "desert-architect",
+        type: "image",
+        title: "Desert Architect Moodboard",
+        model: "GPT Image 1",
+        tags: ["architecture", "minimal", "interior"],
+        creator: "Spatial Atlas",
+        likes: 509,
+        uses: 3902,
+        aspect: "1:1",
+        duration: "Still image",
+        prompt: "Minimalist desert residence carved from warm limestone, monolithic geometry, reflective water plane, sparse desert landscaping, sunrise glow, rich sand textures, premium architectural visualization, calm editorial composition.",
+        negative: "people, clutter, lens distortion, inconsistent perspective, plastic materials, washed-out sunlight",
+        settings: { quality: "High", style: "Minimal luxe", camera: "24mm wide", motion: "None" },
+        palette: ["#c98b51", "#f3dbc3", "#7c5a3c"]
+      },
+      {
+        id: "paper-stopmotion",
+        type: "video",
+        title: "Paper Garden Stop Motion",
+        model: "Runway Gen-3",
+        tags: ["craft", "whimsical", "macro"],
+        creator: "Loop Atelier",
+        likes: 470,
+        uses: 2780,
+        aspect: "9:16",
+        duration: "6s loop",
+        prompt: "Handcrafted paper flowers unfolding on a tiny tabletop set, stop-motion rhythm, pastel studio lighting, macro lens depth, tactile paper fibers, playful transitions, charming handcrafted motion for social teaser.",
+        negative: "photoreal skin, digital glitch, jitter, broken petals, text overlays, harsh shadows",
+        settings: { quality: "High", style: "Stop motion", camera: "Macro", motion: "Step animation" },
+        palette: ["#f8b4c8", "#ffd166", "#9ad1d4"]
+      },
+      {
+        id: "sushi-spotlight",
+        type: "image",
+        title: "Studio Sushi Product Shot",
+        model: "Ideogram 3.0",
+        tags: ["food", "commercial", "macro"],
+        creator: "Commercial Lab",
+        likes: 718,
+        uses: 5640,
+        aspect: "4:5",
+        duration: "Still image",
+        prompt: "Luxury studio product photo of sushi omakase selection on dark stone, directional spotlight, glossy rice texture, dramatic negative space, premium restaurant campaign aesthetics, crisp macro detail, tasteful steam lift.",
+        negative: "messy plate, floating ingredients, duplicate chopsticks, blur, watermark, text",
+        settings: { quality: "Ultra", style: "Commercial", camera: "85mm macro", motion: "None" },
+        palette: ["#111111", "#f3efe6", "#dd6b20"]
+      },
+      {
+        id: "wildflower-hike",
+        type: "video",
+        title: "Wildflower Hike Diary",
+        model: "Sora",
+        tags: ["nature", "travel", "cinematic"],
+        creator: "Trail Notes",
+        likes: 688,
+        uses: 5022,
+        aspect: "16:9",
+        duration: "10s clip",
+        prompt: "Traveler walking through alpine wildflowers with camera following from behind, sun flare through tall stems, documentary realism, breeze movement, soft boots-on-grass sound implied, gentle cinematic cadence, wholesome travel diary tone.",
+        negative: "stiff flowers, duplicated person, unstable horizon, unnatural lens flare, sudden cuts",
+        settings: { quality: "Ultra", style: "Documentary", camera: "Follow cam", motion: "Natural drift" },
+        palette: ["#90be6d", "#f9c74f", "#577590"]
+      },
+      {
+        id: "opal-robot",
+        type: "image",
+        title: "Opal Android Portrait",
+        model: "Midjourney v7",
+        tags: ["sci-fi", "character", "portrait"],
+        creator: "Future Figure",
+        likes: 932,
+        uses: 7715,
+        aspect: "3:4",
+        duration: "Still image",
+        prompt: "Close portrait of a serene opal-skinned android with luminous freckles, sculptural cheek plates, couture collar, pearlescent highlights, museum-grade lighting, futuristic character poster with refined texture hierarchy.",
+        negative: "plastic skin, asymmetrical eyes, blurry irises, glitch artifacts, overexposed highlights, text",
+        settings: { quality: "Ultra", style: "Sci-fi portrait", camera: "Portrait lens", motion: "None" },
+        palette: ["#8ecae6", "#b8f2e6", "#ffcad4"]
+      },
+      {
+        id: "coffee-sunburst",
+        type: "image",
+        title: "Coffee Sunburst Tabletop",
+        model: "Recraft V3",
+        tags: ["branding", "product", "warm"],
+        creator: "Cafe Studio",
+        likes: 411,
+        uses: 2439,
+        aspect: "1:1",
+        duration: "Still image",
+        prompt: "Premium coffee bag packaging on a sunlit terracotta tabletop, sculpted paper shadows, Mediterranean palette, tactile label texture, minimalist prop styling, elevated direct-to-consumer brand photography.",
+        negative: "crowded props, low-contrast bag, warped packaging, muddy colors, blurry label",
+        settings: { quality: "High", style: "Brand still life", camera: "50mm", motion: "None" },
+        palette: ["#c97c5d", "#f4dfc8", "#5f4339"]
+      },
+      {
+        id: "glasshouse-launch",
+        type: "video",
+        title: "Glasshouse Product Launch",
+        model: "Pika 2.2",
+        tags: ["product", "luxury", "motion"],
+        creator: "Launch Reel",
+        likes: 554,
+        uses: 3675,
+        aspect: "16:9",
+        duration: "7s clip",
+        prompt: "Luxury skincare bottle on mirrored pedestal inside a humid glasshouse, orbit camera move, suspended water droplets, refracted sunlight, elegant product reveal pacing, premium beauty ad aesthetic.",
+        negative: "label flicker, warped bottle geometry, duplicate reflection, motion jitter, low-contrast lighting",
+        settings: { quality: "Ultra", style: "Luxury product", camera: "Orbit", motion: "Reveal sweep" },
+        palette: ["#7ad3c2", "#eef9f3", "#edb879"]
+      },
+      {
+        id: "retro-racer",
+        type: "image",
+        title: "Retro Racer Poster",
+        model: "Flux Schnell",
+        tags: ["poster", "graphic", "retro"],
+        creator: "Poster House",
+        likes: 377,
+        uses: 1980,
+        aspect: "2:3",
+        duration: "Still image",
+        prompt: "Bold retro-futurist racing poster, dynamic angle of a midnight blue concept car, elongated shadows, grainy paper texture, high contrast orange typography space, seventies speed illustration energy.",
+        negative: "modern logo, readable text, bent wheels, muddy perspective, extra vehicles",
+        settings: { quality: "High", style: "Retro poster", camera: "Dynamic illustration", motion: "None" },
+        palette: ["#12355b", "#f4a259", "#f7f5f2"]
+      },
+      {
+        id: "atelier-window",
+        type: "image",
+        title: "Atelier Window Study",
+        model: "Flux Pro 1.1",
+        tags: ["interior", "lifestyle", "soft light"],
+        creator: "Morning Room",
+        likes: 266,
+        uses: 1640,
+        aspect: "4:5",
+        duration: "Still image",
+        prompt: "Quiet artisan atelier at morning blue hour, giant steel windows, folded textiles, painterly natural light, calm editorial styling, subtle dust in the air, gentle realism with tonal depth.",
+        negative: "harsh midday light, clutter, warped furniture, noisy shadows, oversaturated walls",
+        settings: { quality: "High", style: "Lifestyle editorial", camera: "35mm", motion: "None" },
+        palette: ["#d5dbe3", "#6f7d8c", "#e7c8a0"]
+      },
+      {
+        id: "orbiting-comet",
+        type: "video",
+        title: "Orbiting Comet Title Loop",
+        model: "Luma Dream Machine",
+        tags: ["space", "loop", "abstract"],
+        creator: "Signal Foundry",
+        likes: 392,
+        uses: 2155,
+        aspect: "1:1",
+        duration: "5s loop",
+        prompt: "Abstract comet orbiting a crystalline planet, loop-friendly motion, velvet space gradients, glowing particulate trail, elegant graphic motion for motion identity opener.",
+        negative: "hard cuts, flicker, off-center planet, noisy particles, muddy blacks",
+        settings: { quality: "High", style: "Abstract space", camera: "Orbital", motion: "Loop" },
+        palette: ["#1d3557", "#6d597a", "#f1faee"]
+      },
+      {
+        id: "tea-ceremony",
+        type: "image",
+        title: "Tea Ceremony Closeup",
+        model: "GPT Image 1",
+        tags: ["food", "minimal", "zen"],
+        creator: "Quiet Table",
+        likes: 623,
+        uses: 4108,
+        aspect: "4:5",
+        duration: "Still image",
+        prompt: "Refined tea ceremony closeup, handcrafted ceramic bowl, ascending steam, dark walnut surface, restrained Japanese-inspired composition, tactile glaze detail, calm meditative lighting.",
+        negative: "messy steam, duplicate cups, overexposed rim, low texture detail, text",
+        settings: { quality: "Ultra", style: "Zen editorial", camera: "Macro portrait", motion: "None" },
+        palette: ["#60463b", "#d6c4a1", "#f4f1ea"]
+      },
+      {
+        id: "street-dancers",
+        type: "video",
+        title: "Street Dancers Warmup",
+        model: "Kling 1.6",
+        tags: ["dance", "urban", "motion"],
+        creator: "Pulse Alley",
+        likes: 744,
+        uses: 5220,
+        aspect: "9:16",
+        duration: "9s clip",
+        prompt: "Two street dancers warming up under a concrete overpass, real-time camera push-in, dusty sun shafts, kinetic footwork, high-energy urban documentary tone, realistic fabric movement.",
+        negative: "limb distortion, flickering faces, impossible shadows, duplicated feet, abrupt camera jerk",
+        settings: { quality: "Ultra", style: "Urban doc", camera: "Push-in", motion: "Rhythmic handheld" },
+        palette: ["#ef476f", "#ffd166", "#118ab2"]
+      },
+      {
+        id: "aurora-cabin",
+        type: "image",
+        title: "Aurora Cabin Escape",
+        model: "Midjourney v7",
+        tags: ["nature", "winter", "cinematic"],
+        creator: "North Atlas",
+        likes: 863,
+        uses: 6999,
+        aspect: "16:9",
+        duration: "Still image",
+        prompt: "Warm wooden cabin beneath dramatic aurora ribbons, snowy pines, cinematic blue hour, chimney smoke, reflective frozen lake foreground, premium travel campaign energy, high-detail atmospheric lighting.",
+        negative: "plastic snow, blurry cabin, low-detail aurora, oversaturated green, warped roofline",
+        settings: { quality: "Ultra", style: "Travel cinematic", camera: "Wide angle", motion: "None" },
+        palette: ["#0b2545", "#3ab795", "#f5efe6"]
+      },
+      {
+        id: "fashion-escalator",
+        type: "video",
+        title: "Escalator Fashion Teaser",
+        model: "Runway Gen-3",
+        tags: ["fashion", "editorial", "vertical"],
+        creator: "Lookbook Motion",
+        likes: 520,
+        uses: 3582,
+        aspect: "9:16",
+        duration: "6s clip",
+        prompt: "Model descending an art deco escalator in a sculptural monochrome coat, smooth top-down camera arc, glossy brass reflections, luxury editorial tension, social-friendly pacing.",
+        negative: "warped coat, duplicated rails, face flicker, stiff walk cycle, text overlay",
+        settings: { quality: "High", style: "Fashion editorial", camera: "Arc shot", motion: "Elegant glide" },
+        palette: ["#d6ccc2", "#6c584c", "#9c6644"]
+      }
+    ];
+
+    const typeOptions = [
+      { id: "all", label: "All media" },
+      { id: "image", label: "Images" },
+      { id: "video", label: "Videos" }
+    ];
+
+    const favoritesKey = "agi-openimage-favorites";
+    const state = {
+      type: "all",
+      model: "all",
+      tag: "all",
+      view: "all",
+      search: "",
+      limit: 8,
+      selectedId: null,
+      favorites: new Set(loadFavorites())
+    };
+
+    const uniqueModels = ["all", ...new Set(promptLibrary.map(item => item.model))];
+    const uniqueTags = ["all", ...new Set(promptLibrary.flatMap(item => item.tags))];
+
+    const typeChips = document.getElementById("type-chips");
+    const modelChips = document.getElementById("model-chips");
+    const tagChips = document.getElementById("tag-chips");
+    const gallery = document.getElementById("gallery");
+    const emptyState = document.getElementById("empty-state");
+    const loadMoreButton = document.getElementById("load-more-button");
+    const resultsSummary = document.getElementById("results-summary");
+    const activeFiltersLabel = document.getElementById("active-filters-label");
+    const heroStats = document.getElementById("hero-stats");
+    const trendList = document.getElementById("trend-list");
+    const searchInput = document.getElementById("search-input");
+    const clearFiltersButton = document.getElementById("clear-filters-button");
+    const viewToggle = document.getElementById("view-toggle");
+    const detailModal = document.getElementById("detail-modal");
+    const dailyPickLabel = document.getElementById("daily-pick-label");
+    const toast = document.getElementById("toast");
+    const copyDailyButton = document.getElementById("copy-daily-button");
+    const surpriseButton = document.getElementById("surprise-button");
+
+    const modalPreview = document.getElementById("modal-preview");
+    const modalTitle = document.getElementById("modal-title");
+    const modalSubtitle = document.getElementById("modal-subtitle");
+    const modalTags = document.getElementById("modal-tags");
+    const modalSettings = document.getElementById("modal-settings");
+    const modalPrompt = document.getElementById("modal-prompt");
+    const modalNegative = document.getElementById("modal-negative");
+    const copyPromptButton = document.getElementById("copy-prompt-button");
+    const copyNegativeButton = document.getElementById("copy-negative-button");
+    const toggleFavoriteButton = document.getElementById("toggle-favorite-button");
+    const closeModalButton = document.getElementById("close-modal-button");
+
+    function loadFavorites() {
+      try {
+        const raw = window.localStorage.getItem(favoritesKey);
+        const parsed = JSON.parse(raw || "[]");
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function saveFavorites() {
+      window.localStorage.setItem(favoritesKey, JSON.stringify([...state.favorites]));
+    }
+
+    function slugLabel(value) {
+      return value === "all" ? "All" : value;
+    }
+
+    function escapeXml(value) {
+      return value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;");
+    }
+
+    function previewUrl(item) {
+      const [a, b, c] = item.palette;
+      const typeLabel = item.type === "video" ? "Video prompt" : "Image prompt";
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000">
+          <defs>
+            <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="${a}"/>
+              <stop offset="52%" stop-color="${b}"/>
+              <stop offset="100%" stop-color="${c}"/>
+            </linearGradient>
+            <radialGradient id="r" cx="30%" cy="22%" r="70%">
+              <stop offset="0%" stop-color="rgba(255,255,255,0.75)"/>
+              <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+            </radialGradient>
+          </defs>
+          <rect width="800" height="1000" fill="url(#g)"/>
+          <circle cx="170" cy="190" r="180" fill="url(#r)"/>
+          <rect x="70" y="690" width="660" height="210" rx="34" fill="rgba(18,12,8,0.20)"/>
+          <text x="72" y="112" fill="rgba(255,250,240,0.94)" font-size="28" font-family="Arial" font-weight="700">${escapeXml(typeLabel)}</text>
+          <text x="72" y="770" fill="rgba(255,250,240,0.98)" font-size="52" font-family="Georgia" font-weight="700">${escapeXml(item.title)}</text>
+          <text x="72" y="836" fill="rgba(255,250,240,0.86)" font-size="28" font-family="Arial">${escapeXml(item.model)}</text>
+        </svg>
+      `.trim();
+      return `url("data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}")`;
+    }
+
+    function heartSvg(filled) {
+      return filled
+        ? '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7.2-4.35-9.6-8.3C.67 9.83 1.64 5.9 5.1 4.52c2.1-.82 4.28-.2 5.64 1.5 1.36-1.7 3.54-2.32 5.64-1.5 3.46 1.38 4.43 5.31 2.7 8.18C19.2 16.65 12 21 12 21z"></path></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61c-1.54-1.33-3.85-1.4-5.47-.2-.51.38-.97.87-1.37 1.44-.4-.57-.86-1.06-1.37-1.44-1.62-1.2-3.93-1.13-5.47.2-1.83 1.58-2.3 4.31-1.14 6.42C7.2 14.37 12 18 12 18s4.8-3.63 6.62-6.97c1.16-2.11.69-4.84-1.14-6.42z"></path></svg>';
+    }
+
+    function renderChipGroup(container, options, selected, onSelect) {
+      container.innerHTML = "";
+      options.forEach(option => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `chip${selected === option.id ? " active" : ""}`;
+        button.textContent = option.label || option;
+        button.addEventListener("click", () => onSelect(option.id || option));
+        container.appendChild(button);
+      });
+    }
+
+    function getFilteredPrompts() {
+      const search = state.search.trim().toLowerCase();
+      return promptLibrary.filter(item => {
+        if (state.type !== "all" && item.type !== state.type) return false;
+        if (state.model !== "all" && item.model !== state.model) return false;
+        if (state.tag !== "all" && !item.tags.includes(state.tag)) return false;
+        if (state.view === "favorites" && !state.favorites.has(item.id)) return false;
+        if (!search) return true;
+        const haystack = [
+          item.title,
+          item.model,
+          item.creator,
+          item.prompt,
+          item.negative,
+          ...item.tags
+        ].join(" ").toLowerCase();
+        return haystack.includes(search);
+      });
+    }
+
+    function trendingCollections() {
+      const tagScores = new Map();
+      promptLibrary.forEach(item => {
+        item.tags.forEach(tag => {
+          tagScores.set(tag, (tagScores.get(tag) || 0) + item.likes + Math.round(item.uses / 12));
+        });
+      });
+      return [...tagScores.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 4)
+        .map(([tag, score]) => ({ tag, score }));
+    }
+
+    function formatNumber(value) {
+      return new Intl.NumberFormat("en-US", { notation: value > 999 ? "compact" : "standard" }).format(value);
+    }
+
+    function selectedPrompt() {
+      return promptLibrary.find(item => item.id === state.selectedId) || null;
+    }
+
+    function dailyPick() {
+      const daySeed = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+      const index = Number(daySeed) % promptLibrary.length;
+      return promptLibrary[index];
+    }
+
+    function renderHero() {
+      const favoriteCount = state.favorites.size;
+      const videos = promptLibrary.filter(item => item.type === "video").length;
+      const images = promptLibrary.length - videos;
+      heroStats.innerHTML = `
+        <div class="stat-pill"><strong>${promptLibrary.length}</strong><span>curated prompts</span></div>
+        <div class="stat-pill"><strong>${images}</strong><span>image recipes</span></div>
+        <div class="stat-pill"><strong>${videos}</strong><span>video setups</span></div>
+        <div class="stat-pill"><strong>${favoriteCount}</strong><span>saved favorites</span></div>
+      `;
+
+      const trends = trendingCollections();
+      trendList.innerHTML = "";
+      trends.forEach(item => {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "trend-item";
+        row.innerHTML = `<span><strong>#${item.tag}</strong><span>High performing collection</span></span><strong>${formatNumber(item.score)}</strong>`;
+        row.addEventListener("click", () => {
+          state.tag = item.tag;
+          state.limit = 8;
+          renderAll();
+        });
+        trendList.appendChild(row);
+      });
+
+      const pick = dailyPick();
+      dailyPickLabel.textContent = `Daily pick: ${pick.title} on ${pick.model}`;
+    }
+
+    function renderGallery() {
+      const filtered = getFilteredPrompts();
+      const visible = filtered.slice(0, state.limit);
+      gallery.innerHTML = "";
+
+      resultsSummary.textContent = `${filtered.length} prompt${filtered.length === 1 ? "" : "s"} across ${state.view === "favorites" ? "your saved shelf" : "the library"}.`;
+
+      const activeBits = [];
+      if (state.type !== "all") activeBits.push(typeOptions.find(item => item.id === state.type).label);
+      if (state.model !== "all") activeBits.push(state.model);
+      if (state.tag !== "all") activeBits.push(`#${state.tag}`);
+      if (state.search) activeBits.push(`"${state.search}"`);
+      if (state.view === "favorites") activeBits.push("Favorites only");
+      activeFiltersLabel.textContent = activeBits.length ? `Filters: ${activeBits.join(" · ")}` : "All prompts are visible.";
+
+      visible.forEach(item => {
+        const isFavorite = state.favorites.has(item.id);
+        const card = document.createElement("article");
+        card.className = "card";
+        card.innerHTML = `
+          <div class="preview type-${item.type}" style="background-image:${previewUrl(item)}">
+            <div class="preview-badges">
+              <span class="badge">${item.model}</span>
+              ${item.type === "video" ? '<span class="badge play">Play-ready</span>' : '<span class="badge">Still</span>'}
+            </div>
+            <div class="preview-foot">
+              <strong>${item.title}</strong>
+              <span>${item.creator}</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="card-head">
+              <div>
+                <h3>${item.title}</h3>
+                <p>${item.prompt}</p>
+              </div>
+              <button class="icon-button${isFavorite ? " active" : ""}" type="button" aria-label="Toggle favorite">${heartSvg(isFavorite)}</button>
+            </div>
+            <div class="tags">${item.tags.map(tag => `<span class="tag">#${tag}</span>`).join("")}</div>
+            <div class="stats">
+              <span>${formatNumber(item.likes)} likes</span>
+              <span>${formatNumber(item.uses)} uses</span>
+              <span>${item.duration}</span>
+            </div>
+          </div>
+        `;
+
+        const favoriteButton = card.querySelector(".icon-button");
+        favoriteButton.addEventListener("click", event => {
+          event.stopPropagation();
+          toggleFavorite(item.id);
+        });
+
+        card.addEventListener("click", () => openModal(item.id));
+        gallery.appendChild(card);
+      });
+
+      emptyState.hidden = filtered.length > 0;
+      loadMoreButton.hidden = filtered.length <= visible.length || filtered.length === 0;
+    }
+
+    function renderModal() {
+      const item = selectedPrompt();
+      if (!item) return;
+      const isFavorite = state.favorites.has(item.id);
+      modalPreview.className = `modal-preview type-${item.type}`;
+      modalPreview.style.backgroundImage = previewUrl(item);
+      modalTitle.textContent = item.title;
+      modalSubtitle.textContent = `${item.model} · ${item.creator} · ${item.duration}`;
+      modalPrompt.textContent = item.prompt;
+      modalNegative.textContent = item.negative;
+      modalTags.innerHTML = item.tags.map(tag => `<span class="tag">#${tag}</span>`).join("");
+      modalSettings.innerHTML = Object.entries({
+        type: item.type,
+        aspect: item.aspect,
+        ...item.settings
+      }).map(([key, value]) => `
+        <div class="setting-pill">
+          <strong>${key}</strong>
+          <span>${value}</span>
+        </div>
+      `).join("");
+      toggleFavoriteButton.textContent = isFavorite ? "Remove Favorite" : "Save Favorite";
+      toggleFavoriteButton.dataset.id = item.id;
+      copyPromptButton.dataset.text = item.prompt;
+      copyNegativeButton.dataset.text = item.negative;
+    }
+
+    function renderAll() {
+      renderChipGroup(typeChips, typeOptions, state.type, value => {
+        state.type = value;
+        state.limit = 8;
+        renderAll();
+      });
+
+      renderChipGroup(modelChips, uniqueModels.map(model => ({ id: model, label: model === "all" ? "All models" : model })), state.model, value => {
+        state.model = value;
+        state.limit = 8;
+        renderAll();
+      });
+
+      renderChipGroup(tagChips, uniqueTags.map(tag => ({ id: tag, label: tag === "all" ? "All tags" : `#${tag}` })), state.tag, value => {
+        state.tag = value;
+        state.limit = 8;
+        renderAll();
+      });
+
+      [...viewToggle.querySelectorAll("button")].forEach(button => {
+        button.classList.toggle("active", button.dataset.view === state.view);
+      });
+
+      renderHero();
+      renderGallery();
+      if (state.selectedId) renderModal();
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 1800);
+    }
+
+    async function copyText(text, message) {
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast(message);
+      } catch (error) {
+        showToast("Copy failed in this browser.");
+      }
+    }
+
+    function toggleFavorite(id) {
+      if (state.favorites.has(id)) {
+        state.favorites.delete(id);
+      } else {
+        state.favorites.add(id);
+      }
+      saveFavorites();
+      renderAll();
+    }
+
+    function openModal(id) {
+      state.selectedId = id;
+      renderModal();
+      detailModal.classList.add("open");
+      detailModal.setAttribute("aria-hidden", "false");
+      document.body.classList.add("modal-open");
+    }
+
+    function closeModal() {
+      detailModal.classList.remove("open");
+      detailModal.setAttribute("aria-hidden", "true");
+      document.body.classList.remove("modal-open");
+      state.selectedId = null;
+    }
+
+    searchInput.addEventListener("input", event => {
+      state.search = event.target.value;
+      state.limit = 8;
+      renderAll();
+    });
+
+    clearFiltersButton.addEventListener("click", () => {
+      state.type = "all";
+      state.model = "all";
+      state.tag = "all";
+      state.view = "all";
+      state.search = "";
+      state.limit = 8;
+      searchInput.value = "";
+      renderAll();
+    });
+
+    viewToggle.addEventListener("click", event => {
+      const button = event.target.closest("button[data-view]");
+      if (!button) return;
+      state.view = button.dataset.view;
+      state.limit = 8;
+      renderAll();
+    });
+
+    loadMoreButton.addEventListener("click", () => {
+      state.limit += 8;
+      renderGallery();
+    });
+
+    detailModal.addEventListener("click", event => {
+      if (event.target === detailModal) closeModal();
+    });
+
+    closeModalButton.addEventListener("click", closeModal);
+
+    copyPromptButton.addEventListener("click", () => copyText(copyPromptButton.dataset.text || "", "Prompt copied."));
+    copyNegativeButton.addEventListener("click", () => copyText(copyNegativeButton.dataset.text || "", "Negative prompt copied."));
+    toggleFavoriteButton.addEventListener("click", () => {
+      if (!toggleFavoriteButton.dataset.id) return;
+      toggleFavorite(toggleFavoriteButton.dataset.id);
+      renderModal();
+    });
+
+    copyDailyButton.addEventListener("click", () => {
+      const item = dailyPick();
+      copyText(item.prompt, `Daily pick copied: ${item.title}`);
+    });
+
+    surpriseButton.addEventListener("click", () => {
+      const filtered = getFilteredPrompts();
+      const pool = filtered.length ? filtered : promptLibrary;
+      const random = pool[Math.floor(Math.random() * pool.length)];
+      openModal(random.id);
+    });
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && detailModal.classList.contains("open")) {
+        closeModal();
+      }
+    });
+
+    renderAll();
+  </script>
+</body>
+</html>
