@@ -1190,28 +1190,20 @@
             <div class="modal-head">
                 <div>
                     <h3 data-icon="↗" id="invite-email-modal-title">Trial Invitation Schedule</h3>
-                    <p class="modal-copy">Capture the invitee details, then open a prefilled calendar invitation draft with the same subject and content format used before.</p>
+                    <p class="modal-copy">Choose selected profiles, then open a prefilled calendar invitation draft using their saved name and email with the same subject and content format used before.</p>
                 </div>
                 <button class="modal-close" type="button" data-close-modal="invite-email-modal" aria-label="Close invitation email window">✕</button>
             </div>
             <div class="invite-email-card">
-                <strong data-icon="◇">Invitee Card</strong>
+                <strong data-icon="◇">Selected Profile Card</strong>
                 <div class="field-grid">
                     <div class="field">
                         <label data-icon="◎" for="invite-email-name">Invitee Name</label>
-                        <input id="invite-email-name" type="text" autocomplete="off" placeholder="Taylor Chen">
+                        <input id="invite-email-name" type="text" autocomplete="off" placeholder="Choose a profile below" readonly>
                     </div>
                     <div class="field">
                         <label data-icon="✉" for="invite-email-address">Email</label>
-                        <input id="invite-email-address" type="email" autocomplete="off" placeholder="taylor@example.com">
-                    </div>
-                    <div class="field">
-                        <label data-icon="▣" for="invite-email-company">Company</label>
-                        <input id="invite-email-company" type="text" autocomplete="off" placeholder="OpenAI">
-                    </div>
-                    <div class="field">
-                        <label data-icon="◌" for="invite-email-role">Role</label>
-                        <input id="invite-email-role" type="text" autocomplete="off" placeholder="Research Engineer">
+                        <input id="invite-email-address" type="email" autocomplete="off" placeholder="Choose a profile below" readonly>
                     </div>
                 </div>
                 <div class="field" style="margin-top:12px;">
@@ -1219,6 +1211,7 @@
                     <input id="invite-email-code" type="text" readonly>
                 </div>
                 <div class="invite-email-code" id="invite-email-code-preview">No trial invitation code generated yet.</div>
+                <div class="schedule-status" id="invite-email-selected-status">Select one or more profiles on the page to use their name and email for the calendar invite.</div>
                 <div class="actions" style="margin-top:14px;">
                     <button class="button" data-icon="↗" id="invite-email-send-button" type="button">Send</button>
                 </div>
@@ -1335,10 +1328,9 @@
         const inviteEmailModalEl = document.getElementById('invite-email-modal');
         const inviteEmailNameInput = document.getElementById('invite-email-name');
         const inviteEmailAddressInput = document.getElementById('invite-email-address');
-        const inviteEmailCompanyInput = document.getElementById('invite-email-company');
-        const inviteEmailRoleInput = document.getElementById('invite-email-role');
         const inviteEmailCodeInput = document.getElementById('invite-email-code');
         const inviteEmailCodePreviewEl = document.getElementById('invite-email-code-preview');
+        const inviteEmailSelectedStatusEl = document.getElementById('invite-email-selected-status');
         const inviteEmailSendButton = document.getElementById('invite-email-send-button');
         const inviteEmailStatusEl = document.getElementById('invite-email-status');
         const renewPlanModalEl = document.getElementById('renew-plan-modal');
@@ -1716,6 +1708,30 @@
                 add: inviteeEmail
             });
             return `https://calendar.google.com/calendar/render?${params.toString()}`;
+        };
+        const shouldRetryLegacyTrialInviteRpc = (error) => {
+            const message = String(error?.message || error?.details || error?.hint || '').toLowerCase();
+            return message.includes('company is required') || message.includes('role is required');
+        };
+        const selectedProfilesForTrialInvite = () => selectedScheduleProfilesInOrder().filter((profile) => {
+            const name = String(profile?.name_or_handle || '').trim();
+            const email = String(profile?._candidate_email || profile?.email || '').trim();
+            return Boolean(name && email);
+        });
+        const syncInviteEmailSelectedProfileUi = () => {
+            const selectedProfiles = selectedProfilesForTrialInvite();
+            if (!selectedProfiles.length) {
+                inviteEmailNameInput.value = '';
+                inviteEmailAddressInput.value = '';
+                inviteEmailSelectedStatusEl.textContent = 'Select one or more profiles on the page to use their name and email for the calendar invite.';
+                return;
+            }
+            const firstProfile = selectedProfiles[0];
+            inviteEmailNameInput.value = String(firstProfile.name_or_handle || '').trim();
+            inviteEmailAddressInput.value = String(firstProfile._candidate_email || firstProfile.email || '').trim();
+            inviteEmailSelectedStatusEl.textContent = selectedProfiles.length === 1
+                ? 'Using the selected profile name and email for the calendar invite.'
+                : `Using ${selectedProfiles.length} selected profiles. The first selected profile is shown here; a calendar draft will open for each selected profile.`;
         };
         const formatAccountDate = (value) => {
             const text = String(value || '').trim();
@@ -3406,9 +3422,8 @@
                 setAddUserStatus('Generate a single trial invitation code first.', true);
                 return;
             }
-            inviteEmailCompanyInput.value = normalizedOutreachDefaults().company;
-            inviteEmailRoleInput.value = normalizedOutreachDefaults().role;
             syncInviteEmailCodeUi();
+            syncInviteEmailSelectedProfileUi();
             setInviteEmailStatus('', false);
             openModal(inviteEmailModalEl);
         });
@@ -3422,41 +3437,57 @@
                 setInviteEmailStatus('Admin rights are required.', true);
                 return;
             }
-            const inviteeName = String(inviteEmailNameInput.value || '').trim();
-            const inviteeEmail = String(inviteEmailAddressInput.value || '').trim();
-            const company = String(inviteEmailCompanyInput.value || '').trim();
-            const role = String(inviteEmailRoleInput.value || '').trim();
+            const selectedProfiles = selectedProfilesForTrialInvite();
             const code = normalizeInvitationCode(inviteEmailCodeInput.value || latestTrialInvitationCode);
-            if (!inviteeName || !inviteeEmail || !company || !role || !code) {
-                setInviteEmailStatus('Invitee name, email, company, role, and trial code are required.', true);
+            if (!selectedProfiles.length || !code) {
+                setInviteEmailStatus('Select at least one profile with name and email, and ensure a trial code is ready.', true);
                 return;
             }
             inviteEmailSendButton.disabled = true;
             setInviteEmailStatus('Saving client talent and opening your calendar draft...');
             try {
-                const { error } = await supabaseClient.rpc('admin_save_client_talent', {
-                    p_admin_username: adminUser.username,
-                    p_admin_password: adminPassword,
-                    p_invitee_name: inviteeName,
-                    p_invitee_email: inviteeEmail,
-                    p_company: company,
-                    p_role: role,
-                    p_invitation_code: code
-                });
-                if (error) throw error;
-                const draft = buildTrialInviteDraft({
-                    inviteeName,
-                    code
-                });
-                const calendarUrl = buildTrialInviteCalendarUrl({
-                    inviteeEmail,
-                    draft
-                });
-                const draftWindow = window.open(calendarUrl, '_blank', 'noopener');
-                if (!draftWindow) {
-                    window.location.href = calendarUrl;
+                let openedFallback = false;
+                for (const profile of selectedProfiles) {
+                    const inviteeName = String(profile.name_or_handle || '').trim();
+                    const inviteeEmail = String(profile._candidate_email || profile.email || '').trim();
+                    let { error } = await supabaseClient.rpc('admin_save_client_talent', {
+                        p_admin_username: adminUser.username,
+                        p_admin_password: adminPassword,
+                        p_invitee_name: inviteeName,
+                        p_invitee_email: inviteeEmail,
+                        p_company: '',
+                        p_role: '',
+                        p_invitation_code: code
+                    });
+                    if (error && shouldRetryLegacyTrialInviteRpc(error)) {
+                        ({ error } = await supabaseClient.rpc('admin_save_client_talent', {
+                            p_admin_username: adminUser.username,
+                            p_admin_password: adminPassword,
+                            p_invitee_name: inviteeName,
+                            p_invitee_email: inviteeEmail,
+                            p_company: 'trial invitation',
+                            p_role: 'trial invitation',
+                            p_invitation_code: code
+                        }));
+                    }
+                    if (error) throw error;
+                    const draft = buildTrialInviteDraft({
+                        inviteeName,
+                        code
+                    });
+                    const calendarUrl = buildTrialInviteCalendarUrl({
+                        inviteeEmail,
+                        draft
+                    });
+                    const draftWindow = window.open(calendarUrl, '_blank', 'noopener');
+                    if (!draftWindow && !openedFallback) {
+                        openedFallback = true;
+                        window.location.href = calendarUrl;
+                    }
                 }
-                setInviteEmailStatus('Invitee saved. Your calendar draft should open with the subject, attendee, and content prefilled.', false);
+                setInviteEmailStatus(selectedProfiles.length === 1
+                    ? 'Profile saved. Your calendar draft should open with the subject, attendee, and content prefilled.'
+                    : `${selectedProfiles.length} profiles saved. A calendar draft should open for each selected profile.`, false);
             } catch (error) {
                 setInviteEmailStatus(error.message || 'Failed to save invitee details.', true);
             } finally {
