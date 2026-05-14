@@ -1189,8 +1189,8 @@
         <div class="modal" role="dialog" aria-modal="true" aria-labelledby="invite-email-modal-title">
             <div class="modal-head">
                 <div>
-                    <h3 data-icon="✉" id="invite-email-modal-title">Trial Invitation Email</h3>
-                    <p class="modal-copy">Capture the invitee details, then open a prefilled email draft in your local mail app.</p>
+                    <h3 data-icon="↗" id="invite-email-modal-title">Trial Invitation Schedule</h3>
+                    <p class="modal-copy">Capture the invitee details, then open a prefilled calendar invitation draft with the same subject and content format used before.</p>
                 </div>
                 <button class="modal-close" type="button" data-close-modal="invite-email-modal" aria-label="Close invitation email window">✕</button>
             </div>
@@ -1220,7 +1220,7 @@
                 </div>
                 <div class="invite-email-code" id="invite-email-code-preview">No trial invitation code generated yet.</div>
                 <div class="actions" style="margin-top:14px;">
-                    <button class="button" data-icon="✉" id="invite-email-send-button" type="button">Send</button>
+                    <button class="button" data-icon="↗" id="invite-email-send-button" type="button">Send</button>
                 </div>
             </div>
             <div class="modal-status" id="invite-email-status"></div>
@@ -1682,6 +1682,40 @@
                 'AGT Talent Team'
             ].join('\n\n');
             return `mailto:${encodeURIComponent(inviteeEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        };
+        const buildTrialInviteDraft = ({ inviteeName, code }) => {
+            const subject = 'Automatically Reach Out Top AI Talents';
+            const body = [
+                `Hi ${inviteeName},`,
+                'https://www.agitalent.tech/talents.html',
+                'A novel way to approach AI talents',
+                `Use this trial invitation code to sign up: ${code}`,
+                'AGT Talent Team'
+            ].join('\n\n');
+            return { subject, body };
+        };
+        const buildTrialInviteCalendarUrl = ({ inviteeEmail, draft }) => {
+            const start = new Date();
+            start.setMinutes(start.getMinutes() + 15);
+            start.setSeconds(0, 0);
+            const end = new Date(start.getTime() + 15 * 60 * 1000);
+            const formatCalendarDate = (value) => {
+                const year = value.getFullYear();
+                const month = String(value.getMonth() + 1).padStart(2, '0');
+                const day = String(value.getDate()).padStart(2, '0');
+                const hour = String(value.getHours()).padStart(2, '0');
+                const minute = String(value.getMinutes()).padStart(2, '0');
+                return `${year}${month}${day}T${hour}${minute}00`;
+            };
+            const params = new URLSearchParams({
+                action: 'TEMPLATE',
+                text: draft.subject,
+                dates: `${formatCalendarDate(start)}/${formatCalendarDate(end)}`,
+                ctz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Shanghai',
+                details: draft.body,
+                add: inviteeEmail
+            });
+            return `https://calendar.google.com/calendar/render?${params.toString()}`;
         };
         const formatAccountDate = (value) => {
             const text = String(value || '').trim();
@@ -3398,7 +3432,7 @@
                 return;
             }
             inviteEmailSendButton.disabled = true;
-            setInviteEmailStatus('Saving client talent and opening your email draft...');
+            setInviteEmailStatus('Saving client talent and opening your calendar draft...');
             try {
                 const { error } = await supabaseClient.rpc('admin_save_client_talent', {
                     p_admin_username: adminUser.username,
@@ -3410,12 +3444,19 @@
                     p_invitation_code: code
                 });
                 if (error) throw error;
-                window.location.href = buildTrialInviteMailto({
+                const draft = buildTrialInviteDraft({
                     inviteeName,
-                    inviteeEmail,
                     code
                 });
-                setInviteEmailStatus('Invitee saved. Your local email handler should open with the draft.', false);
+                const calendarUrl = buildTrialInviteCalendarUrl({
+                    inviteeEmail,
+                    draft
+                });
+                const draftWindow = window.open(calendarUrl, '_blank', 'noopener');
+                if (!draftWindow) {
+                    window.location.href = calendarUrl;
+                }
+                setInviteEmailStatus('Invitee saved. Your calendar draft should open with the subject, attendee, and content prefilled.', false);
             } catch (error) {
                 setInviteEmailStatus(error.message || 'Failed to save invitee details.', true);
             } finally {
