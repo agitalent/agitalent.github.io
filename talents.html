@@ -396,6 +396,14 @@
             font-size: 12px;
             color: rgba(255, 255, 255, 0.86);
         }
+        :root[data-theme="light"] .field label[for="admin-add-user-username"],
+        :root[data-theme="light"] .field label[for="login-modal-username"],
+        :root[data-theme="light"] .field label[for="signup-modal-username"],
+        :root[data-theme="light"] .field label[for="admin-invite-code-output"],
+        :root[data-theme="light"] .field label[for="signup-modal-code"],
+        :root[data-theme="light"] .field label[for="invite-email-code"] {
+            color: #000000;
+        }
         .field input,
         .field select,
         .field textarea {
@@ -1128,7 +1136,7 @@
                                 </label>
                                 <label class="checkbox-inline" for="admin-trial-invite-toggle">
                                     <input id="admin-trial-invite-toggle" type="checkbox">
-                                    <span>trial</span>
+                                    <span>Trial</span>
                                 </label>
                                 <button class="button-secondary" data-icon="◇" id="admin-generate-invite-button" type="button">Generate Invitation Code</button>
                                 <button class="button-secondary invite-email-trigger icon-only-action" data-icon="✉" id="admin-reveal-email-button" type="button" aria-label="Reveal Email"></button>
