@@ -114,6 +114,13 @@
             flex-wrap: wrap;
             justify-content: flex-end;
         }
+        .topbar-actions-shell {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
         .topbar-user {
             position: relative;
         }
@@ -556,7 +563,7 @@
             display: inline-flex;
             align-items: center;
             gap: 10px;
-            color: rgba(255, 255, 255, 0.86);
+            color: var(--text);
             font-size: 0.93rem;
             user-select: none;
         }
@@ -995,10 +1002,12 @@
                 </span>
                 <span>AGI Talent</span>
             </a>
-            <div class="topbar-actions" id="topbar-auth-actions">
+            <div class="topbar-actions-shell">
                 <button class="button-secondary" data-icon="◐" id="theme-toggle-button" type="button">Light Mode</button>
+                <div class="topbar-actions" id="topbar-auth-actions">
                 <button class="button-secondary" data-icon="◌" id="topbar-login-button" type="button">Log in</button>
                 <button class="button" data-icon="✦" id="topbar-signup-button" type="button">Sign Up</button>
+                </div>
             </div>
             <div class="topbar-user" id="topbar-user" style="display:none;">
                 <button class="user-chip" id="topbar-username" type="button" aria-expanded="false" aria-controls="topbar-account-card">username</button>
