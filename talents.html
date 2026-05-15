@@ -59,6 +59,11 @@
             --accent: #11835d;
             --accent-2: #0b6f50;
             --danger: #b23a48;
+            --heading-ink: #000000;
+            --chip-text: #000000;
+            --account-label: #000000;
+            --account-value: #000000;
+            --dashboard-title: #000000;
             --page-bg:
                 radial-gradient(circle at top left, rgba(17, 131, 93, 0.10), transparent 28%),
                 radial-gradient(circle at 80% 10%, rgba(17, 131, 93, 0.08), transparent 24%),
@@ -76,6 +81,13 @@
             --soft-bg-2: rgba(255, 255, 255, 0.54);
             --input-bg: rgba(255, 255, 255, 0.94);
             --modal-backdrop: rgba(233, 242, 238, 0.78);
+        }
+        :root:not([data-theme="light"]) {
+            --heading-ink: rgba(255, 255, 255, 0.86);
+            --chip-text: rgba(239, 248, 244, 0.94);
+            --account-label: rgba(239, 248, 244, 0.58);
+            --account-value: var(--text);
+            --dashboard-title: rgba(255, 255, 255, 0.9);
         }
         * { box-sizing: border-box; }
         body {
@@ -129,7 +141,7 @@
             align-items: center;
             gap: 12px;
             font-size: 0.92rem;
-            color: rgba(255, 255, 255, 0.86);
+            color: var(--heading-ink);
         }
         .user-chip {
             display: inline-flex;
@@ -139,7 +151,7 @@
             border-radius: 999px;
             border: 1px solid rgba(71, 229, 165, 0.18);
             background: rgba(71, 229, 165, 0.08);
-            color: rgba(239, 248, 244, 0.94);
+            color: var(--chip-text);
             font-weight: 700;
             max-width: 100%;
             overflow-wrap: anywhere;
@@ -181,11 +193,11 @@
             font-size: 11px;
             letter-spacing: 0.11em;
             text-transform: uppercase;
-            color: rgba(239, 248, 244, 0.58);
+            color: var(--account-label);
             font-weight: 700;
         }
         .account-card-value {
-            color: var(--text);
+            color: var(--account-value);
             font-size: 0.98rem;
             line-height: 1.5;
         }
@@ -332,7 +344,7 @@
         .dashboard-card h3 {
             margin: 0 0 12px;
             font-size: 15px;
-            color: rgba(255, 255, 255, 0.9);
+            color: var(--dashboard-title);
         }
         .bar-chart {
             display: grid;
