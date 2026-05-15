@@ -31,14 +31,13 @@
             --accent: #47e5a5;
             --accent-2: #7fffd4;
             --danger: #ff8b8b;
-            --ui-scale: 0.8;
         }
         * { box-sizing: border-box; }
         body {
             margin: 0;
             min-height: 100vh;
             font-family: 'Untitled Sans', sans-serif;
-            font-size: calc(15px * var(--ui-scale));
+            font-size: 15px;
             color: var(--text);
             background:
                 radial-gradient(circle at top left, rgba(71, 229, 165, 0.12), transparent 28%),
@@ -56,7 +55,7 @@
         .container {
             max-width: 1320px;
             margin: 0 auto;
-            padding: calc(36px * var(--ui-scale)) calc(24px * var(--ui-scale)) calc(80px * var(--ui-scale));
+            padding: 36px 24px 80px;
         }
         .topbar {
             display: flex;
@@ -80,7 +79,7 @@
             display: inline-flex;
             align-items: center;
             gap: 12px;
-            font-size: 0.7rem;
+            font-size: 0.92rem;
             color: rgba(255, 255, 255, 0.86);
         }
         .user-chip {
@@ -226,7 +225,7 @@
             color: var(--accent);
             text-transform: uppercase;
             letter-spacing: 0.14em;
-            font-size: 0.7rem;
+            font-size: 11px;
             font-weight: 700;
             margin-bottom: 18px;
         }
@@ -257,7 +256,7 @@
         }
         .panel h2 {
             margin: 0 0 8px;
-            font-size: 1.16rem;
+            font-size: 1.45rem;
         }
         .copy {
             color: var(--muted);
@@ -283,7 +282,7 @@
         }
         .dashboard-card h3 {
             margin: 0 0 12px;
-            font-size: 0.7rem;
+            font-size: 15px;
             color: rgba(255, 255, 255, 0.9);
         }
         .bar-chart {
@@ -308,7 +307,7 @@
             min-width: 0;
         }
         .bar-value {
-            font-size: 0.7rem;
+            font-size: 12px;
             color: var(--muted);
         }
         .bar-column {
@@ -318,7 +317,7 @@
             background: linear-gradient(180deg, #7fffd4, #47e5a5);
         }
         .bar-label {
-            font-size: 0.7rem;
+            font-size: 11px;
             color: var(--muted);
         }
         .stack {
@@ -329,7 +328,7 @@
         .field label {
             display: block;
             margin-bottom: 8px;
-            font-size: 0.7rem;
+            font-size: 12px;
             color: rgba(255, 255, 255, 0.86);
         }
         .field input,
@@ -364,7 +363,7 @@
             border-radius: 16px;
             padding: 12px 16px;
             font: inherit;
-            font-size: 0.7rem;
+            font-size: 0.95rem;
             font-weight: 700;
             cursor: pointer;
             transition: transform 0.18s ease, border-color 0.18s ease;
@@ -564,7 +563,7 @@
             background: rgba(71, 229, 165, 0.08);
             border: 1px solid rgba(71, 229, 165, 0.16);
             color: var(--accent-2);
-            font-size: 0.7rem;
+            font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 0.08em;
             font-weight: 700;
@@ -582,7 +581,7 @@
             min-width: 0;
         }
         .meta-key {
-            font-size: 0.7rem;
+            font-size: 11px;
             letter-spacing: 0.1em;
             text-transform: uppercase;
             color: rgba(255, 255, 255, 0.58);
