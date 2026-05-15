@@ -31,6 +31,51 @@
             --accent: #47e5a5;
             --accent-2: #7fffd4;
             --danger: #ff8b8b;
+            --page-bg:
+                radial-gradient(circle at top left, rgba(71, 229, 165, 0.12), transparent 28%),
+                radial-gradient(circle at 80% 10%, rgba(127, 255, 212, 0.08), transparent 24%),
+                linear-gradient(180deg, #07110f 0%, #091612 52%, #06100d 100%);
+            --account-card-bg: linear-gradient(180deg, rgba(12, 28, 23, 0.98), rgba(8, 19, 15, 0.96));
+            --icon-bg: rgba(71, 229, 165, 0.08);
+            --icon-border: rgba(71, 229, 165, 0.18);
+            --button-solid-text: #062018;
+            --button-solid-bg: linear-gradient(180deg, #7fffd4, #47e5a5);
+            --button-secondary-bg: rgba(71, 229, 165, 0.08);
+            --button-secondary-border: rgba(71, 229, 165, 0.22);
+            --soft-border: rgba(255, 255, 255, 0.08);
+            --soft-border-light: rgba(255, 255, 255, 0.06);
+            --soft-bg: rgba(255, 255, 255, 0.03);
+            --soft-bg-2: rgba(255, 255, 255, 0.02);
+            --input-bg: rgba(255, 255, 255, 0.04);
+            --modal-backdrop: rgba(4, 10, 8, 0.72);
+        }
+        :root[data-theme="light"] {
+            --bg: #f3f8f5;
+            --panel: rgba(255, 255, 255, 0.84);
+            --panel-strong: rgba(255, 255, 255, 0.95);
+            --line: rgba(16, 37, 30, 0.12);
+            --text: #0b1512;
+            --muted: rgba(11, 21, 18, 0.64);
+            --accent: #11835d;
+            --accent-2: #0b6f50;
+            --danger: #b23a48;
+            --page-bg:
+                radial-gradient(circle at top left, rgba(17, 131, 93, 0.10), transparent 28%),
+                radial-gradient(circle at 80% 10%, rgba(17, 131, 93, 0.08), transparent 24%),
+                linear-gradient(180deg, #fbfdfc 0%, #f2f8f5 52%, #edf5f1 100%);
+            --account-card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(243, 249, 246, 0.96));
+            --icon-bg: rgba(17, 131, 93, 0.10);
+            --icon-border: rgba(17, 131, 93, 0.18);
+            --button-solid-text: #f8fffb;
+            --button-solid-bg: linear-gradient(180deg, #15986e, #11835d);
+            --button-secondary-bg: rgba(17, 131, 93, 0.08);
+            --button-secondary-border: rgba(17, 131, 93, 0.18);
+            --soft-border: rgba(16, 37, 30, 0.10);
+            --soft-border-light: rgba(16, 37, 30, 0.08);
+            --soft-bg: rgba(255, 255, 255, 0.72);
+            --soft-bg-2: rgba(255, 255, 255, 0.54);
+            --input-bg: rgba(255, 255, 255, 0.94);
+            --modal-backdrop: rgba(233, 242, 238, 0.78);
         }
         * { box-sizing: border-box; }
         body {
@@ -39,10 +84,7 @@
             font-family: 'Untitled Sans', sans-serif;
             font-size: 15px;
             color: var(--text);
-            background:
-                radial-gradient(circle at top left, rgba(71, 229, 165, 0.12), transparent 28%),
-                radial-gradient(circle at 80% 10%, rgba(127, 255, 212, 0.08), transparent 24%),
-                linear-gradient(180deg, #07110f 0%, #091612 52%, #06100d 100%);
+            background: var(--page-bg);
         }
         h1, h2, h3 {
             font-family: 'Untitled Serif', serif;
@@ -110,8 +152,8 @@
             display: none;
             padding: 16px;
             border-radius: 22px;
-            border: 1px solid rgba(127, 255, 212, 0.16);
-            background: linear-gradient(180deg, rgba(12, 28, 23, 0.98), rgba(8, 19, 15, 0.96));
+            border: 1px solid var(--icon-border);
+            background: var(--account-card-bg);
             box-shadow: 0 28px 70px rgba(0, 0, 0, 0.34);
             backdrop-filter: blur(18px);
             z-index: 20;
@@ -125,8 +167,8 @@
             gap: 4px;
             padding: 12px 14px;
             border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--soft-border-light);
+            background: var(--soft-bg);
         }
         .account-card-label {
             font-size: 11px;
@@ -166,8 +208,8 @@
             height: 1.45em;
             margin-right: 0.55em;
             border-radius: 999px;
-            border: 1px solid rgba(71, 229, 165, 0.18);
-            background: rgba(71, 229, 165, 0.08);
+            border: 1px solid var(--icon-border);
+            background: var(--icon-bg);
             color: var(--accent-2);
             font-size: 0.84em;
             line-height: 1;
@@ -183,7 +225,7 @@
             margin-right: 0.5em;
         }
         .button[data-icon]::before {
-            color: #062018;
+            color: var(--button-solid-text);
             border-color: rgba(6, 32, 24, 0.18);
             background: rgba(255, 255, 255, 0.24);
         }
@@ -198,15 +240,15 @@
             height: 1.3em;
         }
         .link {
-            border: 1px solid rgba(71, 229, 165, 0.18);
+            border: 1px solid var(--icon-border);
             padding: 10px 14px;
             border-radius: 999px;
-            background: rgba(71, 229, 165, 0.06);
+            background: var(--button-secondary-bg);
         }
         .hero {
             border: 1px solid var(--line);
             border-radius: 32px;
-            background: linear-gradient(180deg, rgba(12, 28, 23, 0.96), rgba(9, 21, 18, 0.82));
+            background: linear-gradient(180deg, var(--panel-strong), var(--panel));
             box-shadow: 0 34px 80px rgba(0, 0, 0, 0.35);
             overflow: hidden;
         }
@@ -220,8 +262,8 @@
             gap: 10px;
             padding: 8px 12px;
             border-radius: 999px;
-            border: 1px solid rgba(71, 229, 165, 0.16);
-            background: rgba(71, 229, 165, 0.08);
+            border: 1px solid var(--icon-border);
+            background: var(--icon-bg);
             color: var(--accent);
             text-transform: uppercase;
             letter-spacing: 0.14em;
@@ -275,9 +317,9 @@
             grid-template-columns: repeat(3, minmax(0, 1fr));
         }
         .dashboard-card {
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--soft-border);
             border-radius: 18px;
-            background: rgba(255, 255, 255, 0.03);
+            background: var(--soft-bg);
             padding: 16px;
         }
         .dashboard-card h3 {
@@ -335,9 +377,9 @@
         .field select,
         .field textarea {
             width: 100%;
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--soft-border);
             border-radius: 16px;
-            background: rgba(255, 255, 255, 0.04);
+            background: var(--input-bg);
             color: var(--text);
             padding: 13px 14px;
             font: inherit;
@@ -370,8 +412,8 @@
         }
         .button {
             border: 0;
-            color: #062018;
-            background: linear-gradient(180deg, #7fffd4, #47e5a5);
+            color: var(--button-solid-text);
+            background: var(--button-solid-bg);
         }
         .button-icon {
             width: 52px;
@@ -409,9 +451,9 @@
             box-shadow: none;
         }
         .button-secondary {
-            border: 1px solid rgba(71, 229, 165, 0.22);
+            border: 1px solid var(--button-secondary-border);
             color: var(--text);
-            background: rgba(71, 229, 165, 0.08);
+            background: var(--button-secondary-bg);
         }
         .button:hover,
         .button-secondary:hover {
@@ -435,8 +477,8 @@
             margin-top: 18px;
             padding: 16px;
             border-radius: 18px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--soft-border);
+            background: var(--soft-bg);
         }
         .sql-box strong {
             display: block;
@@ -473,7 +515,7 @@
             border-bottom: 1px solid var(--line);
             background:
                 radial-gradient(circle at top left, rgba(127, 255, 212, 0.1), transparent 34%),
-                linear-gradient(135deg, rgba(71, 229, 165, 0.08), rgba(255, 255, 255, 0.02));
+                linear-gradient(135deg, var(--icon-bg), var(--soft-bg-2));
         }
         .signup-promo-copy {
             display: grid;
@@ -496,8 +538,8 @@
         .signup-promo-visual {
             border-radius: 28px;
             overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--soft-border);
+            background: var(--soft-bg);
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
         }
         .signup-promo-visual svg,
@@ -531,16 +573,16 @@
         .empty {
             padding: 28px;
             border-radius: 22px;
-            border: 1px dashed rgba(255, 255, 255, 0.12);
+            border: 1px dashed var(--soft-border);
             color: var(--muted);
-            background: rgba(255, 255, 255, 0.02);
+            background: var(--soft-bg-2);
         }
         .card {
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--soft-border);
             border-radius: 24px;
             background:
                 linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02)),
-                rgba(255, 255, 255, 0.02);
+                var(--soft-bg-2);
             padding: 20px;
         }
         .card-head {
@@ -560,8 +602,8 @@
             gap: 8px;
             padding: 8px 12px;
             border-radius: 999px;
-            background: rgba(71, 229, 165, 0.08);
-            border: 1px solid rgba(71, 229, 165, 0.16);
+            background: var(--icon-bg);
+            border: 1px solid var(--icon-border);
             color: var(--accent-2);
             font-size: 12px;
             text-transform: uppercase;
@@ -576,8 +618,8 @@
         .meta {
             padding: 12px 14px;
             border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--soft-border-light);
+            background: var(--soft-bg);
             min-width: 0;
         }
         .meta-key {
@@ -609,8 +651,8 @@
             margin-top: 18px;
             padding: 16px;
             border-radius: 18px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--soft-border);
+            background: var(--soft-bg);
         }
         .control-box strong {
             display: block;
@@ -639,7 +681,7 @@
             align-items: center;
             justify-content: center;
             padding: 24px;
-            background: rgba(4, 10, 8, 0.72);
+            background: var(--modal-backdrop);
             backdrop-filter: blur(14px);
             z-index: 30;
         }
@@ -649,8 +691,8 @@
         .modal {
             width: min(100%, 460px);
             border-radius: 28px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            background: linear-gradient(180deg, rgba(12, 28, 23, 0.98), rgba(9, 21, 18, 0.94));
+            border: 1px solid var(--soft-border);
+            background: linear-gradient(180deg, var(--panel-strong), var(--panel));
             box-shadow: 0 28px 90px rgba(0, 0, 0, 0.45);
             padding: 24px;
         }
@@ -671,8 +713,8 @@
             line-height: 1.6;
         }
         .modal-close {
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--soft-border);
+            background: var(--soft-bg);
             color: var(--text);
             width: 42px;
             height: 42px;
@@ -694,8 +736,8 @@
             margin-top: 16px;
             padding: 16px;
             border-radius: 18px;
-            border: 1px solid rgba(127, 255, 212, 0.14);
-            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--icon-border);
+            background: var(--soft-bg);
         }
         .purchase-box strong {
             display: block;
@@ -713,8 +755,8 @@
             margin-top: 12px;
             padding: 12px 14px;
             border-radius: 14px;
-            border: 1px dashed rgba(127, 255, 212, 0.2);
-            background: rgba(71, 229, 165, 0.05);
+            border: 1px dashed var(--icon-border);
+            background: var(--button-secondary-bg);
             color: var(--text);
             line-height: 1.6;
         }
@@ -733,15 +775,15 @@
             width: 40px;
             height: 40px;
             border-radius: 12px;
-            border: 1px solid rgba(127, 255, 212, 0.16);
-            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--icon-border);
+            background: var(--input-bg);
             color: var(--accent);
             transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
         }
         .bio-link-icon:hover {
             transform: translateY(-1px);
-            border-color: rgba(127, 255, 212, 0.3);
-            background: rgba(127, 255, 212, 0.08);
+            border-color: var(--accent);
+            background: var(--icon-bg);
         }
         .bio-link-icon svg {
             width: 22px;
@@ -769,8 +811,8 @@
             margin-top: 18px;
             padding: 18px;
             border-radius: 22px;
-            border: 1px solid rgba(127, 255, 212, 0.14);
-            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--icon-border);
+            background: var(--soft-bg);
         }
         .invite-email-card strong {
             display: block;
@@ -781,8 +823,8 @@
             margin-top: 8px;
             padding: 12px 14px;
             border-radius: 14px;
-            border: 1px dashed rgba(127, 255, 212, 0.2);
-            background: rgba(71, 229, 165, 0.05);
+            border: 1px dashed var(--icon-border);
+            background: var(--button-secondary-bg);
             color: var(--text);
             font-size: 0.95rem;
             letter-spacing: 0.06em;
@@ -829,7 +871,7 @@
         }
         .button-danger {
             border: 1px solid rgba(255, 139, 139, 0.25);
-            color: #ffd7d7;
+            color: var(--danger);
             background: rgba(255, 139, 139, 0.08);
         }
         .editor-grid {
@@ -847,8 +889,8 @@
             margin-top: 16px;
             padding: 16px;
             border-radius: 18px;
-            border: 1px solid rgba(127, 255, 212, 0.12);
-            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid var(--icon-border);
+            background: var(--soft-bg);
         }
         .schedule-grid {
             display: grid;
@@ -870,8 +912,8 @@
             gap: 8px;
             padding: 10px 14px;
             border-radius: 999px;
-            border: 1px solid rgba(127, 255, 212, 0.16);
-            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--icon-border);
+            background: var(--input-bg);
             color: var(--muted);
             cursor: pointer;
         }
@@ -954,6 +996,7 @@
                 <span>AGI Talent</span>
             </a>
             <div class="topbar-actions" id="topbar-auth-actions">
+                <button class="button-secondary" data-icon="◐" id="theme-toggle-button" type="button">Light Mode</button>
                 <button class="button-secondary" data-icon="◌" id="topbar-login-button" type="button">Log in</button>
                 <button class="button" data-icon="✦" id="topbar-signup-button" type="button">Sign Up</button>
             </div>
@@ -1269,6 +1312,7 @@
         const topbarAccountCardEl = document.getElementById('topbar-account-card');
         const accountValidDateEl = document.getElementById('account-valid-date');
         const accountExpireDateEl = document.getElementById('account-expire-date');
+        const themeToggleButton = document.getElementById('theme-toggle-button');
         const topbarLoginButton = document.getElementById('topbar-login-button');
         const topbarSignupButton = document.getElementById('topbar-signup-button');
         const topbarChangePasswordButton = document.getElementById('topbar-change-password-button');
@@ -1409,6 +1453,7 @@
         let renewPaypalButtonsRendered = false;
         let accessWindowTimer = null;
         let latestTrialInvitationCode = '';
+        let currentTheme = 'dark';
         let outreachDefaults = {
             company: '',
             role: '',
@@ -1416,6 +1461,7 @@
             mode: 'hiring_talents'
         };
         const ADMIN_SESSION_KEY = 'talentsAdminSession';
+        const TALENTS_THEME_KEY = 'talentsTheme';
         const OUTREACH_MODE_HIRING = 'hiring_talents';
         const OUTREACH_MODE_SEEKING = 'seeking_jobs';
 
@@ -1621,6 +1667,23 @@
         const setInviteEmailStatus = (message, isError = false) => {
             inviteEmailStatusEl.textContent = message;
             inviteEmailStatusEl.classList.toggle('error', isError);
+        };
+        const applyTheme = (theme) => {
+            currentTheme = theme === 'light' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            if (themeToggleButton) {
+                themeToggleButton.textContent = currentTheme === 'light' ? 'Dark Mode' : 'Light Mode';
+                themeToggleButton.setAttribute('data-icon', currentTheme === 'light' ? '◑' : '◐');
+            }
+        };
+        const loadTheme = () => {
+            const savedTheme = String(window.localStorage.getItem(TALENTS_THEME_KEY) || '').trim().toLowerCase();
+            applyTheme(savedTheme === 'light' ? 'light' : 'dark');
+        };
+        const toggleTheme = () => {
+            const nextTheme = currentTheme === 'light' ? 'dark' : 'light';
+            applyTheme(nextTheme);
+            window.localStorage.setItem(TALENTS_THEME_KEY, nextTheme);
         };
         const setRenewPlanStatus = (message, isError = false) => {
             renewPlanStatusEl.textContent = message;
@@ -3214,6 +3277,9 @@
         if (signupPromoButton) {
             signupPromoButton.addEventListener('click', () => topbarSignupButton.click());
         }
+        if (themeToggleButton) {
+            themeToggleButton.addEventListener('click', toggleTheme);
+        }
 
         loginModalSubmitButton.addEventListener('click', async () => {
             loginModalSubmitButton.disabled = true;
@@ -3924,6 +3990,7 @@
 
         (async () => {
             try {
+                loadTheme();
                 await restoreAdminSession();
                 updateAdminUi();
                 if (isLoggedIn()) {
