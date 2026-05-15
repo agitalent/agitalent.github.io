@@ -652,6 +652,16 @@
             color: rgba(255, 255, 255, 0.58);
             margin-bottom: 8px;
         }
+        :root[data-theme="light"] .meta[data-field="name_or_handle"] .meta-key,
+        :root[data-theme="light"] .meta[data-field="email"] .meta-key,
+        :root[data-theme="light"] .meta[data-field="location"] .meta-key,
+        :root[data-theme="light"] .meta[data-field="domain_focus"] .meta-key,
+        :root[data-theme="light"] .meta[data-field="seniority"] .meta-key,
+        :root[data-theme="light"] .meta[data-field="needs"] .meta-key,
+        :root[data-theme="light"] .meta[data-field="bio_link"] .meta-key,
+        :root[data-theme="light"] .meta[data-field="Recently_Contacted"] .meta-key {
+            color: #000000;
+        }
         .meta-value {
             color: var(--text);
             line-height: 1.65;
@@ -2708,7 +2718,7 @@
                             const renderedValue = renderValueHtml(key, profile[key]);
                             if (!renderedValue) return '';
                             return `
-                                <div class="meta">
+                                <div class="meta" data-field="${escapeHtml(key)}">
                                     <div class="meta-key">${escapeHtml(displayFieldLabel(key))}</div>
                                     <div class="meta-value">${renderedValue}</div>
                                 </div>
