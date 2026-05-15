@@ -31,13 +31,14 @@
             --accent: #47e5a5;
             --accent-2: #7fffd4;
             --danger: #ff8b8b;
+            --ui-scale: 0.8;
         }
         * { box-sizing: border-box; }
         body {
             margin: 0;
             min-height: 100vh;
             font-family: 'Untitled Sans', sans-serif;
-            font-size: 15px;
+            font-size: calc(15px * var(--ui-scale));
             color: var(--text);
             background:
                 radial-gradient(circle at top left, rgba(71, 229, 165, 0.12), transparent 28%),
@@ -55,7 +56,7 @@
         .container {
             max-width: 1320px;
             margin: 0 auto;
-            padding: 36px 24px 80px;
+            padding: calc(36px * var(--ui-scale)) calc(24px * var(--ui-scale)) calc(80px * var(--ui-scale));
         }
         .topbar {
             display: flex;
