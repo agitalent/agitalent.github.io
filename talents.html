@@ -1465,13 +1465,19 @@
             'status'
         ];
         const JSON_PROFILE_FIELDS = new Set(['skills', 'needs', 'recent_evidence']);
+        const AGENT_TYPE_OPTIONS = ['candidate', 'investor', 'manufacturer', 'buyer', 'billionaire'];
         const AGENT_TYPE_LABELS = {
+            candidate: 'Candidate',
+            investor: 'Investor',
+            manufacturer: 'Manufacturer',
+            buyer: 'Buyer',
+            billionaire: 'Billionaire',
             job_seeker: 'Candidate',
             recruiter: 'Recruiter',
             hiring_manager: 'Hiring Manager'
         };
         const SELECT_FIELDS = {
-            agent_type: ['job_seeker', 'recruiter', 'hiring_manager'],
+            agent_type: AGENT_TYPE_OPTIONS,
             status: ['active', 'paused', 'archived']
         };
         const LONG_TEXT_FIELDS = new Set(['seniority']);
@@ -2460,9 +2466,16 @@
             const wrapperClass = wide ? 'field wide' : 'field';
 
             if (SELECT_FIELDS[key]) {
-                const options = SELECT_FIELDS[key].map((option) => {
+                const optionsList = [...SELECT_FIELDS[key]];
+                const currentValue = String(profile[key] || '').trim();
+                if (key === 'agent_type' && currentValue && !optionsList.includes(currentValue)) {
+                    optionsList.unshift(currentValue);
+                }
+                const options = optionsList.map((option) => {
                     const selected = String(profile[key] || '') === option ? ' selected' : '';
-                    const label = key === 'agent_type' ? displayAgentType(option) : option;
+                    const label = key === 'agent_type'
+                        ? `${displayAgentType(option)}${AGENT_TYPE_OPTIONS.includes(option) ? '' : ' (legacy)'}`
+                        : option;
                     return `<option value="${escapeHtml(option)}"${selected}>${escapeHtml(label)}</option>`;
                 }).join('');
                 return `
