@@ -590,12 +590,16 @@
             color: var(--text);
             font-size: 0.93rem;
             user-select: none;
+            flex: 0 0 auto;
         }
         .checkbox-inline input {
             width: 16px;
             height: 16px;
             margin: 0;
             accent-color: var(--accent);
+        }
+        :root[data-theme="light"] .checkbox-inline {
+            color: #000000;
         }
         .results {
             display: grid;
