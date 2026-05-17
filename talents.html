@@ -1119,15 +1119,31 @@
                                     <label data-icon="◎" for="admin-add-user-username">Username</label>
                                     <input id="admin-add-user-username" type="text" autocomplete="off" placeholder="new_username">
                                 </div>
-                                <div class="field">
-                                    <label data-icon="▣" for="admin-user-access-type">Access Type</label>
-                                    <select id="admin-user-access-type">
-                                        <option value="candidate">Candidate</option>
-                                        <option value="investor">Investor</option>
-                                        <option value="manufacturer">Manufacturer</option>
-                                        <option value="buyer">Buyer</option>
-                                        <option value="billionaire">Billionaire</option>
-                                    </select>
+                                <div class="field wide">
+                                    <label data-icon="▣">Access Types</label>
+                                    <div class="user-actions" id="admin-user-access-types">
+                                        <label class="checkbox-inline" for="admin-user-access-type-candidate">
+                                            <input id="admin-user-access-type-candidate" type="checkbox" value="candidate" data-access-type>
+                                            <span>Candidate</span>
+                                        </label>
+                                        <label class="checkbox-inline" for="admin-user-access-type-investor">
+                                            <input id="admin-user-access-type-investor" type="checkbox" value="investor" data-access-type>
+                                            <span>Investor</span>
+                                        </label>
+                                        <label class="checkbox-inline" for="admin-user-access-type-manufacturer">
+                                            <input id="admin-user-access-type-manufacturer" type="checkbox" value="manufacturer" data-access-type>
+                                            <span>Manufacturer</span>
+                                        </label>
+                                        <label class="checkbox-inline" for="admin-user-access-type-buyer">
+                                            <input id="admin-user-access-type-buyer" type="checkbox" value="buyer" data-access-type>
+                                            <span>Buyer</span>
+                                        </label>
+                                        <label class="checkbox-inline" for="admin-user-access-type-billionaire">
+                                            <input id="admin-user-access-type-billionaire" type="checkbox" value="billionaire" data-access-type>
+                                            <span>Billionaire</span>
+                                        </label>
+                                    </div>
+                                    <small>Used for user access and single trial invitation codes. Multiple selections are allowed.</small>
                                 </div>
                             </div>
                             <div class="user-actions">
@@ -1397,7 +1413,7 @@
         const adminResetPasswordActions = document.getElementById('admin-reset-password-actions');
         const adminAddUserPanel = document.getElementById('admin-add-user-panel');
         const adminAddUserUsernameInput = document.getElementById('admin-add-user-username');
-        const adminUserAccessTypeSelect = document.getElementById('admin-user-access-type');
+        const adminUserAccessTypeInputs = Array.from(document.querySelectorAll('#admin-user-access-types input[data-access-type]'));
         const adminAddUserButton = document.getElementById('admin-add-user-button');
         const adminSaveUserAccessButton = document.getElementById('admin-save-user-access-button');
         const adminDeleteUserButton = document.getElementById('admin-delete-user-button');
@@ -1654,11 +1670,38 @@
             if (normalized === 'job_seeker') return 'candidate';
             return AGENT_TYPE_OPTIONS.includes(normalized) ? normalized : DEFAULT_NON_ADMIN_ACCESS_TYPE;
         };
-        const profileAgentTypeFilterValues = (value) => {
-            const normalized = normalizeAccessAgentType(value);
-            return normalized === 'candidate' ? ['candidate', 'job_seeker'] : [normalized];
+        const normalizeAccessAgentTypes = (value) => {
+            const rawValues = Array.isArray(value)
+                ? value
+                : (value === null || value === undefined || value === ''
+                    ? []
+                    : [value]);
+            const normalizedValues = rawValues
+                .map((item) => normalizeAccessAgentType(item))
+                .filter((item, index, array) => item && array.indexOf(item) === index);
+            return normalizedValues.length ? normalizedValues : [DEFAULT_NON_ADMIN_ACCESS_TYPE];
         };
-        const currentUserAccessLabel = () => displayAgentType(normalizeAccessAgentType(adminUser?.access_agent_type));
+        const profileAgentTypeFilterValues = (values) => {
+            const normalizedValues = normalizeAccessAgentTypes(values);
+            const expanded = normalizedValues.flatMap((value) => (
+                value === 'candidate' ? ['candidate', 'job_seeker'] : [value]
+            ));
+            return expanded.filter((item, index, array) => array.indexOf(item) === index);
+        };
+        const accessTypeLabels = (values) => normalizeAccessAgentTypes(values).map((value) => displayAgentType(value));
+        const currentUserAccessLabel = () => accessTypeLabels(adminUser?.access_agent_types || adminUser?.access_agent_type).join(', ');
+        const selectedAdminAccessTypes = () => {
+            const values = adminUserAccessTypeInputs
+                .filter((input) => input.checked)
+                .map((input) => input.value);
+            return normalizeAccessAgentTypes(values);
+        };
+        const setSelectedAdminAccessTypes = (values) => {
+            const normalizedValues = new Set(normalizeAccessAgentTypes(values));
+            adminUserAccessTypeInputs.forEach((input) => {
+                input.checked = normalizedValues.has(String(input.value || '').trim());
+            });
+        };
         const buildDefaultToggleState = () => {
             const defaults = normalizedOutreachDefaults();
             return {
@@ -2055,8 +2098,7 @@
 
         const updateUserOperationUi = () => {
             const username = adminTargetUser?.username || adminAddUserUsernameInput.value.trim();
-            const accessType = normalizeAccessAgentType(adminTargetUser?.access_agent_type || adminUserAccessTypeSelect.value);
-            adminUserAccessTypeSelect.value = accessType;
+            setSelectedAdminAccessTypes(adminTargetUser?.access_agent_types || adminTargetUser?.access_agent_type || selectedAdminAccessTypes());
             adminAddUserButton.textContent = adminTargetUser ? 'Renew User' : 'Create User';
             adminSaveUserAccessButton.disabled = !isAdminLoggedIn() || !username || !adminTargetUser;
             adminDeleteUserButton.disabled = !isAdminLoggedIn() || !username || !adminTargetUser;
@@ -2847,7 +2889,7 @@
                 .range(safeOffset, safeOffset + PAGE_SIZE - 1);
 
             if (isLoggedIn() && !isAdminLoggedIn()) {
-                query = query.in('agent_type', profileAgentTypeFilterValues(adminUser?.access_agent_type));
+                query = query.in('agent_type', profileAgentTypeFilterValues(adminUser?.access_agent_types || adminUser?.access_agent_type));
             }
 
             const { data, error, count } = await query;
@@ -2869,7 +2911,7 @@
             const searchPhrases = promptPhrases(promptOverride);
             let nextQuery = query;
             if (isLoggedIn() && !isAdminLoggedIn()) {
-                nextQuery = nextQuery.in('agent_type', profileAgentTypeFilterValues(adminUser?.access_agent_type));
+                nextQuery = nextQuery.in('agent_type', profileAgentTypeFilterValues(adminUser?.access_agent_types || adminUser?.access_agent_type));
             }
             if (!searchPhrases.length) {
                 return nextQuery;
@@ -3115,10 +3157,10 @@
                 });
                 if (error) throw error;
                 adminTargetUser = data && data.username ? data : null;
-                adminUserAccessTypeSelect.value = normalizeAccessAgentType(data?.access_agent_type);
+                setSelectedAdminAccessTypes(data?.access_agent_types || data?.access_agent_type);
             } catch (_error) {
                 adminTargetUser = null;
-                adminUserAccessTypeSelect.value = DEFAULT_NON_ADMIN_ACCESS_TYPE;
+                setSelectedAdminAccessTypes([DEFAULT_NON_ADMIN_ACCESS_TYPE]);
             }
             updateUserOperationUi();
         };
@@ -3510,15 +3552,16 @@
                     adminTargetUser = {
                         username: data?.username || newUsername,
                         access_agent_type: normalizeAccessAgentType(data?.access_agent_type),
+                        access_agent_types: normalizeAccessAgentTypes(data?.access_agent_types || data?.access_agent_type),
                         expires_on: data?.expires_on || expiresOn
                     };
-                    const selectedAccessType = normalizeAccessAgentType(adminUserAccessTypeSelect.value);
-                    if (selectedAccessType !== DEFAULT_NON_ADMIN_ACCESS_TYPE) {
+                    const selectedAccessTypes = selectedAdminAccessTypes();
+                    if (JSON.stringify(selectedAccessTypes) !== JSON.stringify([DEFAULT_NON_ADMIN_ACCESS_TYPE])) {
                         const { data: accessData, error: accessError } = await supabaseClient.rpc('admin_update_app_user_access', {
                             p_admin_username: adminUser.username,
                             p_admin_password: adminPassword,
                             p_target_username: newUsername,
-                            p_access_agent_type: selectedAccessType
+                            p_access_agent_types: selectedAccessTypes
                         });
                         if (accessError) throw accessError;
                         adminTargetUser = accessData && accessData.username
@@ -3551,6 +3594,7 @@
             try {
                 const useTrialInvite = Boolean(adminTrialInviteToggle?.checked);
                 const useBatchInvite = Boolean(adminBatchInviteToggle?.checked) && !useTrialInvite;
+                const selectedAccessTypes = selectedAdminAccessTypes();
                 if (useBatchInvite) {
                     const batchSize = 100;
                     const validFrom = todayIsoDate();
@@ -3569,16 +3613,22 @@
                     latestTrialInvitationCode = '';
                     setAddUserStatus(`${generatedCount} invitation codes generated and stored with no expiration.`);
                 } else {
+                    if (useTrialInvite && !selectedAccessTypes.length) {
+                        throw new Error('Choose at least one access type for the trial invitation.');
+                    }
                     const { data, error } = await supabaseClient.rpc('admin_generate_app_user_invitation_code', {
                         p_admin_username: adminUser.username,
                         p_admin_password: adminPassword,
                         p_valid_from: todayIsoDate(),
-                        p_is_trial: useTrialInvite
+                        p_is_trial: useTrialInvite,
+                        p_access_agent_types: useTrialInvite ? selectedAccessTypes : [DEFAULT_NON_ADMIN_ACCESS_TYPE]
                     });
                     if (error) throw error;
                     adminInviteCodeOutput.value = String(data?.code || '').trim();
                     latestTrialInvitationCode = useTrialInvite ? String(data?.code || '').trim() : '';
-                    setAddUserStatus(useTrialInvite ? '3-day trial invitation code generated.' : 'Invitation code generated with no expiration.');
+                    setAddUserStatus(useTrialInvite
+                        ? `3-day trial invitation code generated for ${accessTypeLabels(selectedAccessTypes).join(', ')}.`
+                        : 'Invitation code generated with no expiration.');
                 }
             } catch (error) {
                 setAddUserStatus(error.message || 'Invitation code generation failed.', true);
@@ -3595,6 +3645,15 @@
                 }
                 if (input === adminTrialInviteToggle && adminTrialInviteToggle.checked) {
                     adminBatchInviteToggle.checked = false;
+                }
+                updateUserOperationUi();
+            });
+        });
+
+        adminUserAccessTypeInputs.forEach((input) => {
+            input.addEventListener('change', () => {
+                if (!selectedAdminAccessTypes().length) {
+                    input.checked = true;
                 }
                 updateUserOperationUi();
             });
@@ -3735,12 +3794,12 @@
                     p_admin_username: adminUser.username,
                     p_admin_password: adminPassword,
                     p_target_username: username,
-                    p_access_agent_type: normalizeAccessAgentType(adminUserAccessTypeSelect.value)
+                    p_access_agent_types: selectedAdminAccessTypes()
                 });
                 if (error) throw error;
                 adminTargetUser = data && data.username ? data : adminTargetUser;
-                adminUserAccessTypeSelect.value = normalizeAccessAgentType(adminTargetUser?.access_agent_type);
-                setAddUserStatus(`Access updated for ${username}: ${displayAgentType(adminUserAccessTypeSelect.value)}.`);
+                setSelectedAdminAccessTypes(adminTargetUser?.access_agent_types || adminTargetUser?.access_agent_type);
+                setAddUserStatus(`Access updated for ${username}: ${accessTypeLabels(adminTargetUser?.access_agent_types || adminTargetUser?.access_agent_type).join(', ')}.`);
             } catch (error) {
                 setAddUserStatus(error.message || 'Access update failed.', true);
             } finally {
