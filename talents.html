@@ -1119,9 +1119,20 @@
                                     <label data-icon="◎" for="admin-add-user-username">Username</label>
                                     <input id="admin-add-user-username" type="text" autocomplete="off" placeholder="new_username">
                                 </div>
+                                <div class="field">
+                                    <label data-icon="▣" for="admin-user-access-type">Access Type</label>
+                                    <select id="admin-user-access-type">
+                                        <option value="candidate">Candidate</option>
+                                        <option value="investor">Investor</option>
+                                        <option value="manufacturer">Manufacturer</option>
+                                        <option value="buyer">Buyer</option>
+                                        <option value="billionaire">Billionaire</option>
+                                    </select>
+                                </div>
                             </div>
                             <div class="user-actions">
                                 <button class="button-secondary" data-icon="＋" id="admin-add-user-button" type="button">Create User</button>
+                                <button class="button-secondary" data-icon="✓" id="admin-save-user-access-button" type="button">Save Access</button>
                                 <button class="button-secondary button-danger" data-icon="−" id="admin-delete-user-button" type="button">Delete User</button>
                             </div>
                             <div class="field" style="margin-top:14px;">
@@ -1386,7 +1397,9 @@
         const adminResetPasswordActions = document.getElementById('admin-reset-password-actions');
         const adminAddUserPanel = document.getElementById('admin-add-user-panel');
         const adminAddUserUsernameInput = document.getElementById('admin-add-user-username');
+        const adminUserAccessTypeSelect = document.getElementById('admin-user-access-type');
         const adminAddUserButton = document.getElementById('admin-add-user-button');
+        const adminSaveUserAccessButton = document.getElementById('admin-save-user-access-button');
         const adminDeleteUserButton = document.getElementById('admin-delete-user-button');
         const adminInviteCodeOutput = document.getElementById('admin-invite-code-output');
         const adminBatchInviteToggle = document.getElementById('admin-batch-invite-toggle');
@@ -1465,6 +1478,7 @@
             'status'
         ];
         const JSON_PROFILE_FIELDS = new Set(['skills', 'needs', 'recent_evidence']);
+        const DEFAULT_NON_ADMIN_ACCESS_TYPE = 'candidate';
         const AGENT_TYPE_OPTIONS = ['candidate', 'investor', 'manufacturer', 'buyer', 'billionaire'];
         const AGENT_TYPE_LABELS = {
             candidate: 'Candidate',
@@ -1635,6 +1649,16 @@
         };
         const capVisibleCount = (count) => Math.min(Number(count || 0), maxVisibleResults());
         const displayAgentType = (value) => AGENT_TYPE_LABELS[String(value || '').trim()] || String(value || '').trim();
+        const normalizeAccessAgentType = (value) => {
+            const normalized = String(value || '').trim().toLowerCase();
+            if (normalized === 'job_seeker') return 'candidate';
+            return AGENT_TYPE_OPTIONS.includes(normalized) ? normalized : DEFAULT_NON_ADMIN_ACCESS_TYPE;
+        };
+        const profileAgentTypeFilterValues = (value) => {
+            const normalized = normalizeAccessAgentType(value);
+            return normalized === 'candidate' ? ['candidate', 'job_seeker'] : [normalized];
+        };
+        const currentUserAccessLabel = () => displayAgentType(normalizeAccessAgentType(adminUser?.access_agent_type));
         const buildDefaultToggleState = () => {
             const defaults = normalizedOutreachDefaults();
             return {
@@ -2031,7 +2055,10 @@
 
         const updateUserOperationUi = () => {
             const username = adminTargetUser?.username || adminAddUserUsernameInput.value.trim();
+            const accessType = normalizeAccessAgentType(adminTargetUser?.access_agent_type || adminUserAccessTypeSelect.value);
+            adminUserAccessTypeSelect.value = accessType;
             adminAddUserButton.textContent = adminTargetUser ? 'Renew User' : 'Create User';
+            adminSaveUserAccessButton.disabled = !isAdminLoggedIn() || !username || !adminTargetUser;
             adminDeleteUserButton.disabled = !isAdminLoggedIn() || !username || !adminTargetUser;
             adminGenerateInviteButton.disabled = !isAdminLoggedIn();
             updateInviteEmailAction();
@@ -2065,7 +2092,7 @@
                 isLoggedIn()
                     ? (isAdminLoggedIn()
                         ? `Signed in as ${username}. You can now browse, edit, schedule, email, and manage users.`
-                        : `Signed in as ${username}. You can now browse, schedule, and email candidates.`)
+                        : `Signed in as ${username}. You can now browse, schedule, and email ${currentUserAccessLabel().toLowerCase()} profiles.`)
                     : 'Signed out. Login is required to browse candidate records. Admin rights also enable edit, schedule, email, and user management.',
                 false
             );
@@ -2812,12 +2839,16 @@
         const fetchProfilesDirect = async (offset = 0, options = {}) => {
             const { scrollToTop = true } = options;
             const safeOffset = clampVisibleOffset(offset);
-            const query = supabaseClient
+            let query = supabaseClient
                 .from(profileSourceName())
                 .select(profileSelectColumns(), { count: 'exact' })
                 .order('created_at', { ascending: false, nullsFirst: false })
                 .order('updated_at', { ascending: false, nullsFirst: false })
                 .range(safeOffset, safeOffset + PAGE_SIZE - 1);
+
+            if (isLoggedIn() && !isAdminLoggedIn()) {
+                query = query.in('agent_type', profileAgentTypeFilterValues(adminUser?.access_agent_type));
+            }
 
             const { data, error, count } = await query;
             if (error) throw error;
@@ -2836,13 +2867,17 @@
         const applyPromptFilters = (query, promptOverride = activePrompt) => {
             const fields = searchableProfileFields();
             const searchPhrases = promptPhrases(promptOverride);
+            let nextQuery = query;
+            if (isLoggedIn() && !isAdminLoggedIn()) {
+                nextQuery = nextQuery.in('agent_type', profileAgentTypeFilterValues(adminUser?.access_agent_type));
+            }
             if (!searchPhrases.length) {
-                return query;
+                return nextQuery;
             }
             const clauses = searchPhrases.flatMap((value) => (
                 fields.map((field) => `${field}.ilike.%${value}%`)
             ));
-            return query.or(clauses.join(','));
+            return nextQuery.or(clauses.join(','));
         };
 
         const fetchProfilesClientFiltered = async (offset = 0, promptOverride = activePrompt, options = {}) => {
@@ -3080,8 +3115,10 @@
                 });
                 if (error) throw error;
                 adminTargetUser = data && data.username ? data : null;
+                adminUserAccessTypeSelect.value = normalizeAccessAgentType(data?.access_agent_type);
             } catch (_error) {
                 adminTargetUser = null;
+                adminUserAccessTypeSelect.value = DEFAULT_NON_ADMIN_ACCESS_TYPE;
             }
             updateUserOperationUi();
         };
@@ -3472,8 +3509,25 @@
                     if (error) throw error;
                     adminTargetUser = {
                         username: data?.username || newUsername,
+                        access_agent_type: normalizeAccessAgentType(data?.access_agent_type),
                         expires_on: data?.expires_on || expiresOn
                     };
+                    const selectedAccessType = normalizeAccessAgentType(adminUserAccessTypeSelect.value);
+                    if (selectedAccessType !== DEFAULT_NON_ADMIN_ACCESS_TYPE) {
+                        const { data: accessData, error: accessError } = await supabaseClient.rpc('admin_update_app_user_access', {
+                            p_admin_username: adminUser.username,
+                            p_admin_password: adminPassword,
+                            p_target_username: newUsername,
+                            p_access_agent_type: selectedAccessType
+                        });
+                        if (accessError) throw accessError;
+                        adminTargetUser = accessData && accessData.username
+                            ? {
+                                ...adminTargetUser,
+                                ...accessData
+                            }
+                            : adminTargetUser;
+                    }
                     setAddUserStatus(`User ${data?.username || newUsername} created. Initial password: ${data?.initial_password || ''}. Expires ${data?.expires_on || expiresOn}.`);
                 }
                 updateUserOperationUi();
@@ -3658,6 +3712,40 @@
                 setAddUserStatus(error.message || 'User deletion failed.', true);
             } finally {
                 adminDeleteUserButton.disabled = false;
+            }
+        });
+
+        adminSaveUserAccessButton.addEventListener('click', async () => {
+            if (!supabaseClient) {
+                setAddUserStatus('Supabase client failed to initialize.', true);
+                return;
+            }
+            if (!isAdminLoggedIn()) {
+                setAddUserStatus('Admin rights are required.', true);
+                return;
+            }
+            const username = adminTargetUser?.username || adminAddUserUsernameInput.value.trim();
+            if (!username || !adminTargetUser?.username) {
+                setAddUserStatus('Load an existing user first.', true);
+                return;
+            }
+            adminSaveUserAccessButton.disabled = true;
+            try {
+                const { data, error } = await supabaseClient.rpc('admin_update_app_user_access', {
+                    p_admin_username: adminUser.username,
+                    p_admin_password: adminPassword,
+                    p_target_username: username,
+                    p_access_agent_type: normalizeAccessAgentType(adminUserAccessTypeSelect.value)
+                });
+                if (error) throw error;
+                adminTargetUser = data && data.username ? data : adminTargetUser;
+                adminUserAccessTypeSelect.value = normalizeAccessAgentType(adminTargetUser?.access_agent_type);
+                setAddUserStatus(`Access updated for ${username}: ${displayAgentType(adminUserAccessTypeSelect.value)}.`);
+            } catch (error) {
+                setAddUserStatus(error.message || 'Access update failed.', true);
+            } finally {
+                adminSaveUserAccessButton.disabled = false;
+                updateUserOperationUi();
             }
         });
 
