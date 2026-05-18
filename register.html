@@ -360,7 +360,7 @@
         const SUPABASE_URL = 'https://zocovvewzpqxspysanyy.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvY292dmV3enBxeHNweXNhbnl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwODYwNTgsImV4cCI6MjA4OTY2MjA1OH0.8ekfJ3bcvG-AbLD39xUINwXrpO7RiH9PVgy-xMzeHbE';
         const DEEPSEEK_BASE_URL = 'https://api.deepseek.com';
-        const DEEPSEEK_API_KEY = 'sk-50d43d5876294b88b50066f613c6dc72';
+        const DEEPSEEK_API_KEY = String(window.__DEEPSEEK_API_KEY__ || '').trim();
         const DEEPSEEK_MODEL = 'deepseek-v4-flash';
         const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
         const registerForm = document.getElementById('irecruiter-register-form');
@@ -396,12 +396,18 @@
         const updateSubmitAvailability = () => {
             submitButton.disabled = duplicateEmailState.checking || duplicateEmailState.duplicate;
         };
+        const requireDeepseekApiKey = () => {
+            if (!DEEPSEEK_API_KEY) {
+                throw new Error('DeepSeek API key is not configured for this environment.');
+            }
+            return DEEPSEEK_API_KEY;
+        };
         const deepseekJson = async (messages) => {
             const response = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+                    'Authorization': `Bearer ${requireDeepseekApiKey()}`
                 },
                 body: JSON.stringify({
                     model: DEEPSEEK_MODEL,
