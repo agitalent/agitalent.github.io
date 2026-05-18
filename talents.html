@@ -2291,18 +2291,15 @@
             return normalized.trim();
         };
 
-        const requireDeepseekApiKey = () => {
-            if (!DEEPSEEK_API_KEY) {
-                throw new Error('DeepSeek API key is not configured for this environment.');
-            }
-            return DEEPSEEK_API_KEY;
-        };
         const deepseekJson = async (messages) => {
+            if (!DEEPSEEK_API_KEY) {
+                return {};
+            }
             const response = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${requireDeepseekApiKey()}`
+                    'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
                 },
                 body: JSON.stringify({
                     model: DEEPSEEK_MODEL,
