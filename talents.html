@@ -2957,19 +2957,32 @@
                 .map((item) => sanitizeSearchValue(item))
                 .filter((item, index, array) => item && array.indexOf(item) === index);
         };
+        const automatedSearchTerms = (spec) => {
+            const values = [
+                ...(spec?.domain_terms || []),
+                ...(spec?.include_terms || []),
+                ...(spec?.expanded_keywords || []),
+                ...(spec?.concept_expansions || []),
+                ...(spec?.seniority_terms || [])
+            ];
+            return normalizeSearchSpecArray(values);
+        };
         const buildAutomatedSearchSpec = async (prompt) => {
             const payload = await deepseekJson([
                 {
                     role: 'system',
                     content: [
                         'Return JSON only.',
-                        'Convert the user search request into a structured profile search spec.',
+                        'Convert the user search request into a broad structured retrieval spec for profile search.',
                         'Use this exact shape:',
-                        '{"summary":"","agent_types":[],"locations":[],"domain_terms":[],"seniority_terms":[],"include_terms":[],"exclude_terms":[],"statuses":[],"sort":"recent"}',
+                        '{"summary":"","agent_types":[],"locations":[],"domain_terms":[],"seniority_terms":[],"include_terms":[],"exclude_terms":[],"statuses":[],"expanded_keywords":[],"concept_expansions":[],"ranking_focus":[],"sort":"recent"}',
                         'Allowed agent_types: candidate, investor, manufacturer, buyer, billionaire.',
                         'Allowed statuses: active, paused, archived.',
                         'sort must be "recent".',
-                        'Keep arrays short and deduplicated.'
+                        'Keep arrays short and deduplicated.',
+                        'expanded_keywords should include close synonyms and adjacent skill phrases.',
+                        'concept_expansions should include semantic related concepts that strong profiles may mention instead of the exact query wording.',
+                        'ranking_focus should contain the most important qualification signals.'
                     ].join(' ')
                 },
                 {
@@ -2986,6 +2999,9 @@
                 include_terms: normalizeSearchSpecArray(payload?.include_terms),
                 exclude_terms: normalizeSearchSpecArray(payload?.exclude_terms),
                 statuses: normalizeSearchSpecArray(payload?.statuses).filter((item) => ['active', 'paused', 'archived'].includes(item)),
+                expanded_keywords: normalizeSearchSpecArray(payload?.expanded_keywords),
+                concept_expansions: normalizeSearchSpecArray(payload?.concept_expansions),
+                ranking_focus: normalizeSearchSpecArray(payload?.ranking_focus),
                 sort: 'recent'
             };
         };
@@ -3008,19 +3024,16 @@
             if (spec?.statuses?.length && isAdminLoggedIn()) {
                 clauses.push(`status in (${spec.statuses.map(sqlQuote).join(', ')})`);
             }
-            spec?.locations?.forEach((term) => {
-                clauses.push(`coalesce(location, '') ilike ${sqlQuote(sqlLikeLiteral(term))} escape '\\'`);
-            });
-            spec?.domain_terms?.forEach((term) => {
-                clauses.push(`(coalesce(domain_focus, '') ilike ${sqlQuote(sqlLikeLiteral(term))} escape '\\' or coalesce(skills::text, '') ilike ${sqlQuote(sqlLikeLiteral(term))} escape '\\' or coalesce(needs::text, '') ilike ${sqlQuote(sqlLikeLiteral(term))} escape '\\')`);
-            });
-            spec?.seniority_terms?.forEach((term) => {
-                clauses.push(`coalesce(seniority, '') ilike ${sqlQuote(sqlLikeLiteral(term))} escape '\\'`);
-            });
-            spec?.include_terms?.forEach((term) => {
-                const sqlTerm = sqlQuote(sqlLikeLiteral(term));
-                clauses.push(`(${searchableSqlColumns().map((column) => `${column} ilike ${sqlTerm} escape '\\'`).join(' or ')})`);
-            });
+            const broadTerms = automatedSearchTerms(spec);
+            if (spec?.locations?.length) {
+                clauses.push(`(${spec.locations.map((term) => `coalesce(location, '') ilike ${sqlQuote(sqlLikeLiteral(term))} escape '\\'`).join(' or ')})`);
+            }
+            if (broadTerms.length) {
+                clauses.push(`(${broadTerms.map((term) => {
+                    const sqlTerm = sqlQuote(sqlLikeLiteral(term));
+                    return searchableSqlColumns().map((column) => `${column} ilike ${sqlTerm} escape '\\'`).join(' or ');
+                }).join(' or ')})`);
+            }
             spec?.exclude_terms?.forEach((term) => {
                 const sqlTerm = sqlQuote(sqlLikeLiteral(term));
                 clauses.push(`not (${searchableSqlColumns().map((column) => `${column} ilike ${sqlTerm} escape '\\'`).join(' or ')})`);
@@ -3046,15 +3059,70 @@
             })
             .map((value) => String(value || '').toLowerCase())
             .join(' ');
+        const countPhraseMatches = (text, phrases) => normalizeSearchSpecArray(phrases)
+            .reduce((count, phrase) => (text.includes(String(phrase || '').toLowerCase()) ? count + 1 : count), 0);
+        const tokenizeSearchText = (value) => String(value || '')
+            .toLowerCase()
+            .replace(/[^a-z0-9\s]/g, ' ')
+            .split(/\s+/)
+            .filter((token) => token && token.length > 1);
+        const termFrequencyMap = (tokens) => {
+            const map = new Map();
+            tokens.forEach((token) => {
+                map.set(token, (map.get(token) || 0) + 1);
+            });
+            return map;
+        };
+        const cosineSimilarity = (leftTokens, rightTokens) => {
+            const leftMap = termFrequencyMap(leftTokens);
+            const rightMap = termFrequencyMap(rightTokens);
+            let dot = 0;
+            let leftNorm = 0;
+            let rightNorm = 0;
+            leftMap.forEach((count, token) => {
+                leftNorm += count * count;
+                dot += count * (rightMap.get(token) || 0);
+            });
+            rightMap.forEach((count) => {
+                rightNorm += count * count;
+            });
+            if (!leftNorm || !rightNorm) return 0;
+            return dot / (Math.sqrt(leftNorm) * Math.sqrt(rightNorm));
+        };
+        const automatedSearchRankingScore = (profile, spec) => {
+            const blob = automatedSearchBlob(profile);
+            const broadTerms = automatedSearchTerms(spec);
+            const locations = normalizeSearchSpecArray(spec?.locations);
+            const rankingFocus = normalizeSearchSpecArray(spec?.ranking_focus);
+            const queryTokens = tokenizeSearchText([
+                automatedSearchState?.prompt || '',
+                spec?.summary || '',
+                broadTerms.join(' '),
+                rankingFocus.join(' ')
+            ].join(' '));
+            const profileTokens = tokenizeSearchText(blob);
+            const semanticScore = cosineSimilarity(queryTokens, profileTokens) * 100;
+            const domainScore = countPhraseMatches(blob, spec?.domain_terms) * 18;
+            const includeScore = countPhraseMatches(blob, spec?.include_terms) * 12;
+            const expandedScore = countPhraseMatches(blob, spec?.expanded_keywords) * 8;
+            const conceptScore = countPhraseMatches(blob, spec?.concept_expansions) * 7;
+            const focusScore = countPhraseMatches(blob, rankingFocus) * 10;
+            const locationScore = countPhraseMatches(blob, locations) * 14;
+            const seniorityScore = countPhraseMatches(blob, spec?.seniority_terms) * 10;
+            const exactPromptScore = automatedSearchState?.prompt && blob.includes(String(automatedSearchState.prompt).toLowerCase()) ? 20 : 0;
+            const recencyScore = Math.max(0, 8 - Math.floor((Date.now() - new Date(profile.updated_at || profile.created_at || Date.now()).getTime()) / (1000 * 60 * 60 * 24 * 30)));
+            return semanticScore + domainScore + includeScore + expandedScore + conceptScore + focusScore + locationScore + seniorityScore + exactPromptScore + recencyScore;
+        };
         const matchesAutomatedSearchSpec = (profile, spec) => {
             const blob = automatedSearchBlob(profile);
-            const domainTerms = normalizeSearchSpecArray(spec?.domain_terms);
-            const includeTerms = normalizeSearchSpecArray(spec?.include_terms);
             const excludeTerms = normalizeSearchSpecArray(spec?.exclude_terms);
-            if (domainTerms.some((term) => !blob.includes(term.toLowerCase()))) return false;
-            if (includeTerms.some((term) => !blob.includes(term.toLowerCase()))) return false;
             if (excludeTerms.some((term) => blob.includes(term.toLowerCase()))) return false;
-            return true;
+            const broadTerms = automatedSearchTerms(spec);
+            const locations = normalizeSearchSpecArray(spec?.locations);
+            const hasBroadSignal = broadTerms.length === 0 && locations.length === 0
+                ? true
+                : (countPhraseMatches(blob, broadTerms) > 0 || countPhraseMatches(blob, locations) > 0 || automatedSearchRankingScore(profile, spec) >= 18);
+            return hasBroadSignal;
         };
         const fetchProfilesAutomated = async (offset = 0, options = {}) => {
             if (!supabaseClient) {
@@ -3066,7 +3134,7 @@
             const { scrollToTop = true } = options;
             const safeOffset = clampVisibleOffset(offset);
             const spec = automatedSearchState.spec;
-            const fetchCap = isLoggedIn() ? 500 : maxVisibleResults();
+            const fetchCap = isLoggedIn() ? 1000 : maxVisibleResults();
             let query = supabaseClient
                 .from(profileSourceName())
                 .select(profileSelectColumns(), { count: 'exact' })
@@ -3084,17 +3152,28 @@
             if (spec?.statuses?.length && isAdminLoggedIn()) {
                 query = query.in('status', spec.statuses);
             }
-            spec?.locations?.forEach((term) => {
-                query = query.ilike('location', `%${term}%`);
-            });
-            spec?.seniority_terms?.forEach((term) => {
-                query = query.ilike('seniority', `%${term}%`);
-            });
+            const broadTerms = automatedSearchTerms(spec);
+            const broadSearchFields = searchableProfileFields();
+            const broadClauses = [
+                ...normalizeSearchSpecArray(spec?.locations).flatMap((term) => broadSearchFields.map((field) => `${field}.ilike.%${term}%`)),
+                ...broadTerms.flatMap((term) => broadSearchFields.map((field) => `${field}.ilike.%${term}%`))
+            ];
+            if (broadClauses.length) {
+                query = query.or(broadClauses.join(','));
+            }
 
             const { data, error } = await query.range(0, Math.max(fetchCap, PAGE_SIZE) - 1);
             if (error) throw error;
             const filteredRows = stripPrivateProfileFields(await applyRecentContactFlags(Array.isArray(data) ? data : []))
-                .filter((row) => matchesAutomatedSearchSpec(row, spec));
+                .filter((row) => matchesAutomatedSearchSpec(row, spec))
+                .map((row) => ({
+                    ...row,
+                    _automated_rank_score: automatedSearchRankingScore(row, spec)
+                }))
+                .sort((left, right) => (
+                    (right._automated_rank_score - left._automated_rank_score)
+                    || (new Date(right.updated_at || right.created_at || 0).getTime() - new Date(left.updated_at || left.created_at || 0).getTime())
+                ));
             totalCount = capVisibleCount(filteredRows.length);
             currentOffset = safeOffset;
             const rows = filteredRows.slice(safeOffset, safeOffset + PAGE_SIZE);
