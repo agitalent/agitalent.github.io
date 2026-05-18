@@ -460,17 +460,6 @@
         .search-composer {
             position: relative;
         }
-        .search-composer-shell {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            gap: 12px;
-            align-items: stretch;
-        }
-        .search-composer-side {
-            display: flex;
-            align-items: flex-end;
-            padding-bottom: 10px;
-        }
         .search-composer textarea {
             min-height: 170px;
             padding-right: 82px;
@@ -1122,17 +1111,15 @@
                     <div class="stack">
                         <div class="control-box">
                             <strong data-icon="◍">Search</strong>
-                            <div class="search-composer-shell">
-                                <div class="field search-composer">
-                                    <textarea id="search-input" placeholder=""></textarea>
-                                    <button class="button button-icon" id="search-button" type="button" aria-label="Search">→</button>
-                                </div>
-                                <div class="search-composer-side">
-                                    <label class="checkbox-inline" for="search-automate-toggle">
-                                        <input id="search-automate-toggle" type="checkbox">
-                                        <span>Automate</span>
-                                    </label>
-                                </div>
+                            <div class="field search-composer">
+                                <textarea id="search-input" placeholder=""></textarea>
+                                <button class="button button-icon" id="search-button" type="button" aria-label="Search">→</button>
+                            </div>
+                            <div class="user-actions" style="margin-top:12px;">
+                                <label class="checkbox-inline" for="search-automate-toggle">
+                                    <input id="search-automate-toggle" type="checkbox">
+                                    <span>Automate</span>
+                                </label>
                             </div>
                             <div class="sql-box" id="search-automation-box" style="display:none;">
                                 <strong data-icon="◇">Automation Trace</strong>
@@ -1400,9 +1387,9 @@
     <script>
         const SUPABASE_URL = 'https://zocovvewzpqxspysanyy.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvY292dmV3enBxeHNweXNhbnl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwODYwNTgsImV4cCI6MjA4OTY2MjA1OH0.8ekfJ3bcvG-AbLD39xUINwXrpO7RiH9PVgy-xMzeHbE';
-        const BAILIAN_BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
-        const BAILIAN_API_KEY = 'sk-50d43d5876294b88b50066f613c6dc72';
-        const BAILIAN_MODEL = 'deepseek-v4-flash';
+        const DEEPSEEK_BASE_URL = 'https://api.deepseek.com';
+        const DEEPSEEK_API_KEY = 'sk-50d43d5876294b88b50066f613c6dc72';
+        const DEEPSEEK_MODEL = 'deepseek-v4-flash';
         const PAGE_SIZE = 20;
         const MAX_PUBLIC_PAGES = 10;
         const MAX_PUBLIC_RESULTS = PAGE_SIZE * MAX_PUBLIC_PAGES;
@@ -2290,15 +2277,15 @@
             return normalized.trim();
         };
 
-        const bailianJson = async (messages) => {
-            const response = await fetch(`${BAILIAN_BASE_URL}/chat/completions`, {
+        const deepseekJson = async (messages) => {
+            const response = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${BAILIAN_API_KEY}`
+                    'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
                 },
                 body: JSON.stringify({
-                    model: BAILIAN_MODEL,
+                    model: DEEPSEEK_MODEL,
                     messages,
                     temperature: 0.4,
                     response_format: { type: 'json_object' }
@@ -2306,13 +2293,13 @@
             });
             if (!response.ok) {
                 const detail = await response.text();
-                throw new Error(`Bailian request failed: ${response.status} ${detail}`);
+                throw new Error(`DeepSeek request failed: ${response.status} ${detail}`);
             }
             const payload = await response.json();
             const content = payload?.choices?.[0]?.message?.content;
             if (typeof content === 'string') return JSON.parse(content);
             if (content && typeof content === 'object') return content;
-            throw new Error('Unexpected Bailian response.');
+            throw new Error('Unexpected DeepSeek response.');
         };
 
         const generateEmailDraft = async (profile, values) => {
@@ -2324,7 +2311,7 @@
             const mode = normalizeOutreachMode(values.outreach_mode);
             const context = { candidateName, company, role, contact };
             try {
-                const payload = await bailianJson(mode === OUTREACH_MODE_SEEKING ? [
+                const payload = await deepseekJson(mode === OUTREACH_MODE_SEEKING ? [
                     { role: 'system', content: 'Return JSON only: {"paragraph2":""}.' },
                     {
                         role: 'user',
@@ -2951,7 +2938,7 @@
                 .filter((item, index, array) => item && array.indexOf(item) === index);
         };
         const buildAutomatedSearchSpec = async (prompt) => {
-            const payload = await bailianJson([
+            const payload = await deepseekJson([
                 {
                     role: 'system',
                     content: [

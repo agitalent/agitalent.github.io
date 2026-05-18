@@ -359,9 +359,9 @@
     <script>
         const SUPABASE_URL = 'https://zocovvewzpqxspysanyy.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvY292dmV3enBxeHNweXNhbnl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwODYwNTgsImV4cCI6MjA4OTY2MjA1OH0.8ekfJ3bcvG-AbLD39xUINwXrpO7RiH9PVgy-xMzeHbE';
-        const BAILIAN_BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
-        const BAILIAN_API_KEY = 'sk-2d4b0be0ff394cef84e04960212d3eab';
-        const BAILIAN_MODEL = 'qwen3-vl-30b-a3b-thinking';
+        const DEEPSEEK_BASE_URL = 'https://api.deepseek.com';
+        const DEEPSEEK_API_KEY = 'sk-50d43d5876294b88b50066f613c6dc72';
+        const DEEPSEEK_MODEL = 'deepseek-v4-flash';
         const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
         const registerForm = document.getElementById('irecruiter-register-form');
         const recordKind = document.getElementById('record-kind');
@@ -396,15 +396,15 @@
         const updateSubmitAvailability = () => {
             submitButton.disabled = duplicateEmailState.checking || duplicateEmailState.duplicate;
         };
-        const bailianJson = async (messages) => {
-            const response = await fetch(`${BAILIAN_BASE_URL}/chat/completions`, {
+        const deepseekJson = async (messages) => {
+            const response = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${BAILIAN_API_KEY}`
+                    'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
                 },
                 body: JSON.stringify({
-                    model: BAILIAN_MODEL,
+                    model: DEEPSEEK_MODEL,
                     messages,
                     temperature: 0,
                     max_tokens: 220,
@@ -413,13 +413,13 @@
             });
             if (!response.ok) {
                 const detail = await response.text();
-                throw new Error(`Bailian request failed: ${response.status} ${detail}`);
+                throw new Error(`DeepSeek request failed: ${response.status} ${detail}`);
             }
             const payload = await response.json();
             const content = payload?.choices?.[0]?.message?.content;
             if (typeof content === 'string') return JSON.parse(content);
             if (content && typeof content === 'object') return content;
-            throw new Error('Unexpected Bailian response.');
+            throw new Error('Unexpected DeepSeek response.');
         };
         const toList = (value) => String(value || '').split(/[\n,;]+/).map((item) => item.trim()).filter(Boolean);
         const normalize = (value) => String(value || '').toLowerCase().trim();
@@ -584,7 +584,7 @@
                 .slice(0, 40)
                 .join('\n')
                 .slice(0, 3500);
-            const payload = await bailianJson([
+            const payload = await deepseekJson([
                 {
                     role: 'system',
                     content: 'Return JSON only: {"name":"","email":"","location":"","bio_link":"","seniority":""}. Extract one person only. Keep email strict username@domain or "". Keep location formal or "". Keep bio_link as the best personal URL or "". Use seniority for brief_background and preserve multiple paragraphs when useful.'
