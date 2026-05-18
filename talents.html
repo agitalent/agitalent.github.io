@@ -3011,24 +3011,73 @@
             const whereClause = clauses.length ? ` where ${clauses.join(' and ')}` : '';
             return `select ${selectColumns} from profiles${whereClause} order by created_at desc nulls last, updated_at desc nulls last`;
         };
+        const automatedSearchBlob = (profile) => searchableSqlColumns()
+            .map((column) => {
+                if (column.includes('name_or_handle')) return profile.name_or_handle;
+                if (column.includes('email')) return profile.email || profile._candidate_email;
+                if (column.includes('location')) return profile.location;
+                if (column.includes('domain_focus')) return profile.domain_focus;
+                if (column.includes('seniority')) return profile.seniority;
+                if (column.includes('bio_link')) return profile.bio_link;
+                if (column.includes('skills')) return JSON.stringify(profile.skills || []);
+                if (column.includes('needs')) return JSON.stringify(profile.needs || []);
+                if (column.includes('recent_evidence')) return JSON.stringify(profile.recent_evidence || []);
+                return '';
+            })
+            .map((value) => String(value || '').toLowerCase())
+            .join(' ');
+        const matchesAutomatedSearchSpec = (profile, spec) => {
+            const blob = automatedSearchBlob(profile);
+            const domainTerms = normalizeSearchSpecArray(spec?.domain_terms);
+            const includeTerms = normalizeSearchSpecArray(spec?.include_terms);
+            const excludeTerms = normalizeSearchSpecArray(spec?.exclude_terms);
+            if (domainTerms.some((term) => !blob.includes(term.toLowerCase()))) return false;
+            if (includeTerms.some((term) => !blob.includes(term.toLowerCase()))) return false;
+            if (excludeTerms.some((term) => blob.includes(term.toLowerCase()))) return false;
+            return true;
+        };
         const fetchProfilesAutomated = async (offset = 0, options = {}) => {
             if (!supabaseClient) {
                 throw new Error('Supabase client failed to initialize.');
             }
-            if (!automatedSearchState?.sql) {
+            if (!automatedSearchState?.sql || !automatedSearchState?.spec) {
                 throw new Error('Automated search is not ready.');
             }
             const { scrollToTop = true } = options;
             const safeOffset = clampVisibleOffset(offset);
-            const { data, error } = await supabaseClient.rpc('search_profiles_sql_exec', {
-                page_limit: PAGE_SIZE,
-                page_offset: safeOffset,
-                search_sql: automatedSearchState.sql
+            const spec = automatedSearchState.spec;
+            const fetchCap = isLoggedIn() ? 500 : maxVisibleResults();
+            let query = supabaseClient
+                .from(profileSourceName())
+                .select(profileSelectColumns(), { count: 'exact' })
+                .order('created_at', { ascending: false, nullsFirst: false })
+                .order('updated_at', { ascending: false, nullsFirst: false });
+
+            if (!isLoggedIn()) {
+                query = query.eq('status', 'active').in('agent_type', ['candidate', 'job_seeker']);
+            } else if (!isAdminLoggedIn()) {
+                query = query.in('agent_type', profileAgentTypeFilterValues(adminUser?.access_agent_types || adminUser?.access_agent_type));
+            }
+            if (spec?.agent_types?.length) {
+                query = query.in('agent_type', profileAgentTypeFilterValues(spec.agent_types));
+            }
+            if (spec?.statuses?.length && isAdminLoggedIn()) {
+                query = query.in('status', spec.statuses);
+            }
+            spec?.locations?.forEach((term) => {
+                query = query.ilike('location', `%${term}%`);
             });
+            spec?.seniority_terms?.forEach((term) => {
+                query = query.ilike('seniority', `%${term}%`);
+            });
+
+            const { data, error } = await query.range(0, Math.max(fetchCap, PAGE_SIZE) - 1);
             if (error) throw error;
-            const rows = stripPrivateProfileFields(await applyRecentContactFlags(Array.isArray(data?.rows) ? data.rows : []));
-            totalCount = capVisibleCount(data?.count || 0);
+            const filteredRows = stripPrivateProfileFields(await applyRecentContactFlags(Array.isArray(data) ? data : []))
+                .filter((row) => matchesAutomatedSearchSpec(row, spec));
+            totalCount = capVisibleCount(filteredRows.length);
             currentOffset = safeOffset;
+            const rows = filteredRows.slice(safeOffset, safeOffset + PAGE_SIZE);
             lastRowsLength = rows.length;
             renderRows(rows);
             updatePagination();
