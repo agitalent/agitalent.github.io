@@ -2967,7 +2967,44 @@
             ];
             return normalizeSearchSpecArray(values);
         };
+        const hasDeepseekApiKey = () => Boolean(DEEPSEEK_API_KEY);
+        const heuristicAgentTypesFromPrompt = (prompt) => {
+            const text = String(prompt || '').toLowerCase();
+            const matches = AGENT_TYPE_OPTIONS.filter((type) => text.includes(type));
+            if (text.includes('job seeker')) matches.push('candidate');
+            return normalizeSearchSpecArray(matches).map((item) => normalizeAccessAgentType(item));
+        };
+        const heuristicLocationsFromPrompt = (prompt) => {
+            const text = String(prompt || '');
+            const knownLocations = ['San Francisco', 'New York', 'Seattle', 'Boston', 'London', 'Singapore', 'US', 'USA', 'Bay Area'];
+            return knownLocations.filter((location) => text.toLowerCase().includes(location.toLowerCase()));
+        };
+        const heuristicSearchSpec = (prompt) => {
+            const normalizedPrompt = sanitizeSearchValue(prompt);
+            const phrases = normalizedPrompt
+                .split(/\s+/)
+                .filter((term) => term.length > 2);
+            const filteredTerms = phrases.filter((term) => !['top', 'best', 'most', 'qualified', 'profile', 'profiles', 'record', 'records', 'candidate', 'candidates'].includes(term.toLowerCase()));
+            const focusTerms = filteredTerms.slice(0, 6);
+            return {
+                summary: normalizedPrompt || 'Automated search',
+                agent_types: heuristicAgentTypesFromPrompt(prompt),
+                locations: heuristicLocationsFromPrompt(prompt),
+                domain_terms: focusTerms.slice(0, 2),
+                seniority_terms: [],
+                include_terms: focusTerms,
+                exclude_terms: [],
+                statuses: [],
+                expanded_keywords: focusTerms,
+                concept_expansions: focusTerms,
+                ranking_focus: focusTerms,
+                sort: 'recent'
+            };
+        };
         const buildAutomatedSearchSpec = async (prompt) => {
+            if (!hasDeepseekApiKey()) {
+                return heuristicSearchSpec(prompt);
+            }
             const payload = await deepseekJson([
                 {
                     role: 'system',
