@@ -1593,6 +1593,19 @@
             searchAutomationBoxEl.style.display = text ? '' : 'none';
             searchAutomationOutputEl.textContent = text;
         };
+        const setSearchAutomationStep = (stepIndex = -1) => {
+            const steps = [
+                'LLM Query Understanding...',
+                'Structured Search Spec...',
+                'SQL...',
+                'Combined Search Result...'
+            ];
+            if (stepIndex < 0) {
+                setSearchAutomationTrace('');
+                return;
+            }
+            setSearchAutomationTrace(steps.slice(0, Math.min(stepIndex + 1, steps.length)).join('\n'));
+        };
 
         const escapeHtml = (value) => String(value)
             .replace(/&/g, '&amp;')
@@ -3490,6 +3503,7 @@
                             throw new Error('Enter a search request first.');
                         }
                         setStatus('Understanding your query and generating structured SQL...');
+                        setSearchAutomationStep(0);
                         const spec = await buildAutomatedSearchSpec(activePrompt);
                         automatedSearchState = {
                             prompt: activePrompt,
@@ -3497,23 +3511,26 @@
                             spec,
                             sql: buildAutomatedSearchSql(spec)
                         };
-                        setSearchAutomationTrace('LLM Query Understanding...Structured Search Spec...SQL...');
+                        setSearchAutomationStep(2);
                         searchMode = 'automate';
                     } else {
                         automatedSearchState = null;
-                        setSearchAutomationTrace('');
+                        setSearchAutomationStep(-1);
                         setStatus('Searching profiles...');
                         searchMode = 'prompt';
                     }
                 } else {
                     activePrompt = '';
                     automatedSearchState = null;
-                    setSearchAutomationTrace('');
+                    setSearchAutomationStep(-1);
                     searchMode = 'latest';
                     setStatus('Loading the latest profiles...');
                 }
 
                 await fetchProfiles(0);
+                if (searchMode === 'automate') {
+                    setSearchAutomationStep(3);
+                }
                 if (searchMode === 'automate') {
                     setStatus(`Loaded ${lastRowsLength} profile${lastRowsLength === 1 ? '' : 's'} from the automated search.`);
                 } else if (searchMode === 'prompt') {
