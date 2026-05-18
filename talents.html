@@ -460,6 +460,17 @@
         .search-composer {
             position: relative;
         }
+        .search-composer-shell {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 12px;
+            align-items: stretch;
+        }
+        .search-composer-side {
+            display: flex;
+            align-items: flex-end;
+            padding-bottom: 10px;
+        }
         .search-composer textarea {
             min-height: 170px;
             padding-right: 82px;
@@ -1111,15 +1122,17 @@
                     <div class="stack">
                         <div class="control-box">
                             <strong data-icon="◍">Search</strong>
-                            <div class="field search-composer">
-                                <textarea id="search-input" placeholder=""></textarea>
-                                <button class="button button-icon" id="search-button" type="button" aria-label="Search">→</button>
-                            </div>
-                            <div class="user-actions" style="margin-top:12px;">
-                                <label class="checkbox-inline" for="search-automate-toggle">
-                                    <input id="search-automate-toggle" type="checkbox">
-                                    <span>Automate</span>
-                                </label>
+                            <div class="search-composer-shell">
+                                <div class="field search-composer">
+                                    <textarea id="search-input" placeholder=""></textarea>
+                                    <button class="button button-icon" id="search-button" type="button" aria-label="Search">→</button>
+                                </div>
+                                <div class="search-composer-side">
+                                    <label class="checkbox-inline" for="search-automate-toggle">
+                                        <input id="search-automate-toggle" type="checkbox">
+                                        <span>Automate</span>
+                                    </label>
+                                </div>
                             </div>
                             <div class="sql-box" id="search-automation-box" style="display:none;">
                                 <strong data-icon="◇">Automation Trace</strong>
