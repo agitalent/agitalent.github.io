@@ -3020,10 +3020,10 @@
             }
             const { scrollToTop = true } = options;
             const safeOffset = clampVisibleOffset(offset);
-            const { data, error } = await supabaseClient.rpc('search_profiles_sql', {
-                search_sql: automatedSearchState.sql,
+            const { data, error } = await supabaseClient.rpc('search_profiles_sql_exec', {
                 page_limit: PAGE_SIZE,
-                page_offset: safeOffset
+                page_offset: safeOffset,
+                search_sql: automatedSearchState.sql
             });
             if (error) throw error;
             const rows = stripPrivateProfileFields(await applyRecentContactFlags(Array.isArray(data?.rows) ? data.rows : []));
