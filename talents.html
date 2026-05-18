@@ -1115,6 +1115,16 @@
                                 <textarea id="search-input" placeholder=""></textarea>
                                 <button class="button button-icon" id="search-button" type="button" aria-label="Search">→</button>
                             </div>
+                            <div class="user-actions" style="margin-top:12px;">
+                                <label class="checkbox-inline" for="search-automate-toggle">
+                                    <input id="search-automate-toggle" type="checkbox">
+                                    <span>Automate</span>
+                                </label>
+                            </div>
+                            <div class="sql-box" id="search-automation-box" style="display:none;">
+                                <strong data-icon="◇">Automation Trace</strong>
+                                <pre id="search-automation-output"></pre>
+                            </div>
                         </div>
                         <div class="control-box" id="admin-add-user-panel" style="display:none;">
                             <strong data-icon="◎">User Operation</strong>
@@ -1387,6 +1397,9 @@
         const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
         const searchInput = document.getElementById('search-input');
         const searchButton = document.getElementById('search-button');
+        const searchAutomateToggle = document.getElementById('search-automate-toggle');
+        const searchAutomationBoxEl = document.getElementById('search-automation-box');
+        const searchAutomationOutputEl = document.getElementById('search-automation-output');
         const signupPromoEl = document.getElementById('signup-promo');
         const signupPromoButton = document.getElementById('signup-promo-button');
         const topbarAuthActionsEl = document.getElementById('topbar-auth-actions');
@@ -1524,6 +1537,7 @@
         const SIGNED_OUT_VISIBLE_PROFILE_FIELDS = new Set(['seniority', 'location', 'Recently_Contacted']);
 
         let activePrompt = '';
+        let automatedSearchState = null;
         let currentOffset = 0;
         let totalCount = 0;
         let lastRowsLength = 0;
@@ -1571,6 +1585,13 @@
             if (!element) return;
             element.textContent = message;
             element.classList.toggle('error', isError);
+        };
+
+        const setSearchAutomationTrace = (value = '') => {
+            if (!searchAutomationBoxEl || !searchAutomationOutputEl) return;
+            const text = String(value || '').trim();
+            searchAutomationBoxEl.style.display = text ? '' : 'none';
+            searchAutomationOutputEl.textContent = text;
         };
 
         const escapeHtml = (value) => String(value)
@@ -2856,12 +2877,15 @@
             const showingStart = totalCount === 0 ? 0 : currentOffset + 1;
             const showingEnd = totalCount === 0 ? 0 : currentOffset + lastRowsLength;
             const shouldHideTotalProfiles = isLoggedIn() && !isAdminLoggedIn();
+            const searchLabel = searchMode === 'automate'
+                ? (automatedSearchState?.summary || activePrompt)
+                : activePrompt;
             const summary = shouldHideTotalProfiles
-                ? (activePrompt
-                    ? `Showing ${showingStart}-${showingEnd} results for "${activePrompt}".`
+                ? (searchLabel
+                    ? `Showing ${showingStart}-${showingEnd} results for "${searchLabel}".`
                     : `Showing ${showingStart}-${showingEnd} latest profiles.`)
-                : (activePrompt
-                    ? `Showing ${showingStart}-${showingEnd} of ${totalCount} results for "${activePrompt}".`
+                : (searchLabel
+                    ? `Showing ${showingStart}-${showingEnd} of ${totalCount} results for "${searchLabel}".`
                     : `Showing ${showingStart}-${showingEnd} of ${totalCount} latest profiles.`);
             resultsMetaEl.textContent = summary;
             prevButton.disabled = currentOffset === 0;
@@ -2881,6 +2905,137 @@
             .replace(/[%,'()]/g, ' ')
             .replace(/\s+/g, ' ')
             .trim();
+
+        const sqlQuote = (value) => `'${String(value || '').replace(/'/g, "''")}'`;
+        const sqlLikeLiteral = (value) => `%${String(value || '').replace(/[%_]/g, '\\$&').replace(/'/g, "''")}%`;
+        const searchableSqlColumns = () => (
+            isAdminLoggedIn()
+                ? [
+                    'coalesce(name_or_handle, \'\')',
+                    'coalesce(email, \'\')',
+                    'coalesce(location, \'\')',
+                    'coalesce(domain_focus, \'\')',
+                    'coalesce(seniority, \'\')',
+                    'coalesce(bio_link, \'\')',
+                    'coalesce(skills::text, \'\')',
+                    'coalesce(needs::text, \'\')',
+                    'coalesce(recent_evidence::text, \'\')'
+                ]
+                : [
+                    'coalesce(name_or_handle, \'\')',
+                    'coalesce(location, \'\')',
+                    'coalesce(domain_focus, \'\')',
+                    'coalesce(seniority, \'\')',
+                    'coalesce(skills::text, \'\')',
+                    'coalesce(needs::text, \'\')',
+                    'coalesce(recent_evidence::text, \'\')'
+                ]
+        );
+        const normalizeSearchSpecArray = (value) => {
+            if (!Array.isArray(value)) return [];
+            return value
+                .map((item) => sanitizeSearchValue(item))
+                .filter((item, index, array) => item && array.indexOf(item) === index);
+        };
+        const buildAutomatedSearchSpec = async (prompt) => {
+            const payload = await bailianJson([
+                {
+                    role: 'system',
+                    content: [
+                        'Return JSON only.',
+                        'Convert the user search request into a structured profile search spec.',
+                        'Use this exact shape:',
+                        '{"summary":"","agent_types":[],"locations":[],"domain_terms":[],"seniority_terms":[],"include_terms":[],"exclude_terms":[],"statuses":[],"sort":"recent"}',
+                        'Allowed agent_types: candidate, investor, manufacturer, buyer, billionaire.',
+                        'Allowed statuses: active, paused, archived.',
+                        'sort must be "recent".',
+                        'Keep arrays short and deduplicated.'
+                    ].join(' ')
+                },
+                {
+                    role: 'user',
+                    content: `Search request: ${prompt}`
+                }
+            ]);
+            return {
+                summary: String(payload?.summary || prompt).trim() || prompt,
+                agent_types: normalizeSearchSpecArray(payload?.agent_types).map((item) => normalizeAccessAgentType(item)),
+                locations: normalizeSearchSpecArray(payload?.locations),
+                domain_terms: normalizeSearchSpecArray(payload?.domain_terms),
+                seniority_terms: normalizeSearchSpecArray(payload?.seniority_terms),
+                include_terms: normalizeSearchSpecArray(payload?.include_terms),
+                exclude_terms: normalizeSearchSpecArray(payload?.exclude_terms),
+                statuses: normalizeSearchSpecArray(payload?.statuses).filter((item) => ['active', 'paused', 'archived'].includes(item)),
+                sort: 'recent'
+            };
+        };
+        const buildAutomatedSearchSql = (spec) => {
+            const clauses = [];
+            const selectedAgentTypes = normalizeSearchSpecArray(spec?.agent_types).map((item) => normalizeAccessAgentType(item));
+            const allowedAgentTypes = isLoggedIn() && !isAdminLoggedIn()
+                ? profileAgentTypeFilterValues(adminUser?.access_agent_types || adminUser?.access_agent_type)
+                : [];
+            if (!isLoggedIn()) {
+                clauses.push("status = 'active'");
+                clauses.push("agent_type in ('candidate', 'job_seeker')");
+            } else if (!isAdminLoggedIn()) {
+                clauses.push(`agent_type in (${allowedAgentTypes.map(sqlQuote).join(', ')})`);
+            }
+            if (selectedAgentTypes.length) {
+                const requestedAgentTypes = profileAgentTypeFilterValues(selectedAgentTypes);
+                clauses.push(`agent_type in (${requestedAgentTypes.map(sqlQuote).join(', ')})`);
+            }
+            if (spec?.statuses?.length && isAdminLoggedIn()) {
+                clauses.push(`status in (${spec.statuses.map(sqlQuote).join(', ')})`);
+            }
+            spec?.locations?.forEach((term) => {
+                clauses.push(`coalesce(location, '') ilike ${sqlQuote(sqlLikeLiteral(term))} escape '\\'`);
+            });
+            spec?.domain_terms?.forEach((term) => {
+                clauses.push(`(coalesce(domain_focus, '') ilike ${sqlQuote(sqlLikeLiteral(term))} escape '\\' or coalesce(skills::text, '') ilike ${sqlQuote(sqlLikeLiteral(term))} escape '\\' or coalesce(needs::text, '') ilike ${sqlQuote(sqlLikeLiteral(term))} escape '\\')`);
+            });
+            spec?.seniority_terms?.forEach((term) => {
+                clauses.push(`coalesce(seniority, '') ilike ${sqlQuote(sqlLikeLiteral(term))} escape '\\'`);
+            });
+            spec?.include_terms?.forEach((term) => {
+                const sqlTerm = sqlQuote(sqlLikeLiteral(term));
+                clauses.push(`(${searchableSqlColumns().map((column) => `${column} ilike ${sqlTerm} escape '\\'`).join(' or ')})`);
+            });
+            spec?.exclude_terms?.forEach((term) => {
+                const sqlTerm = sqlQuote(sqlLikeLiteral(term));
+                clauses.push(`not (${searchableSqlColumns().map((column) => `${column} ilike ${sqlTerm} escape '\\'`).join(' or ')})`);
+            });
+            const selectColumns = isLoggedIn()
+                ? '*'
+                : 'id, agent_type, name_or_handle, email, bio_link, location, domain_focus, seniority, skills, needs, recent_evidence, status, created_at, updated_at';
+            const whereClause = clauses.length ? ` where ${clauses.join(' and ')}` : '';
+            return `select ${selectColumns} from profiles${whereClause} order by created_at desc nulls last, updated_at desc nulls last`;
+        };
+        const fetchProfilesAutomated = async (offset = 0, options = {}) => {
+            if (!supabaseClient) {
+                throw new Error('Supabase client failed to initialize.');
+            }
+            if (!automatedSearchState?.sql) {
+                throw new Error('Automated search is not ready.');
+            }
+            const { scrollToTop = true } = options;
+            const safeOffset = clampVisibleOffset(offset);
+            const { data, error } = await supabaseClient.rpc('search_profiles_sql', {
+                search_sql: automatedSearchState.sql,
+                page_limit: PAGE_SIZE,
+                page_offset: safeOffset
+            });
+            if (error) throw error;
+            const rows = stripPrivateProfileFields(await applyRecentContactFlags(Array.isArray(data?.rows) ? data.rows : []));
+            totalCount = capVisibleCount(data?.count || 0);
+            currentOffset = safeOffset;
+            lastRowsLength = rows.length;
+            renderRows(rows);
+            updatePagination();
+            if (scrollToTop) {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        };
 
         const fetchProfilesDirect = async (offset = 0, options = {}) => {
             const { scrollToTop = true } = options;
@@ -2954,6 +3109,10 @@
         const fetchProfiles = async (offset = 0, options = {}) => {
             if (!supabaseClient) {
                 throw new Error('Supabase client failed to initialize.');
+            }
+            if (searchMode === 'automate') {
+                await fetchProfilesAutomated(offset, options);
+                return;
             }
             if (searchMode === 'prompt') {
                 await fetchProfilesClientFiltered(offset, activePrompt, options);
@@ -3277,16 +3436,44 @@
             try {
                 if (usePrompt) {
                     activePrompt = searchInput.value.trim();
-                    setStatus('Searching profiles...');
-                    searchMode = 'prompt';
+                    if (searchAutomateToggle?.checked) {
+                        if (!activePrompt) {
+                            throw new Error('Enter a search request first.');
+                        }
+                        setStatus('Understanding your query and generating structured SQL...');
+                        const spec = await buildAutomatedSearchSpec(activePrompt);
+                        automatedSearchState = {
+                            prompt: activePrompt,
+                            summary: spec.summary,
+                            spec,
+                            sql: buildAutomatedSearchSql(spec)
+                        };
+                        setSearchAutomationTrace([
+                            'LLM Query Understanding',
+                            JSON.stringify(spec, null, 2),
+                            '',
+                            'SQL',
+                            automatedSearchState.sql
+                        ].join('\n'));
+                        searchMode = 'automate';
+                    } else {
+                        automatedSearchState = null;
+                        setSearchAutomationTrace('');
+                        setStatus('Searching profiles...');
+                        searchMode = 'prompt';
+                    }
                 } else {
                     activePrompt = '';
+                    automatedSearchState = null;
+                    setSearchAutomationTrace('');
                     searchMode = 'latest';
                     setStatus('Loading the latest profiles...');
                 }
 
                 await fetchProfiles(0);
-                if (searchMode === 'prompt') {
+                if (searchMode === 'automate') {
+                    setStatus(`Loaded ${lastRowsLength} profile${lastRowsLength === 1 ? '' : 's'} from the automated search.`);
+                } else if (searchMode === 'prompt') {
                     setStatus(`Loaded ${lastRowsLength} profile${lastRowsLength === 1 ? '' : 's'} for your search.`);
                 } else {
                     setStatus(`Loaded ${lastRowsLength} profile${lastRowsLength === 1 ? '' : 's'}.`);
