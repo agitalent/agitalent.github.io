@@ -3499,6 +3499,9 @@
                         };
                         setSearchAutomationTrace([
                             'LLM Query Understanding',
+                            spec.summary || activePrompt,
+                            '',
+                            'Structured Search Spec',
                             JSON.stringify(spec, null, 2),
                             '',
                             'SQL',
