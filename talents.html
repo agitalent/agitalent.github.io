@@ -1122,7 +1122,6 @@
                                 </label>
                             </div>
                             <div class="sql-box" id="search-automation-box" style="display:none;">
-                                <strong data-icon="◇">Automation Trace</strong>
                                 <pre id="search-automation-output"></pre>
                             </div>
                         </div>
@@ -1593,18 +1592,20 @@
             searchAutomationBoxEl.style.display = text ? '' : 'none';
             searchAutomationOutputEl.textContent = text;
         };
-        const setSearchAutomationStep = (stepIndex = -1) => {
+        const setSearchAutomationStep = (stage = '') => {
             const steps = [
-                'LLM Query Understanding...',
-                'Structured Search Spec...',
-                'SQL...',
-                'Combined Search Result...'
+                'Step 1. Understanding query...',
+                'Step 2. Structuring search...',
+                'Step 3. Combining search results...'
             ];
-            if (stepIndex < 0) {
+            if (!stage) {
                 setSearchAutomationTrace('');
                 return;
             }
-            setSearchAutomationTrace(steps.slice(0, Math.min(stepIndex + 1, steps.length)).join('\n'));
+            const stepCount = stage === 'understanding'
+                ? 1
+                : (stage === 'structuring' ? 2 : 3);
+            setSearchAutomationTrace(['Thinking…', ...steps.slice(0, stepCount)].join('\n'));
         };
 
         const escapeHtml = (value) => String(value)
@@ -3503,34 +3504,32 @@
                             throw new Error('Enter a search request first.');
                         }
                         setStatus('Understanding your query and generating structured SQL...');
-                        setSearchAutomationStep(0);
+                        setSearchAutomationStep('understanding');
                         const spec = await buildAutomatedSearchSpec(activePrompt);
+                        setSearchAutomationStep('structuring');
                         automatedSearchState = {
                             prompt: activePrompt,
                             summary: spec.summary,
                             spec,
                             sql: buildAutomatedSearchSql(spec)
                         };
-                        setSearchAutomationStep(2);
+                        setSearchAutomationStep('combining');
                         searchMode = 'automate';
                     } else {
                         automatedSearchState = null;
-                        setSearchAutomationStep(-1);
+                        setSearchAutomationStep('');
                         setStatus('Searching profiles...');
                         searchMode = 'prompt';
                     }
                 } else {
                     activePrompt = '';
                     automatedSearchState = null;
-                    setSearchAutomationStep(-1);
+                    setSearchAutomationStep('');
                     searchMode = 'latest';
                     setStatus('Loading the latest profiles...');
                 }
 
                 await fetchProfiles(0);
-                if (searchMode === 'automate') {
-                    setSearchAutomationStep(3);
-                }
                 if (searchMode === 'automate') {
                     setStatus(`Loaded ${lastRowsLength} profile${lastRowsLength === 1 ? '' : 's'} from the automated search.`);
                 } else if (searchMode === 'prompt') {
