@@ -3497,16 +3497,7 @@
                             spec,
                             sql: buildAutomatedSearchSql(spec)
                         };
-                        setSearchAutomationTrace([
-                            'LLM Query Understanding',
-                            spec.summary || activePrompt,
-                            '',
-                            'Structured Search Spec',
-                            JSON.stringify(spec, null, 2),
-                            '',
-                            'SQL',
-                            automatedSearchState.sql
-                        ].join('\n'));
+                        setSearchAutomationTrace('LLM Query Understanding...Structured Search Spec...SQL...');
                         searchMode = 'automate';
                     } else {
                         automatedSearchState = null;
