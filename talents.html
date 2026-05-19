@@ -3171,6 +3171,14 @@
                     departments: [],
                     institutes: ['BAIR', 'Berkeley Artificial Intelligence Research', 'RDI'],
                     parents: []
+                },
+                ucsd: {
+                    canonical: 'University of California, San Diego',
+                    aliases: ['University of California San Diego', 'UC San Diego'],
+                    abbreviations: ['UCSD'],
+                    departments: [],
+                    institutes: [],
+                    parents: []
                 }
             },
             location: {
@@ -3353,6 +3361,13 @@
             const knownLocations = ['San Francisco', 'New York', 'Seattle', 'Boston', 'London', 'Singapore', 'US', 'USA', 'Bay Area'];
             return knownLocations.filter((location) => text.toLowerCase().includes(location.toLowerCase()));
         };
+        const ENTITY_NOISE_PATTERN = /\b(candidate|candidates|research|graduated|graduate|from|looking|hiring|profiles?|records?)\b/i;
+        const cleanEntityTerms = (type, values, extractedValues = []) => normalizeSearchSpecArray(values).filter((value) => {
+            if (!value) return false;
+            if (normalizeSearchSpecArray(extractedValues).includes(value)) return true;
+            if (entityRecordForValue(type, value)) return true;
+            return !ENTITY_NOISE_PATTERN.test(value) && String(value).trim().split(/\s+/).length <= 4;
+        });
         const extractNamedEntitiesFromPrompt = (prompt) => {
             const text = String(prompt || '').trim();
             if (!text) {
@@ -3380,7 +3395,7 @@
             ]);
             const universities = normalizeSearchSpecArray([
                 ...phrases.filter((value) => /\b(university|college|institute|school)\b/i.test(value)),
-                ...['UC Berkeley', 'University of California, Berkeley', 'University of California Berkeley', 'Berkeley', 'CMU', 'MIT', 'PKU', 'NYU']
+                ...['UC Berkeley', 'University of California, Berkeley', 'University of California Berkeley', 'Berkeley', 'UCSD', 'UC San Diego', 'University of California, San Diego', 'University of California San Diego', 'CMU', 'MIT', 'PKU', 'NYU']
                     .filter((value) => normalizedText.toLowerCase().includes(value.toLowerCase()))
             ]);
             const organizations = normalizeSearchSpecArray(phrases.filter((value) => !companies.includes(value) && !universities.includes(value)));
@@ -3394,11 +3409,11 @@
         const mergeAutomatedSearchEntityTerms = (prompt, payload) => {
             const extracted = extractNamedEntitiesFromPrompt(prompt);
             const locations = normalizeSearchSpecArray(payload?.locations);
-            const companyTerms = normalizeSearchSpecArray([...(payload?.company_terms || []), ...extracted.companies]);
-            const universityTerms = normalizeSearchSpecArray([...(payload?.university_terms || []), ...extracted.universities]);
-            const organizationTerms = normalizeSearchSpecArray([...(payload?.organization_terms || []), ...extracted.organizations])
+            const companyTerms = cleanEntityTerms('company', [...(payload?.company_terms || []), ...extracted.companies], extracted.companies);
+            const universityTerms = cleanEntityTerms('university', [...(payload?.university_terms || []), ...extracted.universities], extracted.universities);
+            const organizationTerms = cleanEntityTerms('organization', [...(payload?.organization_terms || []), ...extracted.organizations], extracted.organizations)
                 .filter((item) => !companyTerms.includes(item) && !universityTerms.includes(item));
-            const personTerms = normalizeSearchSpecArray(payload?.person_terms);
+            const personTerms = cleanEntityTerms('person', payload?.person_terms, []);
             const exactEntities = normalizeSearchSpecArray([
                 ...companyTerms,
                 ...universityTerms,
