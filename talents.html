@@ -3114,6 +3114,75 @@
             const knownLocations = ['San Francisco', 'New York', 'Seattle', 'Boston', 'London', 'Singapore', 'US', 'USA', 'Bay Area'];
             return knownLocations.filter((location) => text.toLowerCase().includes(location.toLowerCase()));
         };
+        const extractNamedEntitiesFromPrompt = (prompt) => {
+            const text = String(prompt || '').trim();
+            if (!text) {
+                return {
+                    companies: [],
+                    universities: [],
+                    organizations: [],
+                    people: []
+                };
+            }
+            const normalizedText = text.replace(/\s+/g, ' ');
+            const phrases = Array.from(new Set(
+                (normalizedText.match(/\b(?:[A-Z][\w&.-]*)(?:\s+(?:[A-Z][\w&.-]*|of|for|and|the|&))+?\b/g) || [])
+                    .map((value) => sanitizeSearchValue(value))
+                    .filter(Boolean)
+            ));
+            const splitEntities = normalizedText
+                .split(/\b(?:,|and)\b/i)
+                .map((value) => sanitizeSearchValue(value))
+                .filter(Boolean);
+            const knownCompanies = ['OpenAI', 'Anthropic', 'DeepMind', 'Google DeepMind'];
+            const companies = normalizeSearchSpecArray([
+                ...knownCompanies.filter((name) => normalizedText.toLowerCase().includes(name.toLowerCase())),
+                ...splitEntities.filter((value) => /(?:^| )(openai|anthropic|deepmind)(?: |$)/i.test(value))
+            ]);
+            const universities = normalizeSearchSpecArray(phrases.filter((value) => /\b(university|college|institute|school)\b/i.test(value)));
+            const organizations = normalizeSearchSpecArray(phrases.filter((value) => !companies.includes(value) && !universities.includes(value)));
+            return {
+                companies,
+                universities,
+                organizations,
+                people: []
+            };
+        };
+        const mergeAutomatedSearchEntityTerms = (prompt, payload) => {
+            const extracted = extractNamedEntitiesFromPrompt(prompt);
+            const locations = normalizeSearchSpecArray(payload?.locations);
+            const companyTerms = normalizeSearchSpecArray([...(payload?.company_terms || []), ...extracted.companies]);
+            const universityTerms = normalizeSearchSpecArray([...(payload?.university_terms || []), ...extracted.universities]);
+            const organizationTerms = normalizeSearchSpecArray([...(payload?.organization_terms || []), ...extracted.organizations])
+                .filter((item) => !companyTerms.includes(item) && !universityTerms.includes(item));
+            const personTerms = normalizeSearchSpecArray(payload?.person_terms);
+            const exactEntities = normalizeSearchSpecArray([
+                ...companyTerms,
+                ...universityTerms,
+                ...organizationTerms,
+                ...personTerms,
+                ...locations
+            ]);
+            const filterExpandedTerms = (values) => normalizeSearchSpecArray(values).filter((item) => !exactEntities.includes(item));
+            return {
+                summary: String(payload?.summary || prompt).trim() || prompt,
+                agent_types: normalizeSearchSpecArray(payload?.agent_types).map((item) => normalizeAccessAgentType(item)),
+                locations,
+                company_terms: companyTerms,
+                university_terms: universityTerms,
+                organization_terms: organizationTerms,
+                person_terms: personTerms,
+                domain_terms: normalizeSearchSpecArray(payload?.domain_terms),
+                seniority_terms: normalizeSearchSpecArray(payload?.seniority_terms),
+                include_terms: filterExpandedTerms(payload?.include_terms),
+                exclude_terms: normalizeSearchSpecArray(payload?.exclude_terms),
+                statuses: normalizeSearchSpecArray(payload?.statuses).filter((item) => ['active', 'paused', 'archived'].includes(item)),
+                expanded_keywords: filterExpandedTerms(payload?.expanded_keywords),
+                concept_expansions: filterExpandedTerms(payload?.concept_expansions),
+                ranking_focus: normalizeSearchSpecArray(payload?.ranking_focus),
+                sort: 'recent'
+            };
+        };
         const heuristicSearchSpec = (prompt) => {
             const normalizedPrompt = sanitizeSearchValue(prompt);
             const phrases = normalizedPrompt
@@ -3121,7 +3190,7 @@
                 .filter((term) => term.length > 2);
             const filteredTerms = phrases.filter((term) => !['top', 'best', 'most', 'qualified', 'profile', 'profiles', 'record', 'records', 'candidate', 'candidates'].includes(term.toLowerCase()));
             const focusTerms = filteredTerms.slice(0, 6);
-            return {
+            return mergeAutomatedSearchEntityTerms(prompt, {
                 summary: normalizedPrompt || 'Automated search',
                 agent_types: heuristicAgentTypesFromPrompt(prompt),
                 locations: heuristicLocationsFromPrompt(prompt),
@@ -3138,7 +3207,7 @@
                 concept_expansions: focusTerms,
                 ranking_focus: focusTerms,
                 sort: 'recent'
-            };
+            });
         };
         const buildAutomatedSearchSpec = async (prompt) => {
             if (!hasDeepseekApiKey()) {
@@ -3174,36 +3243,7 @@
                     content: `Search request: ${prompt}`
                 }
             ]);
-            return {
-                summary: String(payload?.summary || prompt).trim() || prompt,
-                agent_types: normalizeSearchSpecArray(payload?.agent_types).map((item) => normalizeAccessAgentType(item)),
-                locations: normalizeSearchSpecArray(payload?.locations),
-                company_terms: normalizeSearchSpecArray(payload?.company_terms),
-                university_terms: normalizeSearchSpecArray(payload?.university_terms),
-                organization_terms: normalizeSearchSpecArray(payload?.organization_terms),
-                person_terms: normalizeSearchSpecArray(payload?.person_terms),
-                domain_terms: normalizeSearchSpecArray(payload?.domain_terms),
-                seniority_terms: normalizeSearchSpecArray(payload?.seniority_terms),
-                include_terms: normalizeSearchSpecArray(payload?.include_terms),
-                exclude_terms: normalizeSearchSpecArray(payload?.exclude_terms),
-                statuses: normalizeSearchSpecArray(payload?.statuses).filter((item) => ['active', 'paused', 'archived'].includes(item)),
-                expanded_keywords: normalizeSearchSpecArray(payload?.expanded_keywords).filter((item) => !normalizeSearchSpecArray([
-                    ...(payload?.company_terms || []),
-                    ...(payload?.university_terms || []),
-                    ...(payload?.organization_terms || []),
-                    ...(payload?.person_terms || []),
-                    ...(payload?.locations || [])
-                ]).includes(item)),
-                concept_expansions: normalizeSearchSpecArray(payload?.concept_expansions).filter((item) => !normalizeSearchSpecArray([
-                    ...(payload?.company_terms || []),
-                    ...(payload?.university_terms || []),
-                    ...(payload?.organization_terms || []),
-                    ...(payload?.person_terms || []),
-                    ...(payload?.locations || [])
-                ]).includes(item)),
-                ranking_focus: normalizeSearchSpecArray(payload?.ranking_focus),
-                sort: 'recent'
-            };
+            return mergeAutomatedSearchEntityTerms(prompt, payload);
         };
         const buildAutomatedSearchSql = (spec) => {
             const clauses = [];
