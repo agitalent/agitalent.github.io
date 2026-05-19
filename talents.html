@@ -3014,7 +3014,11 @@
                         'Allowed statuses: active, paused, archived.',
                         'sort must be "recent".',
                         'Keep arrays short and deduplicated.',
-                        'expanded_keywords should include close synonyms and adjacent skill phrases.',
+                        'Exhaustively expand the key phrases from the query using synonyms, abbreviations, full expressions, alternate titles, nearby concepts, and equivalent wording from context.',
+                        'If the query uses an abbreviation or acronym, infer and include its most likely full expression from context.',
+                        'If the query uses a full expression, include common abbreviations and shorthand forms.',
+                        'Example: if the query implies "MTS from OpenAI", include "Member of Technical Staff", "MTS", and nearby equivalents used in candidate profiles.',
+                        'expanded_keywords should include close synonyms, abbreviations, full expressions, and adjacent skill phrases.',
                         'concept_expansions should include semantic related concepts that strong profiles may mention instead of the exact query wording.',
                         'ranking_focus should contain the most important qualification signals.'
                     ].join(' ')
@@ -3650,6 +3654,7 @@
 
                 await fetchProfiles(0);
                 if (searchMode === 'automate') {
+                    setSearchAutomationStep('');
                     setStatus(`Loaded ${lastRowsLength} profile${lastRowsLength === 1 ? '' : 's'} from the automated search.`);
                 } else if (searchMode === 'prompt') {
                     setStatus(`Loaded ${lastRowsLength} profile${lastRowsLength === 1 ? '' : 's'} for your search.`);
