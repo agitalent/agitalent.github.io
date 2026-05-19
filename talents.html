@@ -3163,6 +3163,14 @@
                     departments: [],
                     institutes: [],
                     parents: []
+                },
+                uc_berkeley: {
+                    canonical: 'University of California, Berkeley',
+                    aliases: ['University of California Berkeley', 'UC Berkeley', 'Berkeley'],
+                    abbreviations: ['UCB'],
+                    departments: [],
+                    institutes: ['BAIR', 'Berkeley Artificial Intelligence Research', 'RDI'],
+                    parents: []
                 }
             },
             location: {
@@ -3365,12 +3373,16 @@
                 .split(/\b(?:,|and)\b/i)
                 .map((value) => sanitizeSearchValue(value))
                 .filter(Boolean);
-            const knownCompanies = ['OpenAI', 'Anthropic', 'DeepMind', 'Google DeepMind'];
+            const knownCompanies = ['Google', 'OpenAI', 'Anthropic', 'DeepMind', 'Google DeepMind', 'Microsoft'];
             const companies = normalizeSearchSpecArray([
                 ...knownCompanies.filter((name) => normalizedText.toLowerCase().includes(name.toLowerCase())),
-                ...splitEntities.filter((value) => /(?:^| )(openai|anthropic|deepmind)(?: |$)/i.test(value))
+                ...splitEntities.filter((value) => /(?:^| )(google|openai|anthropic|deepmind|microsoft)(?: |$)/i.test(value))
             ]);
-            const universities = normalizeSearchSpecArray(phrases.filter((value) => /\b(university|college|institute|school)\b/i.test(value)));
+            const universities = normalizeSearchSpecArray([
+                ...phrases.filter((value) => /\b(university|college|institute|school)\b/i.test(value)),
+                ...['UC Berkeley', 'University of California, Berkeley', 'University of California Berkeley', 'Berkeley', 'CMU', 'MIT', 'PKU', 'NYU']
+                    .filter((value) => normalizedText.toLowerCase().includes(value.toLowerCase()))
+            ]);
             const organizations = normalizeSearchSpecArray(phrases.filter((value) => !companies.includes(value) && !universities.includes(value)));
             return {
                 companies,
