@@ -3096,45 +3096,156 @@
             ];
             return normalizeSearchSpecArray(values);
         };
-        const ENTITY_ALIAS_MAP = {
+        const ENTITY_GRAPH = {
             company: {
-                'openai': ['OpenAI', 'OpenAI Inc.', 'OpenAI Inc'],
-                'anthropic': ['Anthropic', 'Anthropic PBC'],
-                'deepmind': ['DeepMind', 'Google DeepMind'],
-                'google': ['Google', 'Google LLC', 'Google Inc.', 'Google Inc'],
-                'microsoft': ['Microsoft', 'Microsoft Research', 'Microsoft Corporation']
+                'google': {
+                    canonical: 'Google',
+                    aliases: ['Google', 'Google LLC', 'Google Inc.', 'Google Inc'],
+                    subsidiaries: ['Google Brain', 'Google DeepMind', 'DeepMind'],
+                    parent_companies: []
+                },
+                'openai': {
+                    canonical: 'OpenAI',
+                    aliases: ['OpenAI', 'OpenAI Inc.', 'OpenAI Inc'],
+                    subsidiaries: [],
+                    parent_companies: []
+                },
+                'anthropic': {
+                    canonical: 'Anthropic',
+                    aliases: ['Anthropic', 'Anthropic PBC'],
+                    subsidiaries: [],
+                    parent_companies: []
+                },
+                'microsoft': {
+                    canonical: 'Microsoft',
+                    aliases: ['Microsoft', 'Microsoft Corporation'],
+                    subsidiaries: ['Microsoft Research'],
+                    parent_companies: []
+                }
             },
             university: {
-                'mit': ['MIT', 'Massachusetts Institute of Technology'],
-                'cmu': ['CMU', 'Carnegie Mellon University'],
-                'pku': ['PKU', 'Peking University'],
-                'nyu': ['NYU', 'New York University']
+                'cmu': {
+                    canonical: 'Carnegie Mellon University',
+                    aliases: ['CMU', 'Carnegie Mellon University', 'Carnegie Mellon'],
+                    departments: ['School of Computer Science CMU'],
+                    institutes: ['Robotics Institute at CMU', 'Robotics Institute', 'Robotics Institute Carnegie Mellon']
+                },
+                'mit': {
+                    canonical: 'Massachusetts Institute of Technology',
+                    aliases: ['MIT', 'Massachusetts Institute of Technology'],
+                    departments: [],
+                    institutes: []
+                },
+                'pku': {
+                    canonical: 'Peking University',
+                    aliases: ['PKU', 'Peking University'],
+                    departments: [],
+                    institutes: []
+                },
+                'nyu': {
+                    canonical: 'New York University',
+                    aliases: ['NYU', 'New York University'],
+                    departments: [],
+                    institutes: []
+                }
             },
             location: {
-                'nyc': ['NYC', 'New York City'],
-                'sf': ['SF', 'San Francisco'],
-                'bay area': ['Bay Area', 'San Francisco Bay Area']
+                'nyc': {
+                    canonical: 'New York City',
+                    aliases: ['NYC', 'New York City']
+                },
+                'sf': {
+                    canonical: 'San Francisco',
+                    aliases: ['SF', 'San Francisco']
+                },
+                'bay area': {
+                    canonical: 'Bay Area',
+                    aliases: ['Bay Area', 'San Francisco Bay Area']
+                }
             },
             organization: {},
             person: {}
         };
         const PRESTIGE_KEYWORDS = ['phd', 'stanford', 'mit', 'cmu', 'berkeley', 'openai', 'deepmind', 'anthropic', 'distinguished', 'founder', 'fellowship'];
         const entityKey = (value) => String(value || '').trim().toLowerCase();
+        const entityGraphEntries = (type) => Object.values(ENTITY_GRAPH[type] || {});
+        const entityRecordForValue = (type, value) => {
+            const directKey = entityKey(value);
+            return entityGraphEntries(type).find((entry) => normalizeSearchSpecArray([
+                entry.canonical,
+                ...(entry.aliases || []),
+                ...(entry.subsidiaries || []),
+                ...(entry.parent_companies || []),
+                ...(entry.departments || []),
+                ...(entry.institutes || [])
+            ]).some((alias) => entityKey(alias) === directKey)) || null;
+        };
         const entityAliases = (type, value) => {
             const normalized = sanitizeSearchValue(value);
             if (!normalized) return [];
-            const byKey = ENTITY_ALIAS_MAP[type] || {};
-            const directKey = entityKey(normalized);
-            const matchedEntry = Object.entries(byKey).find(([, aliases]) => aliases.some((alias) => entityKey(alias) === directKey));
-            const aliases = matchedEntry ? matchedEntry[1] : [normalized];
-            return normalizeSearchSpecArray([normalized, ...aliases]);
+            const record = entityRecordForValue(type, normalized);
+            if (!record) return normalizeSearchSpecArray([normalized]);
+            return normalizeSearchSpecArray([
+                normalized,
+                record.canonical,
+                ...(record.aliases || []),
+                ...(record.subsidiaries || []),
+                ...(record.parent_companies || []),
+                ...(record.departments || []),
+                ...(record.institutes || [])
+            ]);
+        };
+        const entityMatchType = (group, blob) => {
+            const canonical = String(group.canonical || '').toLowerCase();
+            const directAliases = normalizeSearchSpecArray(group.direct_aliases || []).map((item) => item.toLowerCase());
+            const abbreviations = normalizeSearchSpecArray(group.abbreviations || []).map((item) => item.toLowerCase());
+            const subsidiaries = normalizeSearchSpecArray(group.subsidiaries || []).map((item) => item.toLowerCase());
+            const parents = normalizeSearchSpecArray(group.parent_companies || []).map((item) => item.toLowerCase());
+            const departments = normalizeSearchSpecArray(group.departments || []).map((item) => item.toLowerCase());
+            const institutes = normalizeSearchSpecArray(group.institutes || []).map((item) => item.toLowerCase());
+            if (canonical && blob.includes(canonical)) return 'exact_match';
+            if (directAliases.some((alias) => blob.includes(alias))) return group.type === 'university' ? 'alias_match' : 'alias_match';
+            if (abbreviations.some((alias) => blob.includes(alias))) return 'abbreviation_match';
+            if (subsidiaries.some((alias) => blob.includes(alias))) return 'subsidiary_match';
+            if (parents.some((alias) => blob.includes(alias))) return 'parent_company_match';
+            if (departments.some((alias) => blob.includes(alias))) return 'department_match';
+            if (institutes.some((alias) => blob.includes(alias))) return 'institute_match';
+            return '';
+        };
+        const entityMatchWeight = (matchType) => ({
+            exact_match: 1,
+            alias_match: 0.94,
+            abbreviation_match: 0.92,
+            subsidiary_match: 0.9,
+            parent_company_match: 0.9,
+            department_match: 0.9,
+            institute_match: 0.9
+        }[matchType] || 0);
+        const entityMatchLabelKey = (type) => `${type === 'university' ? 'school' : type}MatchType`;
+        const entityMatchSummaryForGroups = (blob, groups) => groups.map((group) => {
+            const matchType = entityMatchType(group, blob);
+            return {
+                source: group.source,
+                canonical: group.canonical,
+                matchType,
+                matched: Boolean(matchType),
+                weight: entityMatchWeight(matchType)
+            };
         };
         const buildEntityGroups = (type, terms) => normalizeSearchSpecArray(terms).map((term) => {
             const aliases = entityAliases(type, term);
+            const record = entityRecordForValue(type, term);
             return {
+                type,
                 source: term,
-                canonical: aliases[0] || term,
-                aliases
+                canonical: record?.canonical || aliases[0] || term,
+                aliases,
+                direct_aliases: normalizeSearchSpecArray(record?.aliases || aliases),
+                abbreviations: normalizeSearchSpecArray((record?.aliases || []).filter((alias) => /^[A-Z]{2,6}$/.test(alias))),
+                subsidiaries: normalizeSearchSpecArray(record?.subsidiaries || []),
+                parent_companies: normalizeSearchSpecArray(record?.parent_companies || []),
+                departments: normalizeSearchSpecArray(record?.departments || []),
+                institutes: normalizeSearchSpecArray(record?.institutes || [])
             };
         });
         const automatedSearchEntityGroups = (spec) => ({
@@ -3144,7 +3255,7 @@
             organizations: buildEntityGroups('organization', spec?.organization_terms || []),
             people: buildEntityGroups('person', spec?.person_terms || [])
         });
-        const entityGroupMatchesBlob = (blob, group) => group.aliases.some((alias) => blob.includes(alias.toLowerCase()));
+        const entityGroupMatchesBlob = (blob, group) => Boolean(entityMatchType(group, blob));
         const entityGroupsMatchCount = (blob, groups) => groups.filter((group) => entityGroupMatchesBlob(blob, group)).length;
         const normalizedScore = (matched, total) => (total > 0 ? matched / total : 0);
         const prestigeSignalScore = (profile) => {
@@ -3178,8 +3289,8 @@
                         roles_titles_skills_domains: expandableTerms
                     },
                     normalized_entities: {
-                        companies: groups.companies.map((group) => ({ canonical: group.canonical, aliases: group.aliases })),
-                        schools: groups.schools.map((group) => ({ canonical: group.canonical, aliases: group.aliases })),
+                        companies: groups.companies.map((group) => ({ canonical: group.canonical, aliases: group.aliases, subsidiaries: group.subsidiaries, parent_companies: group.parent_companies })),
+                        schools: groups.schools.map((group) => ({ canonical: group.canonical, aliases: group.aliases, departments: group.departments, institutes: group.institutes })),
                         locations: groups.locations.map((group) => ({ canonical: group.canonical, aliases: group.aliases })),
                         people: groups.people.map((group) => ({ canonical: group.canonical, aliases: group.aliases }))
                     }
@@ -3198,6 +3309,7 @@
                     lines.push(`${index + 1}. ${row.name_or_handle || row.email || row.id}`);
                     lines.push(`   tier=${summary.tier || 4}, final=${Number(summary.finalScore || 0).toFixed(3)}, company=${Number(summary.companyScore || 0).toFixed(3)}, school=${Number(summary.schoolScore || 0).toFixed(3)}, role=${Number(summary.roleScore || 0).toFixed(3)}, skill=${Number(summary.skillScore || 0).toFixed(3)}, recency=${Number(summary.recencyScore || 0).toFixed(3)}, prestige=${Number(summary.prestigeScore || 0).toFixed(3)}`);
                     lines.push(`   company_matched=${summary.companyMatched ? 'yes' : 'no'}, school_matched=${summary.schoolMatched ? 'yes' : 'no'}, penalties=${JSON.stringify(summary.penalties || {})}`);
+                    lines.push(`   match_types=${JSON.stringify(summary.matchTypes || {})}`);
                 });
             }
             return lines.join('\n');
@@ -3482,14 +3594,18 @@
                 (countPhraseMatches(blob, spec?.expanded_keywords) * 0.6)
                 + (countPhraseMatches(blob, spec?.concept_expansions) * 0.4)
             ) / 4);
-            const companyMatchedCount = entityGroupsMatchCount(blob, entityGroups.companies);
-            const schoolMatchedCount = entityGroupsMatchCount(blob, entityGroups.schools);
+            const companyMatchSummary = entityMatchSummaryForGroups(blob, entityGroups.companies);
+            const schoolMatchSummary = entityMatchSummaryForGroups(blob, entityGroups.schools);
+            const locationMatchSummary = entityMatchSummaryForGroups(blob, entityGroups.locations);
+            const personMatchSummary = entityMatchSummaryForGroups(blob, entityGroups.people);
+            const companyMatchedCount = companyMatchSummary.filter((item) => item.matched).length;
+            const schoolMatchedCount = schoolMatchSummary.filter((item) => item.matched).length;
             const locationMatchedCount = entityGroupsMatchCount(blob, entityGroups.locations);
             const personMatchedCount = entityGroupsMatchCount(blob, entityGroups.people);
             const companyMatched = companyMatchedCount > 0;
             const schoolMatched = schoolMatchedCount > 0;
-            const companyScore = normalizedScore(companyMatchedCount, entityGroups.companies.length || (entityGroups.companies.length === 0 ? 0 : 1));
-            const schoolScore = normalizedScore(schoolMatchedCount, entityGroups.schools.length || (entityGroups.schools.length === 0 ? 0 : 1));
+            const companyScore = normalizedScore(companyMatchSummary.reduce((sum, item) => sum + item.weight, 0), entityGroups.companies.length);
+            const schoolScore = normalizedScore(schoolMatchSummary.reduce((sum, item) => sum + item.weight, 0), entityGroups.schools.length);
             const roleScore = Math.min(1, (roleSemantic * 0.65) + (roleKeyword * 0.35));
             const skillScore = skillSemantic;
             const recencyScore = Math.max(0, 1 - (Math.floor((Date.now() - new Date(profile.updated_at || profile.created_at || Date.now()).getTime()) / (1000 * 60 * 60 * 24 * 30)) / 12));
@@ -3528,6 +3644,12 @@
                 schoolMatched,
                 locationMatched: locationMatchedCount > 0,
                 personMatched: personMatchedCount > 0,
+                matchTypes: {
+                    company: companyMatchSummary.map((item) => ({ source: item.source, type: item.matchType || 'no_match' })),
+                    school: schoolMatchSummary.map((item) => ({ source: item.source, type: item.matchType || 'no_match' })),
+                    location: locationMatchSummary.map((item) => ({ source: item.source, type: item.matchType || 'no_match' })),
+                    person: personMatchSummary.map((item) => ({ source: item.source, type: item.matchType || 'no_match' }))
+                },
                 penalties
             };
         };
