@@ -1121,6 +1121,61 @@
                                     <span>Automate</span>
                                 </label>
                             </div>
+                            <div class="schedule-panel" id="automate-schedule-panel" style="display:none; margin-top:12px;">
+                                <div class="schedule-grid" id="automate-schedule-form">
+                                    <div class="field">
+                                        <label for="automate-top-count">Auto-send top records</label>
+                                        <input id="automate-top-count" name="top_count" type="number" min="0" max="100" value="0">
+                                    </div>
+                                    <div class="field">
+                                        <label for="automate-schedule-date">Date</label>
+                                        <input id="automate-schedule-date" name="date" type="date">
+                                    </div>
+                                    <div class="field">
+                                        <label for="automate-schedule-timezone">Time Zone</label>
+                                        <select id="automate-schedule-timezone" name="timezone"></select>
+                                    </div>
+                                    <div class="field">
+                                        <label for="automate-schedule-hour">Hour</label>
+                                        <input id="automate-schedule-hour" name="hour" type="number" min="0" max="23">
+                                    </div>
+                                    <div class="field">
+                                        <label for="automate-schedule-minute">Minute</label>
+                                        <input id="automate-schedule-minute" name="minute" type="number" min="0" max="59">
+                                    </div>
+                                    <div class="field">
+                                        <div class="field-label-row">
+                                            <label data-outreach-label="company" for="automate-schedule-company">Company</label>
+                                            <label class="default-toggle" for="automate-schedule-save-company">
+                                                <input id="automate-schedule-save-company" name="save_company_default" type="checkbox">
+                                                Save as default
+                                            </label>
+                                        </div>
+                                        <input data-outreach-input="company" id="automate-schedule-company" name="company" type="text">
+                                    </div>
+                                    <div class="field">
+                                        <div class="field-label-row">
+                                            <label data-outreach-label="role" for="automate-schedule-role">Role</label>
+                                            <label class="default-toggle" for="automate-schedule-save-role">
+                                                <input id="automate-schedule-save-role" name="save_role_default" type="checkbox">
+                                                Save as default
+                                            </label>
+                                        </div>
+                                        <input data-outreach-input="role" id="automate-schedule-role" name="role" type="text">
+                                    </div>
+                                    <div class="field wide">
+                                        <div class="field-label-row">
+                                            <label data-outreach-label="contact" for="automate-schedule-contact">Preferred Contact Means</label>
+                                            <label class="default-toggle" for="automate-schedule-save-contact">
+                                                <input id="automate-schedule-save-contact" name="save_contact_default" type="checkbox">
+                                                Save as default
+                                            </label>
+                                        </div>
+                                        <input data-outreach-input="contact" id="automate-schedule-contact" name="contact" type="text">
+                                    </div>
+                                </div>
+                                <div class="schedule-status" id="automate-schedule-status">Choose how many top automated results to invite. When set above 0, search completion will automatically queue Google Calendar invitations for those top records.</div>
+                            </div>
                             <div class="sql-box" id="search-automation-box" style="display:none;">
                                 <pre id="search-automation-output"></pre>
                             </div>
@@ -1399,6 +1454,17 @@
         const searchAutomateToggle = document.getElementById('search-automate-toggle');
         const searchAutomationBoxEl = document.getElementById('search-automation-box');
         const searchAutomationOutputEl = document.getElementById('search-automation-output');
+        const automateSchedulePanelEl = document.getElementById('automate-schedule-panel');
+        const automateScheduleFormEl = document.getElementById('automate-schedule-form');
+        const automateScheduleStatusEl = document.getElementById('automate-schedule-status');
+        const automateTopCountInput = document.getElementById('automate-top-count');
+        const automateScheduleDateInput = document.getElementById('automate-schedule-date');
+        const automateScheduleTimezoneInput = document.getElementById('automate-schedule-timezone');
+        const automateScheduleHourInput = document.getElementById('automate-schedule-hour');
+        const automateScheduleMinuteInput = document.getElementById('automate-schedule-minute');
+        const automateScheduleCompanyInput = document.getElementById('automate-schedule-company');
+        const automateScheduleRoleInput = document.getElementById('automate-schedule-role');
+        const automateScheduleContactInput = document.getElementById('automate-schedule-contact');
         const signupPromoEl = document.getElementById('signup-promo');
         const signupPromoButton = document.getElementById('signup-promo-button');
         const topbarAuthActionsEl = document.getElementById('topbar-auth-actions');
@@ -1537,6 +1603,7 @@
 
         let activePrompt = '';
         let automatedSearchState = null;
+        let automateScheduleValues = null;
         let currentOffset = 0;
         let totalCount = 0;
         let lastRowsLength = 0;
@@ -2185,6 +2252,7 @@
                 setInviteEmailStatus('', false);
             }
             updateUserOperationUi();
+            updateAutomateScheduleUi();
             updateResetPasswordUi();
             startAccessWindowMonitor();
         };
@@ -2655,6 +2723,10 @@
                 ...buildDefaultToggleState()
             };
         };
+        const automateScheduleDefaults = () => ({
+            top_count: 0,
+            ...scheduleDefaults()
+        });
 
         const renderOutreachModeOptions = (profileId, values, prefix) => {
             const selectedMode = normalizeOutreachMode(values.outreach_mode);
@@ -2698,6 +2770,56 @@
                 if (!key || !(key in placeholderMap)) return;
                 element.setAttribute('placeholder', placeholderMap[key]);
             });
+        };
+        const syncAutomateScheduleForm = () => {
+            if (!automateScheduleFormEl) return;
+            automateScheduleValues = {
+                ...(automateScheduleValues || {}),
+                ...automateScheduleDefaults(),
+                ...(automateScheduleValues || {})
+            };
+            const values = {
+                ...automateScheduleDefaults(),
+                ...normalizedOutreachDefaults(),
+                ...buildDefaultToggleState(),
+                ...(automateScheduleValues || {})
+            };
+            automateScheduleValues = values;
+            if (automateTopCountInput) automateTopCountInput.value = String(values.top_count ?? 0);
+            if (automateScheduleDateInput) automateScheduleDateInput.value = values.date || '';
+            if (automateScheduleHourInput) automateScheduleHourInput.value = values.hour || '';
+            if (automateScheduleMinuteInput) automateScheduleMinuteInput.value = values.minute || '';
+            if (automateScheduleCompanyInput) automateScheduleCompanyInput.value = values.company || '';
+            if (automateScheduleRoleInput) automateScheduleRoleInput.value = values.role || '';
+            if (automateScheduleContactInput) automateScheduleContactInput.value = values.contact || '';
+            if (automateScheduleTimezoneInput && !automateScheduleTimezoneInput.options.length) {
+                automateScheduleTimezoneInput.innerHTML = timeZoneOptions.map((zone) => `<option value="${escapeHtml(zone)}">${escapeHtml(zone)}</option>`).join('');
+            }
+            if (automateScheduleTimezoneInput) automateScheduleTimezoneInput.value = values.timezone || (Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Shanghai');
+            const saveCompany = automateScheduleFormEl.querySelector('input[name="save_company_default"]');
+            const saveRole = automateScheduleFormEl.querySelector('input[name="save_role_default"]');
+            const saveContact = automateScheduleFormEl.querySelector('input[name="save_contact_default"]');
+            if (saveCompany) saveCompany.checked = Boolean(values.save_company_default);
+            if (saveRole) saveRole.checked = Boolean(values.save_role_default);
+            if (saveContact) saveContact.checked = Boolean(values.save_contact_default);
+            applyOutreachModePresentation(automateScheduleFormEl, values.outreach_mode);
+        };
+        const updateAutomateScheduleUi = () => {
+            if (!automateSchedulePanelEl || !automateScheduleFormEl || !automateScheduleStatusEl) return;
+            const visible = Boolean(searchAutomateToggle?.checked);
+            automateSchedulePanelEl.style.display = visible ? '' : 'none';
+            if (!visible) return;
+            const enabled = isAdminLoggedIn();
+            automateScheduleFormEl.querySelectorAll('input, select, textarea').forEach((element) => {
+                if (element === automateTopCountInput || element instanceof HTMLElement) {
+                    element.disabled = !enabled;
+                }
+            });
+            automateScheduleStatusEl.textContent = enabled
+                ? 'Choose how many top automated results to invite. When set above 0, search completion will automatically queue Google Calendar invitations for those top records.'
+                : 'Log in with admin rights to auto-send Google Calendar invitations after automated search.';
+            automateScheduleStatusEl.classList.toggle('error', visible && !enabled);
+            syncAutomateScheduleForm();
         };
 
         const renderEmailPanel = (profile) => {
@@ -3212,6 +3334,7 @@
                     (right._automated_rank_score - left._automated_rank_score)
                     || (new Date(right.updated_at || right.created_at || 0).getTime() - new Date(left.updated_at || left.created_at || 0).getTime())
                 ));
+            automatedSearchState.rankedRows = filteredRows;
             totalCount = capVisibleCount(filteredRows.length);
             currentOffset = safeOffset;
             const rows = filteredRows.slice(safeOffset, safeOffset + PAGE_SIZE);
@@ -3221,6 +3344,48 @@
             if (scrollToTop) {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
+        };
+        const autoQueueAutomatedScheduleInvites = async () => {
+            if (!searchAutomateToggle?.checked || !isAdminLoggedIn()) return null;
+            const payload = parseAutomateScheduleForm();
+            automateScheduleValues = payload;
+            if (!payload.top_count) return { queuedCount: 0, requestedCount: 0 };
+            const rankedRows = Array.isArray(automatedSearchState?.rankedRows) ? automatedSearchState.rankedRows : [];
+            const candidates = rankedRows
+                .filter((row) => String(row._candidate_email || row.email || '').trim())
+                .slice(0, payload.top_count);
+            if (!candidates.length) {
+                throw new Error('No top automated results with candidate email were available for calendar invitations.');
+            }
+            let lastScheduledFor = '';
+            for (const profile of candidates) {
+                const { data, error } = await supabaseClient.rpc('admin_enqueue_schedule_invite', {
+                    ...authRpcCredentials(),
+                    p_profile_id: profile.id,
+                    p_schedule: payload
+                });
+                if (error) throw error;
+                lastScheduledFor = data?.scheduled_for || lastScheduledFor;
+            }
+            applyOutreachDefaultsLocally(payload);
+            currentRows = currentRows.map((row) => (
+                candidates.some((profile) => profile.id === row.id)
+                    ? { ...row, Recently_Contacted: true }
+                    : row
+            ));
+            if (Array.isArray(automatedSearchState?.rankedRows)) {
+                automatedSearchState.rankedRows = automatedSearchState.rankedRows.map((row) => (
+                    candidates.some((profile) => profile.id === row.id)
+                        ? { ...row, Recently_Contacted: true }
+                        : row
+                ));
+            }
+            await loadDashboardMetrics();
+            return {
+                queuedCount: candidates.length,
+                requestedCount: payload.top_count,
+                lastScheduledFor
+            };
         };
 
         const fetchProfilesDirect = async (offset = 0, options = {}) => {
@@ -3339,8 +3504,7 @@
             return payload;
         };
 
-        const parseScheduleForm = (profileId) => {
-            const form = resultsEl.querySelector(`[data-schedule-form="${CSS.escape(profileId)}"]`);
+        const parseScheduleFields = (form) => {
             if (!form) {
                 throw new Error('The schedule form could not be found.');
             }
@@ -3369,6 +3533,18 @@
                 save_company_default: Boolean(fields.save_company_default),
                 save_role_default: Boolean(fields.save_role_default),
                 save_contact_default: Boolean(fields.save_contact_default)
+            };
+        };
+        const parseScheduleForm = (profileId) => {
+            const form = resultsEl.querySelector(`[data-schedule-form="${CSS.escape(profileId)}"]`);
+            return parseScheduleFields(form);
+        };
+        const parseAutomateScheduleForm = () => {
+            const payload = parseScheduleFields(automateScheduleFormEl);
+            const topCount = Math.max(0, Math.min(100, Number(collectNamedFields(automateScheduleFormEl).top_count || '0') || 0));
+            return {
+                ...payload,
+                top_count: topCount
             };
         };
 
@@ -3486,8 +3662,10 @@
                     contact: String(data?.preferred_contact || '').trim(),
                     mode: normalizeOutreachMode(data?.outreach_mode)
                 };
+                syncAutomateScheduleForm();
             } catch (_error) {
                 outreachDefaults = { company: '', role: '', contact: '', mode: OUTREACH_MODE_HIRING };
+                syncAutomateScheduleForm();
             }
         };
 
@@ -3654,8 +3832,15 @@
 
                 await fetchProfiles(0);
                 if (searchMode === 'automate') {
+                    const autoScheduleResult = await autoQueueAutomatedScheduleInvites();
                     setSearchAutomationStep('');
-                    setStatus(`Loaded ${lastRowsLength} profile${lastRowsLength === 1 ? '' : 's'} from the automated search.`);
+                    if (autoScheduleResult?.queuedCount) {
+                        setStatus(autoScheduleResult.lastScheduledFor
+                            ? `${autoScheduleResult.queuedCount} top automated invitations queued. The online worker should send them within about 5-10 minutes; the selected time remains the meeting time (${autoScheduleResult.lastScheduledFor}).`
+                            : `${autoScheduleResult.queuedCount} top automated invitations queued for Google Calendar delivery.`);
+                    } else {
+                        setStatus(`Loaded ${lastRowsLength} profile${lastRowsLength === 1 ? '' : 's'} from the automated search.`);
+                    }
                 } else if (searchMode === 'prompt') {
                     setStatus(`Loaded ${lastRowsLength} profile${lastRowsLength === 1 ? '' : 's'} for your search.`);
                 } else {
@@ -3674,6 +3859,27 @@
                 setStatus(error.message || 'Search failed.', true);
             }
         });
+        if (searchAutomateToggle) {
+            searchAutomateToggle.addEventListener('change', () => {
+                updateAutomateScheduleUi();
+            });
+        }
+        if (automateScheduleFormEl) {
+            automateScheduleFormEl.addEventListener('input', () => {
+                automateScheduleValues = {
+                    ...(automateScheduleValues || automateScheduleDefaults()),
+                    ...collectNamedFields(automateScheduleFormEl)
+                };
+                applyOutreachModePresentation(automateScheduleFormEl, automateScheduleValues.outreach_mode);
+            });
+            automateScheduleFormEl.addEventListener('change', () => {
+                automateScheduleValues = {
+                    ...(automateScheduleValues || automateScheduleDefaults()),
+                    ...collectNamedFields(automateScheduleFormEl)
+                };
+                applyOutreachModePresentation(automateScheduleFormEl, automateScheduleValues.outreach_mode);
+            });
+        }
 
         prevButton.addEventListener('click', async () => {
             if (currentOffset === 0) return;
