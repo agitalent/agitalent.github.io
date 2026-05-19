@@ -3096,6 +3096,12 @@
             ];
             return normalizeSearchSpecArray(values);
         };
+        const automatedSearchExactEntityTerms = (spec) => normalizeSearchSpecArray([
+            ...(spec?.company_terms || []),
+            ...(spec?.university_terms || []),
+            ...(spec?.organization_terms || []),
+            ...(spec?.person_terms || [])
+        ]);
         const hasDeepseekApiKey = () => Boolean(DEEPSEEK_API_KEY);
         const heuristicAgentTypesFromPrompt = (prompt) => {
             const text = String(prompt || '').toLowerCase();
@@ -3119,6 +3125,10 @@
                 summary: normalizedPrompt || 'Automated search',
                 agent_types: heuristicAgentTypesFromPrompt(prompt),
                 locations: heuristicLocationsFromPrompt(prompt),
+                company_terms: [],
+                university_terms: [],
+                organization_terms: [],
+                person_terms: [],
                 domain_terms: focusTerms.slice(0, 2),
                 seniority_terms: [],
                 include_terms: focusTerms,
@@ -3141,17 +3151,21 @@
                         'Return JSON only.',
                         'Convert the user search request into a broad structured retrieval spec for profile search.',
                         'Use this exact shape:',
-                        '{"summary":"","agent_types":[],"locations":[],"domain_terms":[],"seniority_terms":[],"include_terms":[],"exclude_terms":[],"statuses":[],"expanded_keywords":[],"concept_expansions":[],"ranking_focus":[],"sort":"recent"}',
+                        '{"summary":"","agent_types":[],"locations":[],"company_terms":[],"university_terms":[],"organization_terms":[],"person_terms":[],"domain_terms":[],"seniority_terms":[],"include_terms":[],"exclude_terms":[],"statuses":[],"expanded_keywords":[],"concept_expansions":[],"ranking_focus":[],"sort":"recent"}',
                         'Allowed agent_types: candidate, investor, manufacturer, buyer, billionaire.',
                         'Allowed statuses: active, paused, archived.',
                         'sort must be "recent".',
                         'Keep arrays short and deduplicated.',
-                        'Exhaustively expand the key phrases from the query using synonyms, abbreviations, full expressions, alternate titles, nearby concepts, and equivalent wording from context.',
-                        'If the query uses an abbreviation or acronym, infer and include its most likely full expression from context.',
-                        'If the query uses a full expression, include common abbreviations and shorthand forms.',
-                        'Example: if the query implies "MTS from OpenAI", include "Member of Technical Staff", "MTS", and nearby equivalents used in candidate profiles.',
-                        'expanded_keywords should include close synonyms, abbreviations, full expressions, and adjacent skill phrases.',
-                        'concept_expansions should include semantic related concepts that strong profiles may mention instead of the exact query wording.',
+                        'ONLY semantically expand job titles, roles, skills, technical expertise, and research areas.',
+                        'DO NOT expand company names, university names, school names, person names, locations, countries, or organization names.',
+                        'Treat company, university, school, person, organization, and location terms as exact entities. Use them only in company_terms, university_terms, organization_terms, person_terms, and locations.',
+                        'Never hallucinate related companies or universities. DeepMind is not Google Research. Peking University is not Tsinghua University.',
+                        'Do not place company names, university names, school names, person names, locations, countries, or organization names into expanded_keywords or concept_expansions unless they appeared exactly in the user request.',
+                        'If the query uses an abbreviation or acronym for a role, title, skill, technical area, or research area, infer and include its most likely full expression from context.',
+                        'If the query uses a full expression for a role, title, skill, technical area, or research area, include common abbreviations and shorthand forms.',
+                        'Example: if the query asks for "Research candidate DeepMind, OpenAI and Anthropic, graduated from Peking University", expand only the research role terms. Keep DeepMind, OpenAI, Anthropic, and Peking University exact.',
+                        'expanded_keywords should include close synonyms, abbreviations, full expressions, and adjacent skill phrases only for roles, titles, skills, technical expertise, and research areas.',
+                        'concept_expansions should include semantic related concepts only for roles, titles, skills, technical expertise, and research areas.',
                         'ranking_focus should contain the most important qualification signals.'
                     ].join(' ')
                 },
@@ -3164,13 +3178,29 @@
                 summary: String(payload?.summary || prompt).trim() || prompt,
                 agent_types: normalizeSearchSpecArray(payload?.agent_types).map((item) => normalizeAccessAgentType(item)),
                 locations: normalizeSearchSpecArray(payload?.locations),
+                company_terms: normalizeSearchSpecArray(payload?.company_terms),
+                university_terms: normalizeSearchSpecArray(payload?.university_terms),
+                organization_terms: normalizeSearchSpecArray(payload?.organization_terms),
+                person_terms: normalizeSearchSpecArray(payload?.person_terms),
                 domain_terms: normalizeSearchSpecArray(payload?.domain_terms),
                 seniority_terms: normalizeSearchSpecArray(payload?.seniority_terms),
                 include_terms: normalizeSearchSpecArray(payload?.include_terms),
                 exclude_terms: normalizeSearchSpecArray(payload?.exclude_terms),
                 statuses: normalizeSearchSpecArray(payload?.statuses).filter((item) => ['active', 'paused', 'archived'].includes(item)),
-                expanded_keywords: normalizeSearchSpecArray(payload?.expanded_keywords),
-                concept_expansions: normalizeSearchSpecArray(payload?.concept_expansions),
+                expanded_keywords: normalizeSearchSpecArray(payload?.expanded_keywords).filter((item) => !normalizeSearchSpecArray([
+                    ...(payload?.company_terms || []),
+                    ...(payload?.university_terms || []),
+                    ...(payload?.organization_terms || []),
+                    ...(payload?.person_terms || []),
+                    ...(payload?.locations || [])
+                ]).includes(item)),
+                concept_expansions: normalizeSearchSpecArray(payload?.concept_expansions).filter((item) => !normalizeSearchSpecArray([
+                    ...(payload?.company_terms || []),
+                    ...(payload?.university_terms || []),
+                    ...(payload?.organization_terms || []),
+                    ...(payload?.person_terms || []),
+                    ...(payload?.locations || [])
+                ]).includes(item)),
                 ranking_focus: normalizeSearchSpecArray(payload?.ranking_focus),
                 sort: 'recent'
             };
@@ -3197,6 +3227,13 @@
             const broadTerms = automatedSearchTerms(spec);
             if (spec?.locations?.length) {
                 clauses.push(`(${spec.locations.map((term) => `coalesce(location, '') ilike ${sqlQuote(sqlLikeLiteral(term))} escape '\\'`).join(' or ')})`);
+            }
+            const exactEntityTerms = automatedSearchExactEntityTerms(spec);
+            if (exactEntityTerms.length) {
+                clauses.push(`(${exactEntityTerms.map((term) => {
+                    const sqlTerm = sqlQuote(sqlLikeLiteral(term));
+                    return searchableSqlColumns().map((column) => `${column} ilike ${sqlTerm} escape '\\'`).join(' or ');
+                }).join(' and ')})`);
             }
             if (broadTerms.length) {
                 clauses.push(`(${broadTerms.map((term) => {
@@ -3263,6 +3300,7 @@
             const blob = automatedSearchBlob(profile);
             const broadTerms = automatedSearchTerms(spec);
             const locations = normalizeSearchSpecArray(spec?.locations);
+            const exactEntities = automatedSearchExactEntityTerms(spec);
             const rankingFocus = normalizeSearchSpecArray(spec?.ranking_focus);
             const queryTokens = tokenizeSearchText([
                 automatedSearchState?.prompt || '',
@@ -3278,10 +3316,11 @@
             const conceptScore = countPhraseMatches(blob, spec?.concept_expansions) * 7;
             const focusScore = countPhraseMatches(blob, rankingFocus) * 10;
             const locationScore = countPhraseMatches(blob, locations) * 14;
+            const exactEntityScore = countPhraseMatches(blob, exactEntities) * 20;
             const seniorityScore = countPhraseMatches(blob, spec?.seniority_terms) * 10;
             const exactPromptScore = automatedSearchState?.prompt && blob.includes(String(automatedSearchState.prompt).toLowerCase()) ? 20 : 0;
             const recencyScore = Math.max(0, 8 - Math.floor((Date.now() - new Date(profile.updated_at || profile.created_at || Date.now()).getTime()) / (1000 * 60 * 60 * 24 * 30)));
-            return semanticScore + domainScore + includeScore + expandedScore + conceptScore + focusScore + locationScore + seniorityScore + exactPromptScore + recencyScore;
+            return semanticScore + domainScore + includeScore + expandedScore + conceptScore + focusScore + locationScore + exactEntityScore + seniorityScore + exactPromptScore + recencyScore;
         };
         const matchesAutomatedSearchSpec = (profile, spec) => {
             const blob = automatedSearchBlob(profile);
@@ -3289,6 +3328,8 @@
             if (excludeTerms.some((term) => blob.includes(term.toLowerCase()))) return false;
             const broadTerms = automatedSearchTerms(spec);
             const locations = normalizeSearchSpecArray(spec?.locations);
+            const exactEntities = automatedSearchExactEntityTerms(spec);
+            if (exactEntities.length && exactEntities.some((term) => !blob.includes(term.toLowerCase()))) return false;
             const hasBroadSignal = broadTerms.length === 0 && locations.length === 0
                 ? true
                 : (countPhraseMatches(blob, broadTerms) > 0 || countPhraseMatches(blob, locations) > 0 || automatedSearchRankingScore(profile, spec) >= 18);
@@ -3323,6 +3364,7 @@
                 query = query.in('status', spec.statuses);
             }
             const broadTerms = automatedSearchTerms(spec);
+            const exactEntityTerms = automatedSearchExactEntityTerms(spec);
             const broadSearchFields = searchableProfileFields();
             const broadClauses = [
                 ...normalizeSearchSpecArray(spec?.locations).flatMap((term) => broadSearchFields.map((field) => `${field}.ilike.%${term}%`)),
@@ -3331,6 +3373,9 @@
             if (broadClauses.length) {
                 query = query.or(broadClauses.join(','));
             }
+            exactEntityTerms.forEach((term) => {
+                query = query.or(broadSearchFields.map((field) => `${field}.ilike.%${term}%`).join(','));
+            });
 
             const { data, error } = await query.range(0, Math.max(fetchCap, PAGE_SIZE) - 1);
             if (error) throw error;
