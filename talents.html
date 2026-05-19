@@ -3257,7 +3257,7 @@
                 matched: Boolean(matchType),
                 weight: entityMatchWeight(matchType)
             };
-        };
+        });
         const buildEntityGroups = (type, terms) => normalizeSearchSpecArray(terms).map((term) => {
             const aliases = entityAliases(type, term);
             const record = entityRecordForValue(type, term);
