@@ -1115,7 +1115,7 @@
                                 <textarea id="search-input" placeholder=""></textarea>
                                 <button class="button button-icon" id="search-button" type="button" aria-label="Search">→</button>
                             </div>
-                            <div class="user-actions" style="margin-top:12px;">
+                            <div class="user-actions" id="search-automate-controls" style="display:none; margin-top:12px;">
                                 <label class="checkbox-inline" for="search-automate-toggle">
                                     <input id="search-automate-toggle" type="checkbox">
                                     <span>Automate</span>
@@ -1136,12 +1136,8 @@
                                         <select id="automate-schedule-timezone" name="timezone"></select>
                                     </div>
                                     <div class="field">
-                                        <label for="automate-schedule-hour">Hour</label>
-                                        <input id="automate-schedule-hour" name="hour" type="number" min="0" max="23">
-                                    </div>
-                                    <div class="field">
-                                        <label for="automate-schedule-minute">Minute</label>
-                                        <input id="automate-schedule-minute" name="minute" type="number" min="0" max="59">
+                                        <label for="automate-schedule-time">Time</label>
+                                        <input id="automate-schedule-time" name="time" type="text" inputmode="numeric" placeholder="24:00">
                                     </div>
                                     <div class="field">
                                         <div class="field-label-row">
@@ -1451,6 +1447,7 @@
         const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
         const searchInput = document.getElementById('search-input');
         const searchButton = document.getElementById('search-button');
+        const searchAutomateControlsEl = document.getElementById('search-automate-controls');
         const searchAutomateToggle = document.getElementById('search-automate-toggle');
         const searchAutomationBoxEl = document.getElementById('search-automation-box');
         const searchAutomationOutputEl = document.getElementById('search-automation-output');
@@ -1460,8 +1457,7 @@
         const automateTopCountInput = document.getElementById('automate-top-count');
         const automateScheduleDateInput = document.getElementById('automate-schedule-date');
         const automateScheduleTimezoneInput = document.getElementById('automate-schedule-timezone');
-        const automateScheduleHourInput = document.getElementById('automate-schedule-hour');
-        const automateScheduleMinuteInput = document.getElementById('automate-schedule-minute');
+        const automateScheduleTimeInput = document.getElementById('automate-schedule-time');
         const automateScheduleCompanyInput = document.getElementById('automate-schedule-company');
         const automateScheduleRoleInput = document.getElementById('automate-schedule-role');
         const automateScheduleContactInput = document.getElementById('automate-schedule-contact');
@@ -2223,6 +2219,12 @@
             dashboardSectionEl.style.display = isLoggedIn() ? '' : 'none';
             signupPromoEl.style.display = isLoggedIn() ? 'none' : 'grid';
             adminAddUserPanel.style.display = isAdminLoggedIn() ? '' : 'none';
+            if (searchAutomateControlsEl) {
+                searchAutomateControlsEl.style.display = isAdminLoggedIn() ? '' : 'none';
+            }
+            if (!isAdminLoggedIn() && searchAutomateToggle) {
+                searchAutomateToggle.checked = false;
+            }
             dashboardGridEl.classList.toggle('user-mode', isLoggedIn() && !isAdminLoggedIn());
             dashboardGridEl.classList.toggle('admin-mode', isAdminLoggedIn());
             topbarAuthActionsEl.style.display = isLoggedIn() ? 'none' : 'inline-flex';
@@ -2291,22 +2293,38 @@
 
         const escapeMailto = (value) => encodeURIComponent(String(value || ''));
         const zeroPad = (value) => String(value).padStart(2, '0');
-        const addMinutesToScheduleParts = (date, hour, minute, minutesToAdd) => {
+        const parseTimeParts = (value) => {
+            const match = String(value || '').trim().match(/^(\d{1,2}):(\d{2})$/);
+            if (!match) return null;
+            const hour = Number(match[1]);
+            const minute = Number(match[2]);
+            if (!Number.isInteger(hour) || hour < 0 || hour > 23) return null;
+            if (!Number.isInteger(minute) || minute < 0 || minute > 59) return null;
+            return {
+                hour: zeroPad(hour),
+                minute: zeroPad(minute)
+            };
+        };
+        const addMinutesToScheduleTime = (date, time, minutesToAdd) => {
+            const parts = parseTimeParts(time) || { hour: '00', minute: '00' };
             const [year, month, day] = String(date || '').split('-').map((part) => Number(part));
-            const shifted = new Date(Date.UTC(year, (month || 1) - 1, day || 1, Number(hour) || 0, (Number(minute) || 0) + Number(minutesToAdd || 0), 0));
+            const shifted = new Date(Date.UTC(year, (month || 1) - 1, day || 1, Number(parts.hour) || 0, (Number(parts.minute) || 0) + Number(minutesToAdd || 0), 0));
             return {
                 date: `${shifted.getUTCFullYear()}-${zeroPad(shifted.getUTCMonth() + 1)}-${zeroPad(shifted.getUTCDate())}`,
                 hour: zeroPad(shifted.getUTCHours()),
                 minute: zeroPad(shifted.getUTCMinutes())
             };
         };
-        const formatCalendarStamp = (date, hour, minute) => `${String(date || '').replace(/-/g, '')}T${zeroPad(hour)}${zeroPad(minute)}00`;
+        const formatCalendarStamp = (date, time) => {
+            const parts = parseTimeParts(time) || { hour: '00', minute: '00' };
+            return `${String(date || '').replace(/-/g, '')}T${parts.hour}${parts.minute}00`;
+        };
         const buildManualScheduleUrl = (profile, values, draft) => {
             const candidateEmail = String(profile?._candidate_email || profile?.email || '').trim();
             const timezone = String(values?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC').trim();
-            const startStamp = formatCalendarStamp(values?.date, values?.hour, values?.minute);
-            const endParts = addMinutesToScheduleParts(values?.date, values?.hour, values?.minute, 15);
-            const endStamp = formatCalendarStamp(endParts.date, endParts.hour, endParts.minute);
+            const startStamp = formatCalendarStamp(values?.date, values?.time);
+            const endParts = addMinutesToScheduleTime(values?.date, values?.time, 15);
+            const endStamp = `${String(endParts.date || '').replace(/-/g, '')}T${endParts.hour}${endParts.minute}00`;
             const params = new URLSearchParams({
                 action: 'TEMPLATE',
                 text: String(draft?.subject || '').trim(),
@@ -2703,12 +2721,10 @@
 
         const isScheduleComplete = (values) => {
             if (!values) return false;
-            if (!values.date || !values.timezone || values.hour === '' || values.minute === '' || !values.company || !values.role || !values.contact) {
+            if (!values.date || !values.timezone || !values.time || !values.company || !values.role || !values.contact) {
                 return false;
             }
-            const hour = Number(values.hour);
-            const minute = Number(values.minute);
-            return Number.isInteger(hour) && hour >= 0 && hour <= 23 && Number.isInteger(minute) && minute >= 0 && minute <= 59;
+            return Boolean(parseTimeParts(values.time));
         };
 
         const scheduleDefaults = () => {
@@ -2716,8 +2732,7 @@
             now.setMinutes(now.getMinutes() + 60);
             return {
                 date: now.toISOString().slice(0, 10),
-                hour: String(now.getHours()).padStart(2, '0'),
-                minute: String(now.getMinutes()).padStart(2, '0'),
+                time: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
                 timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Shanghai',
                 ...normalizedOutreachDefaults(),
                 ...buildDefaultToggleState()
@@ -2787,8 +2802,7 @@
             automateScheduleValues = values;
             if (automateTopCountInput) automateTopCountInput.value = String(values.top_count ?? 0);
             if (automateScheduleDateInput) automateScheduleDateInput.value = values.date || '';
-            if (automateScheduleHourInput) automateScheduleHourInput.value = values.hour || '';
-            if (automateScheduleMinuteInput) automateScheduleMinuteInput.value = values.minute || '';
+            if (automateScheduleTimeInput) automateScheduleTimeInput.value = values.time || '';
             if (automateScheduleCompanyInput) automateScheduleCompanyInput.value = values.company || '';
             if (automateScheduleRoleInput) automateScheduleRoleInput.value = values.role || '';
             if (automateScheduleContactInput) automateScheduleContactInput.value = values.contact || '';
@@ -2899,12 +2913,8 @@
                             <select id="schedule-timezone-${escapeHtml(profile.id)}" name="timezone">${timezoneOptionsHtml}</select>
                         </div>
                         <div class="field">
-                            <label for="schedule-hour-${escapeHtml(profile.id)}">Hour</label>
-                            <input id="schedule-hour-${escapeHtml(profile.id)}" name="hour" type="number" min="0" max="23" value="${escapeHtml(values.hour)}">
-                        </div>
-                        <div class="field">
-                            <label for="schedule-minute-${escapeHtml(profile.id)}">Minute</label>
-                            <input id="schedule-minute-${escapeHtml(profile.id)}" name="minute" type="number" min="0" max="59" value="${escapeHtml(values.minute)}">
+                            <label for="schedule-time-${escapeHtml(profile.id)}">Time</label>
+                            <input id="schedule-time-${escapeHtml(profile.id)}" name="time" type="text" inputmode="numeric" value="${escapeHtml(values.time)}" placeholder="24:00">
                         </div>
                         <div class="field">
                             <div class="field-label-row">
@@ -3510,22 +3520,17 @@
             }
             const fields = collectNamedFields(form);
             const mode = normalizeOutreachMode(fields.outreach_mode);
-            if (!fields.date || !fields.timezone || fields.hour === '' || fields.minute === '' || !fields.company || !fields.role || !fields.contact) {
+            if (!fields.date || !fields.timezone || !fields.time || !fields.company || !fields.role || !fields.contact) {
                 throw new Error(outreachModeConfig(mode).completionMessage);
             }
-            const hour = Number(fields.hour);
-            const minute = Number(fields.minute);
-            if (!Number.isInteger(hour) || hour < 0 || hour > 23) {
-                throw new Error('Hour must be between 0 and 23.');
-            }
-            if (!Number.isInteger(minute) || minute < 0 || minute > 59) {
-                throw new Error('Minute must be between 0 and 59.');
+            const timeParts = parseTimeParts(fields.time);
+            if (!timeParts) {
+                throw new Error('Time must use 24-hour format like 09:30.');
             }
             return {
                 date: fields.date,
                 timezone: fields.timezone,
-                hour: String(hour).padStart(2, '0'),
-                minute: String(minute).padStart(2, '0'),
+                time: `${timeParts.hour}:${timeParts.minute}`,
                 outreach_mode: mode,
                 company: fields.company,
                 role: fields.role,
