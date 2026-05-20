@@ -3342,7 +3342,7 @@
                 rankedRows.slice(0, 5).forEach((row, index) => {
                     const summary = row._automated_rank_summary || {};
                     lines.push(`${index + 1}. ${row.name_or_handle || row.email || row.id}`);
-                    lines.push(`   tier=${summary.tier || 4}, final=${Number(summary.finalScore || 0).toFixed(3)}, company=${Number(summary.companyScore || 0).toFixed(3)}, school=${Number(summary.schoolScore || 0).toFixed(3)}, recency=${Number(summary.recencyScore || 0).toFixed(3)}, prestige=${Number(summary.prestigeScore || 0).toFixed(3)}`);
+                    lines.push(`   tier=${summary.tier || 4}, final=${Number(summary.finalScore || 0).toFixed(3)}, company=${Number(summary.companyScore || 0).toFixed(3)}, school=${Number(summary.schoolScore || 0).toFixed(3)}, role=${Number(summary.roleScore || 0).toFixed(3)}, skill=${Number(summary.skillScore || 0).toFixed(3)}`);
                     lines.push(`   company_matched=${summary.companyMatched ? 'yes' : 'no'}, school_matched=${summary.schoolMatched ? 'yes' : 'no'}, penalties=${JSON.stringify(summary.penalties || {})}`);
                     lines.push(`   match_types=${JSON.stringify(summary.matchTypes || {})}`);
                 });
@@ -3629,6 +3629,17 @@
                 rankingFocus.join(' ')
             ].join(' '));
             const profileTokens = tokenizeSearchText(blob);
+            const roleSemantic = cosineSimilarity(queryTokens, profileTokens);
+            const roleKeyword = Math.min(1, (
+                (countPhraseMatches(blob, spec?.domain_terms) * 0.45)
+                + (countPhraseMatches(blob, spec?.include_terms) * 0.25)
+                + (countPhraseMatches(blob, rankingFocus) * 0.2)
+                + (countPhraseMatches(blob, spec?.seniority_terms) * 0.1)
+            ) / 3);
+            const skillSemantic = Math.min(1, (
+                (countPhraseMatches(blob, spec?.expanded_keywords) * 0.6)
+                + (countPhraseMatches(blob, spec?.concept_expansions) * 0.4)
+            ) / 4);
             const companyMatchSummary = entityMatchSummaryForGroups(blob, entityGroups.companies);
             const schoolMatchSummary = entityMatchSummaryForGroups(blob, entityGroups.schools);
             const locationMatchSummary = entityMatchSummaryForGroups(blob, entityGroups.locations);
@@ -3641,13 +3652,13 @@
             const schoolMatched = schoolMatchedCount > 0;
             const companyScore = normalizedScore(companyMatchSummary.reduce((sum, item) => sum + item.weight, 0), entityGroups.companies.length || 1);
             const schoolScore = normalizedScore(schoolMatchSummary.reduce((sum, item) => sum + item.weight, 0), entityGroups.schools.length || 1);
-            const recencyScore = Math.max(0, 1 - (Math.floor((Date.now() - new Date(profile.updated_at || profile.created_at || Date.now()).getTime()) / (1000 * 60 * 60 * 24 * 30)) / 12));
-            const prestigeScore = prestigeSignalScore(profile);
+            const roleScore = Math.min(1, (roleSemantic * 0.65) + (roleKeyword * 0.35));
+            const skillScore = skillSemantic;
             let finalScore = (
                 (companyScore * 0.40)
                 + (schoolScore * 0.25)
-                + (recencyScore * 0.03)
-                + (prestigeScore * 0.02)
+                + (roleScore * 0.20)
+                + (skillScore * 0.10)
             ) * 100;
             const penalties = {
                 missingCompanyPenalty: false,
@@ -3667,8 +3678,8 @@
                 tier,
                 companyScore,
                 schoolScore,
-                recencyScore,
-                prestigeScore,
+                roleScore,
+                skillScore,
                 companyMatched,
                 schoolMatched,
                 locationMatched: locationMatchedCount > 0,
@@ -3699,7 +3710,7 @@
             if (!entityMatched) return false;
             const hasBroadSignal = broadTerms.length === 0
                 ? true
-                : countPhraseMatches(blob, broadTerms) > 0;
+                : (countPhraseMatches(blob, broadTerms) > 0 || ranking.roleScore >= 0.18 || ranking.skillScore >= 0.18);
             return hasBroadSignal;
         };
         const fetchProfilesAutomated = async (offset = 0, options = {}) => {
