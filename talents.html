@@ -313,6 +313,13 @@
             grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
             gap: 0;
         }
+        .layout > .panel {
+            min-width: 0;
+        }
+        .layout > .panel:first-child {
+            max-width: 420px;
+            overflow-x: hidden;
+        }
         .panel {
             padding: 28px 30px 30px;
         }
@@ -408,6 +415,8 @@
         .field select,
         .field textarea {
             width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
             border: 1px solid var(--soft-border);
             border-radius: 16px;
             background: var(--input-bg);
@@ -703,6 +712,10 @@
         }
         .control-box {
             margin-top: 18px;
+            max-width: 100%;
+            min-width: 0;
+            overflow-x: hidden;
+            box-sizing: border-box;
             padding: 16px;
             border-radius: 18px;
             border: 1px solid var(--soft-border);
@@ -941,6 +954,10 @@
         }
         .schedule-panel {
             margin-top: 16px;
+            max-width: 100%;
+            min-width: 0;
+            overflow-x: hidden;
+            box-sizing: border-box;
             padding: 16px;
             border-radius: 18px;
             border: 1px solid var(--icon-border);
@@ -999,6 +1016,10 @@
         }
         .search-history-panel {
             margin-top: 12px;
+            max-width: 100%;
+            min-width: 0;
+            overflow-x: hidden;
+            box-sizing: border-box;
             padding: 12px;
             border-radius: 16px;
             border: 1px solid var(--icon-border);
