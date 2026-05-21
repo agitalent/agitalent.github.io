@@ -2859,20 +2859,20 @@
             const safeOptions = Array.isArray(options) && options.length ? options : ['Great'];
             return safeOptions[hashString(seed) % safeOptions.length];
         };
-        const normalizePraiseSentence = (text, fallbackBio = 'a strong professional background') => {
-            const fallback = `You are ${truncateWords(fallbackBio || 'a strong professional candidate with a background that aligns well with this opportunity and clearly reflects meaningful expertise', 18)}.`;
-            let cleaned = String(text || fallback)
+        const normalizeCalendarSummary = (text, fallbackBio = 'strong professional background') => {
+            let cleaned = String(text || fallbackBio || 'strong professional background')
                 .replace(/\s+/g, ' ')
                 .trim();
             cleaned = cleaned.replace(/^["']+|["']+$/g, '').trim();
-            if (!/^you\s+are\b/i.test(cleaned)) {
-                cleaned = `You are ${cleaned.replace(/^[.!?,;:\s]+/, '')}`;
-            }
-            cleaned = cleaned.replace(/[.!?]+$/g, '').trim();
-            if (!/^you\s+are\b/i.test(cleaned)) {
-                cleaned = 'You are a strong professional candidate with a background that aligns well with this opportunity and clearly reflects meaningful expertise';
-            }
-            return `${cleaned}.`;
+            cleaned = cleaned
+                .replace(/\b(has\s+been|have\s+been|will\s+be|would\s+be)\b/gi, ' ')
+                .replace(/\b(am|is|are|i|my|me|myself|mine|he|his|him|she|her|we|us|our|they|them|their)\b/gi, ' ')
+                .replace(/\s+([,.;:!?])/g, '$1')
+                .replace(/[,\s]+$/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+            const summary = truncateWords(cleaned || fallbackBio || 'strong professional background', 30);
+            return /[.!?]$/.test(summary) ? summary : `${summary}.`;
         };
         const buildCalendarInvitationSubject = (profile = {}, values = {}) => {
             const seed = [
@@ -2889,8 +2889,8 @@
             const backgroundDescriptor = seededChoice(CALENDAR_BACKGROUND_DESCRIPTORS, `${seed}:background`);
             return `${opportunityWord} Opportunity Matching Your ${backgroundDescriptor} Background`;
         };
-        const buildCalendarPraiseParagraph = (praiseSentence = 'You are a strong professional candidate with a background that aligns well with this opportunity and clearly reflects meaningful expertise.') => (
-            normalizePraiseSentence(praiseSentence)
+        const buildCalendarPraiseParagraph = (summary = 'strong professional background') => (
+            normalizeCalendarSummary(summary)
         );
         const buildInvitationSubject = ({ opportunityWord = 'Great', summary = 'Professional Background' } = {}) => {
             const normalizedWord = titleCaseWords(truncateWords(opportunityWord || 'Great', 1)) || 'Great';
@@ -2906,7 +2906,7 @@
             const invitationPayload = payload?.calendar_invitation && typeof payload.calendar_invitation === 'object' ? payload.calendar_invitation : {};
             return {
                 calendar_invitation: {
-                    praise_sentence: normalizePraiseSentence(invitationPayload.praise_sentence, fallbackBio)
+                    summary: normalizeCalendarSummary(invitationPayload.summary, fallbackBio)
                 }
             };
         };
@@ -2952,9 +2952,9 @@
                         calendar_invitation: {
                             type: 'object',
                             additionalProperties: false,
-                            required: ['praise_sentence'],
+                            required: ['summary'],
                             properties: {
-                                praise_sentence: { type: 'string' }
+                                summary: { type: 'string' }
                             }
                         }
                     }
@@ -2988,14 +2988,14 @@
             if (content && typeof content === 'object') return content;
             throw new Error('Unexpected DeepSeek response.');
         };
-        const generateCheckedCalendarPraiseSentence = async ({ candidateName, briefBio, company, role, contact }) => {
-            const draftPayload = await deepseekJson([
+        const generateCalendarBriefSummary = async ({ candidateName, briefBio, company, role, contact }) => {
+            const payload = await deepseekJson([
                 {
                     role: 'system',
                     content: (
                         'Return JSON only using this exact schema: ' +
-                        '{"calendar_invitation":{"praise_sentence":"string"}}. ' +
-                        'Generate only the requested sentence.'
+                        '{"calendar_invitation":{"summary":"string"}}. ' +
+                        'Generate only the requested summary.'
                     )
                 },
                 {
@@ -3003,30 +3003,12 @@
                     content: (
                         `Candidate name: ${candidateName}. Supabase profile brief_background field: ${briefBio}. Company: ${company}. Role: ${role}. Preferred contact: ${contact}. ` +
                         'Use only the supplied brief_background field. No hallucinations. ' +
-                        'calendar_invitation.praise_sentence: exactly 20 words, must start with "You are", commend/praise the candidate professionally, and be grammatically correct.'
+                        'calendar_invitation.summary: summarize the strongest relevant background in no more than 30 words. ' +
+                        'Avoid these words and phrases: am, is, are, has been, have been, will be, would be, I, my, me, myself, mine, he, his, him, she, her, we, us, our, they, them, their.'
                     )
                 }
             ], scheduleInvitationResponseFormat());
-            const draftSentence = normalizeScheduleCopyPayload(draftPayload, briefBio).calendar_invitation.praise_sentence;
-            const checkedPayload = await deepseekJson([
-                {
-                    role: 'system',
-                    content: (
-                        'Return JSON only using this exact schema: ' +
-                        '{"calendar_invitation":{"praise_sentence":"string"}}. ' +
-                        'Check and fix grammar and syntax only.'
-                    )
-                },
-                {
-                    role: 'user',
-                    content: (
-                        `Original sentence: ${draftSentence}\n` +
-                        `Supabase profile brief_background field for factual grounding: ${briefBio}\n` +
-                        'Return one polished sentence. It must start with "You are", remain about 20 words, preserve the meaning, use only the brief_background facts, and be grammatically and syntactically correct.'
-                    )
-                }
-            ], scheduleInvitationResponseFormat());
-            return normalizeScheduleCopyPayload(checkedPayload, draftSentence).calendar_invitation.praise_sentence;
+            return normalizeScheduleCopyPayload(payload, briefBio).calendar_invitation.summary;
         };
 
         const generateEmailDraft = async (profile, values) => {
@@ -3114,10 +3096,10 @@
             const contact = String(values.contact || '').trim();
             const context = { candidateName, company, role, contact };
             try {
-                const praiseSentence = await generateCheckedCalendarPraiseSentence({ candidateName, briefBio, company, role, contact });
+                const briefSummary = await generateCalendarBriefSummary({ candidateName, briefBio, company, role, contact });
                 const subject = buildCalendarInvitationSubject(profile, values);
                 const paragraph2 = buildCalendarPraiseParagraph(
-                    replaceInvitePlaceholders(praiseSentence, context)
+                    replaceInvitePlaceholders(briefSummary, context)
                 );
                 const body = [
                     `Hi ${candidateName},`,
