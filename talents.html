@@ -4260,7 +4260,11 @@
 
             const { data, error } = await query.range(0, Math.max(fetchCap, PAGE_SIZE) - 1);
             if (error) throw error;
-            const filteredRows = stripPrivateProfileFields(await applyRecentContactFlags(Array.isArray(data) ? data : []))
+            const recentlyFlaggedRows = stripPrivateProfileFields(await applyRecentContactFlags(Array.isArray(data) ? data : []));
+            const automatedCandidateRows = isLoggedIn()
+                ? recentlyFlaggedRows.filter((row) => !row.Recently_Contacted)
+                : recentlyFlaggedRows;
+            const filteredRows = automatedCandidateRows
                 .filter((row) => matchesAutomatedSearchSpec(row, spec))
                 .map((row) => {
                     const ranking = automatedSearchRankingScore(row, spec);
