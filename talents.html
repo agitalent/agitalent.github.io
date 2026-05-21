@@ -2651,6 +2651,16 @@
                 minute: zeroPad(shifted.getUTCMinutes())
             };
         };
+        const schedulePayloadWithOffset = (payload, index = 0) => {
+            const offset = addMinutesToScheduleTime(payload?.date, payload?.time, Number(index || 0) * 15);
+            return {
+                ...payload,
+                date: offset.date,
+                time: `${offset.hour}:${offset.minute}`,
+                hour: offset.hour,
+                minute: offset.minute
+            };
+        };
         const formatCalendarStamp = (date, time) => {
             const parts = parseTimeParts(time) || { hour: '00', minute: '00' };
             return `${String(date || '').replace(/-/g, '')}T${parts.hour}${parts.minute}00`;
@@ -2680,15 +2690,32 @@
                 : `${String(company || '').trim()} is currently hiring ${String(role || '').trim()}.`
         );
         const truncateWords = (text, maxWords) => String(text || '').trim().split(/\s+/).filter(Boolean).slice(0, maxWords).join(' ');
+        const normalizeSummaryWithoutPronouns = (text, maxWords) => {
+            const pronouns = new Set([
+                'i', 'me', 'my', 'mine', 'myself',
+                'you', 'your', 'yours', 'yourself', 'yourselves',
+                'he', 'him', 'his', 'himself',
+                'she', 'her', 'hers', 'herself',
+                'they', 'them', 'their', 'theirs', 'themselves',
+                'we', 'us', 'our', 'ours', 'ourselves'
+            ]);
+            const words = String(text || '')
+                .replace(/[^\w\s.+-]/g, ' ')
+                .trim()
+                .split(/\s+/)
+                .filter(Boolean)
+                .filter((word) => !pronouns.has(word.toLowerCase()));
+            return words.slice(0, maxWords).join(' ');
+        };
         const buildInvitationSubject = (summary) => {
-            const normalizedSummary = truncateWords(summary || 'background', 10) || 'background';
-            return `Excellent Opportunity matching your ${normalizedSummary}`;
+            const normalizedSummary = normalizeSummaryWithoutPronouns(summary || 'background', 10) || 'background';
+            return `Excellent Opportunity Matching Your Being ${normalizedSummary}`;
         };
         const buildInvitationPraiseParagraph = (summary, adjective = 'outstanding', continuation = 'making this a strong fit for the opportunity') => {
-            const normalizedSummary = truncateWords(summary || 'background and expertise', 20) || 'background and expertise';
+            const normalizedSummary = normalizeSummaryWithoutPronouns(summary || 'background and expertise', 20) || 'background and expertise';
             const normalizedAdjective = truncateWords(adjective || 'outstanding', 1) || 'outstanding';
             const normalizedContinuation = truncateWords(continuation || 'making this a strong fit for the opportunity', 12) || 'making this a strong fit for the opportunity';
-            return `Your ${normalizedSummary} is ${normalizedAdjective}, ${normalizedContinuation}.`;
+            return `Your being ${normalizedSummary} is ${normalizedAdjective}, ${normalizedContinuation}.`;
         };
         const shouldRetryLegacyEmailOutreachRpc = (error) => {
             const message = String(error?.message || error?.details || error?.hint || '').toLowerCase();
@@ -2773,6 +2800,7 @@
                             `Candidate name: ${candidateName}. Field brief_background: ${seniority}. Company: ${company}. Role: ${role}. Preferred contact: ${contact}. ` +
                             'subject_summary: exactly 6 to 10 words summarizing the candidate achievement and advantage from brief_background. ' +
                             'paragraph2_summary: exactly 14 to 20 words summarizing the candidate achievement and advantage from brief_background. ' +
+                            'Do not include pronouns in subject_summary or paragraph2_summary: no I, me, my, you, your, he, his, she, her, they, their, we, our. ' +
                             'praise_adjective: one word similar to outstanding, excellent, exceptional, remarkable, impressive, or strong. ' +
                             'followup_clause: 6 to 12 words continuing after a comma, explaining why the opportunity fits. ' +
                             'Do not include placeholders, quotes, company, role, greeting, or full sentence punctuation in the summaries.'
@@ -2836,6 +2864,7 @@
                             'Generate calendar invitation copy only. ' +
                             'subject_summary: exactly 6 to 10 words summarizing the candidate achievement and advantage from brief_background. ' +
                             'paragraph2_summary: exactly 14 to 20 words summarizing the candidate achievement and advantage from brief_background. ' +
+                            'Do not include pronouns in subject_summary or paragraph2_summary: no I, me, my, you, your, he, his, she, her, they, their, we, our. ' +
                             'praise_adjective: one word similar to outstanding, excellent, exceptional, remarkable, impressive, or strong. ' +
                             'followup_clause: 6 to 12 words continuing after a comma, explaining why the opportunity fits. ' +
                             'Do not include placeholders, quotes, company, role, greeting, or full sentence punctuation in the summaries.'
@@ -4207,28 +4236,29 @@
                 throw new Error('No top automated results with candidate email were available for calendar invitations.');
             }
             let lastScheduledFor = '';
-            for (const profile of candidates) {
+            for (const [index, profile] of candidates.entries()) {
+                const scheduledPayload = schedulePayloadWithOffset(payload, index);
                 if (isAdminLoggedIn()) {
                     const { data, error } = await supabaseClient.rpc('admin_enqueue_schedule_invite', {
                         ...authRpcCredentials(),
                         p_profile_id: profile.id,
-                        p_schedule: payload
+                        p_schedule: scheduledPayload
                     });
                     if (error) throw error;
                     lastScheduledFor = data?.scheduled_for || lastScheduledFor;
                 } else if (googleCalendarIntegration.connected) {
-                    const draft = await generateScheduleDraft(profile, payload);
+                    const draft = await generateScheduleDraft(profile, scheduledPayload);
                     const { error } = await supabaseClient.rpc('log_schedule_outreach', {
                         ...authRpcCredentials(),
                         p_profile_id: profile.id,
-                        p_schedule: payload,
+                        p_schedule: scheduledPayload,
                         p_invite_title: draft.subject,
                         p_invite_content: draft.body
                     });
                     if (error) throw error;
                     await ensureEdgeFunctionSession();
-                    const startAt = `${payload.date}T${payload.time}:00`;
-                    const endParts = addMinutesToScheduleTime(payload.date, payload.time, 15);
+                    const startAt = `${scheduledPayload.date}T${scheduledPayload.time}:00`;
+                    const endParts = addMinutesToScheduleTime(scheduledPayload.date, scheduledPayload.time, 15);
                     const endAt = `${endParts.date}T${endParts.hour}:${endParts.minute}:00`;
                     await edgeFunctionJson('create-calendar-event', {
                         method: 'POST',
@@ -4238,11 +4268,11 @@
                                 description: draft.body,
                                 start: {
                                     dateTime: startAt,
-                                    timeZone: payload.timezone,
+                                    timeZone: scheduledPayload.timezone,
                                 },
                                 end: {
                                     dateTime: endAt,
-                                    timeZone: payload.timezone,
+                                    timeZone: scheduledPayload.timezone,
                                 },
                                 attendees: [{ email: String(profile._candidate_email || profile.email || '').trim() }],
                                 conferenceData: {
@@ -4254,7 +4284,7 @@
                             }
                         }
                     });
-                    lastScheduledFor = `${payload.date} ${payload.time} ${payload.timezone}`;
+                    lastScheduledFor = `${scheduledPayload.date} ${scheduledPayload.time} ${scheduledPayload.timezone}`;
                 } else {
                     throw new Error('Connect Google Calendar to use Automate as a non-admin user.');
                 }
@@ -5651,11 +5681,12 @@
                         if (!profiles.length) throw new Error('Profile not found.');
                         setStatus(profiles.length > 1 ? `Queueing ${profiles.length} Google Calendar invitations...` : 'Queueing Google Calendar invitation...');
                         let lastScheduledFor = '';
-                        for (const profile of profiles) {
+                        for (const [index, profile] of profiles.entries()) {
+                            const scheduledPayload = schedulePayloadWithOffset(payload, index);
                             const { data, error } = await supabaseClient.rpc('admin_enqueue_schedule_invite', {
                                 ...authRpcCredentials(),
                                 p_profile_id: profile.id,
-                                p_schedule: payload
+                                p_schedule: scheduledPayload
                             });
                             if (error) throw error;
                             lastScheduledFor = data?.scheduled_for || lastScheduledFor;
