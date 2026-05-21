@@ -1636,7 +1636,8 @@
         let googleCalendarIntegration = {
             loading: false,
             connected: false,
-            google_email: ''
+            google_email: '',
+            error: ''
         };
         let currentOffset = 0;
         let totalCount = 0;
@@ -1740,8 +1741,21 @@
             calendarConnectButton.textContent = 'Connect Google Calendar';
             calendarConnectButton.style.display = '';
             calendarDisconnectButton.style.display = 'none';
-            calendarConnectStatusEl.textContent = 'Connect your Google Calendar to send invitations from your own Google account.';
-            calendarConnectStatusEl.classList.remove('error');
+            if (googleCalendarIntegration.error) {
+                calendarConnectStatusEl.textContent = `Connection failed: ${googleCalendarIntegration.error}`;
+                calendarConnectStatusEl.classList.add('error');
+            } else {
+                calendarConnectStatusEl.textContent = '';
+                calendarConnectStatusEl.classList.remove('error');
+            }
+        };
+        const updateSearchAutomateAvailability = () => {
+            if (!searchAutomateToggle) return;
+            const canAutomate = isAdminLoggedIn() || (isNonAdminLoggedIn() && googleCalendarIntegration.connected);
+            searchAutomateToggle.disabled = isLoggedIn() && !canAutomate;
+            if (searchAutomateToggle.disabled) {
+                searchAutomateToggle.checked = false;
+            }
         };
 
         const setModalStatus = (element, message, isError = false) => {
@@ -2411,6 +2425,7 @@
             }
             if (!isLoggedIn() && searchAutomateToggle) {
                 searchAutomateToggle.checked = false;
+                searchAutomateToggle.disabled = false;
             }
             dashboardGridEl.classList.toggle('user-mode', isLoggedIn() && !isAdminLoggedIn());
             dashboardGridEl.classList.toggle('admin-mode', isAdminLoggedIn());
@@ -2443,6 +2458,7 @@
             updateUserOperationUi();
             updateAutomateScheduleUi();
             updateCalendarConnectUi();
+            updateSearchAutomateAvailability();
             updateResetPasswordUi();
             startAccessWindowMonitor();
         };
@@ -4313,34 +4329,47 @@
             googleCalendarIntegration = {
                 loading: false,
                 connected: false,
-                google_email: ''
+                google_email: '',
+                error: ''
             };
             updateCalendarConnectUi();
+            updateSearchAutomateAvailability();
             if (!isNonAdminLoggedIn()) return;
             try {
                 googleCalendarIntegration.loading = true;
                 updateCalendarConnectUi();
+                updateSearchAutomateAvailability();
                 await ensureEdgeFunctionSession();
                 const data = await edgeFunctionJson('google-calendar-status');
                 googleCalendarIntegration = {
                     loading: false,
                     connected: Boolean(data?.connected),
-                    google_email: String(data?.google_email || '').trim()
+                    google_email: String(data?.google_email || '').trim(),
+                    error: ''
                 };
-            } catch (_error) {
+            } catch (error) {
                 googleCalendarIntegration = {
                     loading: false,
                     connected: false,
-                    google_email: ''
+                    google_email: '',
+                    error: error instanceof Error ? error.message : String(error || 'Google Calendar connection status could not be checked.')
                 };
             }
             updateCalendarConnectUi();
+            updateSearchAutomateAvailability();
+            updateAutomateScheduleUi();
         };
         const startGoogleCalendarConnect = async () => {
             if (!isNonAdminLoggedIn()) return;
             try {
-                googleCalendarIntegration.loading = true;
+                googleCalendarIntegration = {
+                    loading: true,
+                    connected: false,
+                    google_email: '',
+                    error: ''
+                };
                 updateCalendarConnectUi();
+                updateSearchAutomateAvailability();
                 await ensureEdgeFunctionSession();
                 const data = await edgeFunctionJson('google-oauth-start');
                 const authUrl = String(data?.authorization_url || '').trim();
@@ -4349,9 +4378,16 @@
                 }
                 window.location.href = authUrl;
             } catch (error) {
-                googleCalendarIntegration.loading = false;
+                googleCalendarIntegration = {
+                    loading: false,
+                    connected: false,
+                    google_email: '',
+                    error: error instanceof Error ? error.message : String(error || 'Google Calendar connection could not be started.')
+                };
                 updateCalendarConnectUi();
-                setStatus(error.message || 'Google Calendar connection could not be started.', true);
+                updateSearchAutomateAvailability();
+                updateAutomateScheduleUi();
+                setStatus('Google Calendar connection failed.', true);
             }
         };
         const disconnectGoogleCalendar = async () => {
@@ -4364,13 +4400,22 @@
                 googleCalendarIntegration = {
                     loading: false,
                     connected: false,
-                    google_email: ''
+                    google_email: '',
+                    error: ''
                 };
                 updateCalendarConnectUi();
+                updateSearchAutomateAvailability();
+                updateAutomateScheduleUi();
                 setStatus('Google Calendar disconnected.');
             } catch (error) {
-                googleCalendarIntegration.loading = false;
+                googleCalendarIntegration = {
+                    ...googleCalendarIntegration,
+                    loading: false,
+                    error: error instanceof Error ? error.message : String(error || 'Google Calendar disconnect failed.')
+                };
                 updateCalendarConnectUi();
+                updateSearchAutomateAvailability();
+                updateAutomateScheduleUi();
                 setStatus(error.message || 'Google Calendar disconnect failed.', true);
             }
         };
@@ -4527,7 +4572,8 @@
             googleCalendarIntegration = {
                 loading: false,
                 connected: false,
-                google_email: ''
+                google_email: '',
+                error: ''
             };
             editingProfileId = null;
             resetPasswordOpen = false;
@@ -5594,6 +5640,7 @@
                 updateAdminUi();
                 if (isLoggedIn()) {
                     await loadOutreachDefaults();
+                    await loadGoogleCalendarIntegration();
                     await loadDashboardMetrics();
                     await runSearch(false);
                 } else {
