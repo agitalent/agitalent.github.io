@@ -997,6 +997,21 @@
         .calendar-connected-check input {
             accent-color: var(--accent-2);
         }
+        .auth-debug-panel {
+            display: none;
+            margin-top: 12px;
+            padding: 12px;
+            border: 1px dashed var(--danger);
+            border-radius: 12px;
+            background: rgba(255, 91, 91, 0.08);
+            color: var(--text);
+            font-size: 0.82rem;
+            line-height: 1.45;
+            white-space: pre-wrap;
+        }
+        .auth-debug-panel.visible {
+            display: block;
+        }
         @media (max-width: 1040px) {
             html,
             body {
@@ -1199,6 +1214,7 @@
                                     <button class="button-secondary button-danger" data-icon="×" id="calendar-disconnect-button" type="button" style="display:none;">Disconnect</button>
                                 </div>
                                 <div class="schedule-status" id="calendar-connect-status"></div>
+                                <pre class="auth-debug-panel" id="auth-debug-panel"></pre>
                             </div>
                             <div class="sql-box" id="search-automation-box" style="display:none;">
                                 <pre id="search-automation-output"></pre>
@@ -1494,6 +1510,7 @@
         const calendarDisconnectButton = document.getElementById('calendar-disconnect-button');
         const calendarConnectStatusEl = document.getElementById('calendar-connect-status');
         const calendarConnectedCheckEl = document.getElementById('calendar-connected-check');
+        const authDebugPanelEl = document.getElementById('auth-debug-panel');
         const signupPromoEl = document.getElementById('signup-promo');
         const signupPromoButton = document.getElementById('signup-promo-button');
         const topbarAuthActionsEl = document.getElementById('topbar-auth-actions');
@@ -1672,6 +1689,51 @@
         const OUTREACH_MODE_HIRING = 'hiring_talents';
         const OUTREACH_MODE_SEEKING = 'seeking_jobs';
         const SUPABASE_AUTH_EMAIL_DOMAIN = 'users.agitalent.tech';
+        const DEBUG_AUTH = ['localhost', '127.0.0.1', ''].includes(window.location.hostname);
+        const authDebugState = {
+            latestEdgeFunction: null,
+            latestProvision: null,
+            latestStatusPreflight: null,
+            latestError: ''
+        };
+        const redactToken = (token) => {
+            const text = String(token || '');
+            if (!text) return '';
+            return `${text.slice(0, 8)}...redacted...${text.slice(-6)}`;
+        };
+        const updateAuthDebugPanel = async (extra = {}) => {
+            if (!DEBUG_AUTH || !authDebugPanelEl) return;
+            let session = null;
+            let user = null;
+            let sessionError = '';
+            try {
+                const { data, error } = await supabaseClient.auth.getSession();
+                if (error) sessionError = error.message || String(error);
+                session = data?.session || null;
+                user = session?.user || null;
+            } catch (error) {
+                sessionError = error instanceof Error ? error.message : String(error);
+            }
+            const accessToken = session?.access_token || '';
+            const snapshot = {
+                debugAuth: true,
+                username: adminUser?.username || '',
+                hasSupabaseSession: Boolean(session),
+                hasAccessToken: Boolean(accessToken),
+                authUserId: user?.id || null,
+                authUserEmail: user?.email || null,
+                willAttachAuthorizationHeader: Boolean(accessToken),
+                authorizationHeaderPreview: accessToken ? `Bearer ${redactToken(accessToken)}` : null,
+                sessionError,
+                latestStatusPreflight: authDebugState.latestStatusPreflight,
+                latestEdgeFunction: authDebugState.latestEdgeFunction,
+                latestProvision: authDebugState.latestProvision,
+                latestError: authDebugState.latestError,
+                ...extra
+            };
+            authDebugPanelEl.textContent = JSON.stringify(snapshot, null, 2);
+            authDebugPanelEl.classList.add('visible');
+        };
 
         const setStatus = (message, isError = false) => {
             statusEl.textContent = message;
@@ -1689,9 +1751,23 @@
             const { data: sessionData } = await supabaseClient.auth.getSession();
             const accessToken = sessionData?.session?.access_token || '';
             if (!accessToken) {
+                authDebugState.latestError = `${functionName}: missing Supabase Auth session/access token`;
+                await updateAuthDebugPanel({ stage: `${functionName}:missing-session` });
                 throw new Error('Supabase Auth session is required.');
             }
             try {
+                authDebugState.latestEdgeFunction = {
+                    stage: functionName,
+                    requestUrl: `${SUPABASE_URL}/functions/v1/${functionName}`,
+                    requestHeaders: {
+                        Authorization: `Bearer ${redactToken(accessToken)}`,
+                        'Content-Type': 'application/json'
+                    },
+                    hasSession: Boolean(sessionData?.session),
+                    hasAccessToken: Boolean(accessToken),
+                    authUserId: sessionData?.session?.user?.id || null
+                };
+                await updateAuthDebugPanel({ stage: `${functionName}:before-request` });
                 const { data, error } = await supabaseClient.functions.invoke(functionName, {
                     method,
                     body,
@@ -1700,8 +1776,22 @@
                     }
                 });
                 if (error) throw error;
+                authDebugState.latestEdgeFunction = {
+                    ...authDebugState.latestEdgeFunction,
+                    response: data || null,
+                    error: null
+                };
+                authDebugState.latestError = '';
+                await updateAuthDebugPanel({ stage: `${functionName}:response` });
                 return data || {};
             } catch (error) {
+                authDebugState.latestEdgeFunction = {
+                    ...authDebugState.latestEdgeFunction,
+                    response: null,
+                    error: error instanceof Error ? error.message : String(error)
+                };
+                authDebugState.latestError = authDebugState.latestEdgeFunction.error;
+                await updateAuthDebugPanel({ stage: `${functionName}:error` });
                 throw new Error(`Could not reach Supabase Edge Function "${functionName}". Check that the function is deployed at ${SUPABASE_URL}/functions/v1/${functionName}, CORS is enabled, and the browser can reach your Supabase project. Original error: ${error instanceof Error ? error.message : String(error)}`);
             }
         };
@@ -1844,6 +1934,14 @@
                 email,
                 password
             });
+            authDebugState.latestProvision = {
+                stage: 'initial-sign-in',
+                email,
+                signInSucceeded: !signInResult.error,
+                signInError: signInResult.error?.message || null,
+                sessionReturned: Boolean(signInResult.data?.session)
+            };
+            await updateAuthDebugPanel({ stage: 'initial-sign-in' });
             if (signInResult.error) {
                 try {
                     const provisionResult = await supabaseClient.functions.invoke('provision-auth-user', {
@@ -1856,6 +1954,15 @@
                     if (provisionResult.error) {
                         throw provisionResult.error;
                     }
+                    authDebugState.latestProvision = {
+                        stage: 'provision-auth-user-response',
+                        email,
+                        sessionReturned: Boolean(provisionResult.data?.session),
+                        accessTokenReturned: Boolean(provisionResult.data?.session?.access_token),
+                        userIdReturned: provisionResult.data?.user_id || null,
+                        response: provisionResult.data || null
+                    };
+                    await updateAuthDebugPanel({ stage: 'provision-auth-user-response' });
                     if (provisionResult.data?.session?.access_token && provisionResult.data?.session?.refresh_token) {
                         const sessionResult = await supabaseClient.auth.setSession({
                             access_token: provisionResult.data.session.access_token,
@@ -1864,14 +1971,39 @@
                         if (sessionResult.error) {
                             throw sessionResult.error;
                         }
+                        authDebugState.latestProvision = {
+                            ...authDebugState.latestProvision,
+                            stage: 'set-session-result',
+                            setSessionSucceeded: true,
+                            currentAuthUserId: sessionResult.data?.session?.user?.id || null,
+                            currentAuthEmail: sessionResult.data?.session?.user?.email || null,
+                            hasCurrentAccessToken: Boolean(sessionResult.data?.session?.access_token)
+                        };
+                        await updateAuthDebugPanel({ stage: 'set-session-result' });
                         return sessionResult.data?.session || provisionResult.data.session;
                     }
                 } catch (provisionError) {
+                    authDebugState.latestProvision = {
+                        ...(authDebugState.latestProvision || {}),
+                        stage: 'provision-error',
+                        error: provisionError instanceof Error ? provisionError.message : String(provisionError)
+                    };
+                    authDebugState.latestError = authDebugState.latestProvision.error;
+                    await updateAuthDebugPanel({ stage: 'provision-error' });
                     throw new Error(
                         `Supabase Auth provisioning failed through ${SUPABASE_URL}/functions/v1/provision-auth-user. Check that provision-auth-user is deployed, verify_jwt is false for this function, and CORS allows this page. Original error: ${provisionError instanceof Error ? provisionError.message : String(provisionError)}`
                     );
                 }
-                return await signInWithSyntheticEmail();
+                const fallbackSession = await signInWithSyntheticEmail();
+                authDebugState.latestProvision = {
+                    ...(authDebugState.latestProvision || {}),
+                    stage: 'fallback-sign-in',
+                    fallbackSessionExists: Boolean(fallbackSession),
+                    currentAuthUserId: fallbackSession?.user?.id || null,
+                    currentAuthEmail: fallbackSession?.user?.email || null
+                };
+                await updateAuthDebugPanel({ stage: 'fallback-sign-in' });
+                return fallbackSession;
             }
             return signInResult.data?.session || null;
         };
@@ -4340,6 +4472,21 @@
                 updateCalendarConnectUi();
                 updateSearchAutomateAvailability();
                 await ensureEdgeFunctionSession();
+                const { data: sessionData } = await supabaseClient.auth.getSession();
+                const accessToken = sessionData?.session?.access_token || '';
+                authDebugState.latestStatusPreflight = {
+                    stage: 'before-google-calendar-status',
+                    hasSession: Boolean(sessionData?.session),
+                    hasAccessToken: Boolean(accessToken),
+                    authUserId: sessionData?.session?.user?.id || null,
+                    requestUrl: `${SUPABASE_URL}/functions/v1/google-calendar-status`,
+                    requestHeaders: {
+                        Authorization: accessToken ? `Bearer ${redactToken(accessToken)}` : null,
+                        apikey: 'present',
+                        'Content-Type': 'application/json'
+                    }
+                };
+                await updateAuthDebugPanel({ stage: 'before-google-calendar-status' });
                 const data = await edgeFunctionJson('google-calendar-status');
                 if (data?.error) {
                     throw new Error(String(data.error));
