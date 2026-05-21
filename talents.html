@@ -2859,20 +2859,19 @@
             const safeOptions = Array.isArray(options) && options.length ? options : ['Great'];
             return safeOptions[hashString(seed) % safeOptions.length];
         };
-        const normalizeCalendarSummary = (text, fallbackBio = 'strong professional background') => {
+        const sanitizeCalendarBriefBackground = (text, fallbackBio = 'strong professional background') => {
             let cleaned = String(text || fallbackBio || 'strong professional background')
                 .replace(/\s+/g, ' ')
                 .trim();
             cleaned = cleaned.replace(/^["']+|["']+$/g, '').trim();
             cleaned = cleaned
                 .replace(/\b(has\s+been|have\s+been|will\s+be|would\s+be)\b/gi, ' ')
-                .replace(/\b(am|is|are|i|my|me|myself|mine|he|his|him|she|her|we|us|our|they|them|their)\b/gi, ' ')
+                .replace(/\b(am|is|are|i|my|me|myself|mine|you|your|yours|he|his|him|she|her|we|us|our|they|them|their)\b/gi, ' ')
                 .replace(/\s+([,.;:!?])/g, '$1')
                 .replace(/[,\s]+$/g, '')
                 .replace(/\s+/g, ' ')
                 .trim();
-            const summary = truncateWords(cleaned || fallbackBio || 'strong professional background', 30);
-            return /[.!?]$/.test(summary) ? summary : `${summary}.`;
+            return cleaned || fallbackBio || 'strong professional background';
         };
         const buildCalendarInvitationSubject = (profile = {}, values = {}) => {
             const seed = [
@@ -2889,8 +2888,8 @@
             const backgroundDescriptor = seededChoice(CALENDAR_BACKGROUND_DESCRIPTORS, `${seed}:background`);
             return `${opportunityWord} Opportunity Matching Your ${backgroundDescriptor} Background`;
         };
-        const buildCalendarPraiseParagraph = (summary = 'strong professional background') => (
-            normalizeCalendarSummary(summary)
+        const buildCalendarPraiseParagraph = (briefBackground = 'strong professional background') => (
+            `Your profile is highly impressive: ${sanitizeCalendarBriefBackground(briefBackground)}`
         );
         const buildInvitationSubject = ({ opportunityWord = 'Great', summary = 'Professional Background' } = {}) => {
             const normalizedWord = titleCaseWords(truncateWords(opportunityWord || 'Great', 1)) || 'Great';
@@ -2906,7 +2905,7 @@
             const invitationPayload = payload?.calendar_invitation && typeof payload.calendar_invitation === 'object' ? payload.calendar_invitation : {};
             return {
                 calendar_invitation: {
-                    summary: normalizeCalendarSummary(invitationPayload.summary, fallbackBio)
+                    summary: sanitizeCalendarBriefBackground(invitationPayload.summary, fallbackBio)
                 }
             };
         };
@@ -2988,29 +2987,6 @@
             if (content && typeof content === 'object') return content;
             throw new Error('Unexpected DeepSeek response.');
         };
-        const generateCalendarBriefSummary = async ({ candidateName, briefBio, company, role, contact }) => {
-            const payload = await deepseekJson([
-                {
-                    role: 'system',
-                    content: (
-                        'Return JSON only using this exact schema: ' +
-                        '{"calendar_invitation":{"summary":"string"}}. ' +
-                        'Generate only the requested summary.'
-                    )
-                },
-                {
-                    role: 'user',
-                    content: (
-                        `Candidate name: ${candidateName}. Supabase profile brief_background field: ${briefBio}. Company: ${company}. Role: ${role}. Preferred contact: ${contact}. ` +
-                        'Use only the supplied brief_background field. No hallucinations. ' +
-                        'calendar_invitation.summary: summarize the strongest relevant background in no more than 30 words. ' +
-                        'Avoid these words and phrases: am, is, are, has been, have been, will be, would be, I, my, me, myself, mine, he, his, him, she, her, we, us, our, they, them, their.'
-                    )
-                }
-            ], scheduleInvitationResponseFormat());
-            return normalizeScheduleCopyPayload(payload, briefBio).calendar_invitation.summary;
-        };
-
         const generateEmailDraft = async (profile, values) => {
             const candidateName = String(profile.name_or_handle || profile.name || 'Candidate').trim();
             const seniority = String(profile.seniority || 'background').trim();
@@ -3096,10 +3072,9 @@
             const contact = String(values.contact || '').trim();
             const context = { candidateName, company, role, contact };
             try {
-                const briefSummary = await generateCalendarBriefSummary({ candidateName, briefBio, company, role, contact });
                 const subject = buildCalendarInvitationSubject(profile, values);
                 const paragraph2 = buildCalendarPraiseParagraph(
-                    replaceInvitePlaceholders(briefSummary, context)
+                    replaceInvitePlaceholders(briefBio, context)
                 );
                 const body = [
                     `Hi ${candidateName},`,
