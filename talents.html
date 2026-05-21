@@ -997,6 +997,42 @@
         .calendar-connected-check input {
             accent-color: var(--accent-2);
         }
+        .search-history-panel {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 16px;
+            border: 1px solid var(--icon-border);
+            background: rgba(255, 255, 255, 0.03);
+        }
+        .search-history-title {
+            color: var(--muted);
+            font-size: 0.86rem;
+            margin-bottom: 8px;
+        }
+        .search-history-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .search-history-item {
+            max-width: 100%;
+            border: 1px solid var(--icon-border);
+            background: var(--input-bg);
+            color: var(--text);
+            border-radius: 999px;
+            padding: 8px 12px;
+            font: inherit;
+            font-size: 0.88rem;
+            line-height: 1.25;
+            cursor: pointer;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .search-history-item:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
         .auth-debug-panel {
             display: none;
             margin-top: 12px;
@@ -1215,6 +1251,10 @@
                                 </div>
                                 <div class="schedule-status" id="calendar-connect-status"></div>
                                 <pre class="auth-debug-panel" id="auth-debug-panel"></pre>
+                            </div>
+                            <div class="search-history-panel" id="search-history-panel" style="display:none;">
+                                <div class="search-history-title">Recent searches</div>
+                                <div class="search-history-list" id="search-history-list"></div>
                             </div>
                             <div class="sql-box" id="search-automation-box" style="display:none;">
                                 <pre id="search-automation-output"></pre>
@@ -1487,6 +1527,8 @@
         const PAGE_SIZE = 20;
         const MAX_PUBLIC_PAGES = 10;
         const MAX_PUBLIC_RESULTS = PAGE_SIZE * MAX_PUBLIC_PAGES;
+        const SEARCH_HISTORY_LIMIT = 5;
+        const SEARCH_HISTORY_STORAGE_KEY = 'agitalent.searchHistory.v1';
 
         const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
         const searchInput = document.getElementById('search-input');
@@ -1511,6 +1553,8 @@
         const calendarConnectStatusEl = document.getElementById('calendar-connect-status');
         const calendarConnectedCheckEl = document.getElementById('calendar-connected-check');
         const authDebugPanelEl = document.getElementById('auth-debug-panel');
+        const searchHistoryPanelEl = document.getElementById('search-history-panel');
+        const searchHistoryListEl = document.getElementById('search-history-list');
         const signupPromoEl = document.getElementById('signup-promo');
         const signupPromoButton = document.getElementById('signup-promo-button');
         const topbarAuthActionsEl = document.getElementById('topbar-auth-actions');
@@ -1907,6 +1951,56 @@
 
         const isLoggedIn = () => Boolean(adminUser?.username);
         const isAdminLoggedIn = () => Boolean(adminUser?.username && adminUser?.rights === 'admin');
+        const readSearchHistory = () => {
+            try {
+                const parsed = JSON.parse(localStorage.getItem(SEARCH_HISTORY_STORAGE_KEY) || '[]');
+                if (!Array.isArray(parsed)) return [];
+                const seen = new Set();
+                return parsed
+                    .map((item) => String(item || '').trim())
+                    .filter(Boolean)
+                    .filter((item) => {
+                        const key = item.toLowerCase();
+                        if (seen.has(key)) return false;
+                        seen.add(key);
+                        return true;
+                    })
+                    .slice(0, SEARCH_HISTORY_LIMIT);
+            } catch (_error) {
+                return [];
+            }
+        };
+        const writeSearchHistory = (items) => {
+            try {
+                localStorage.setItem(SEARCH_HISTORY_STORAGE_KEY, JSON.stringify(items.slice(0, SEARCH_HISTORY_LIMIT)));
+            } catch (_error) {
+                // Search history is optional; private-mode storage failures should not block search.
+            }
+        };
+        const renderSearchHistory = () => {
+            if (!searchHistoryPanelEl || !searchHistoryListEl) return;
+            const history = readSearchHistory();
+            const visible = isLoggedIn() && history.length > 0;
+            searchHistoryPanelEl.style.display = visible ? '' : 'none';
+            if (!visible) {
+                searchHistoryListEl.innerHTML = '';
+                return;
+            }
+            searchHistoryListEl.innerHTML = history.map((query) => (
+                `<button class="search-history-item" type="button" data-search-history="${escapeHtml(query)}" title="${escapeHtml(query)}">${escapeHtml(query)}</button>`
+            )).join('');
+        };
+        const rememberSearchQuery = (query) => {
+            const normalized = String(query || '').trim();
+            if (!normalized) return;
+            const history = readSearchHistory();
+            const nextHistory = [
+                normalized,
+                ...history.filter((item) => item.toLowerCase() !== normalized.toLowerCase())
+            ].slice(0, SEARCH_HISTORY_LIMIT);
+            writeSearchHistory(nextHistory);
+            renderSearchHistory();
+        };
         const normalizeSupabaseAuthLocalPart = (username) => {
             const normalized = String(username || '')
                 .trim()
@@ -2591,6 +2685,7 @@
             updateAutomateScheduleUi();
             updateCalendarConnectUi();
             updateSearchAutomateAvailability();
+            renderSearchHistory();
             updateResetPasswordUi();
             startAccessWindowMonitor();
         };
@@ -4948,6 +5043,7 @@
             try {
                 if (usePrompt) {
                     activePrompt = searchInput.value.trim();
+                    rememberSearchQuery(activePrompt);
                     if (searchAutomateToggle?.checked) {
                         if (!activePrompt) {
                             throw new Error('Enter a search request first.');
@@ -5020,6 +5116,14 @@
         if (calendarDisconnectButton) {
             calendarDisconnectButton.addEventListener('click', async () => {
                 await disconnectGoogleCalendar();
+            });
+        }
+        if (searchHistoryListEl) {
+            searchHistoryListEl.addEventListener('click', (event) => {
+                const button = event.target.closest('[data-search-history]');
+                if (!button || !searchHistoryListEl.contains(button)) return;
+                searchInput.value = button.dataset.searchHistory || '';
+                searchInput.focus();
             });
         }
         if (automateScheduleFormEl) {
