@@ -4341,6 +4341,9 @@
                 updateSearchAutomateAvailability();
                 await ensureEdgeFunctionSession();
                 const data = await edgeFunctionJson('google-calendar-status');
+                if (data?.error) {
+                    throw new Error(String(data.error));
+                }
                 googleCalendarIntegration = {
                     loading: false,
                     connected: Boolean(data?.connected),
