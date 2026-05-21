@@ -2681,8 +2681,12 @@
         );
         const truncateWords = (text, maxWords) => String(text || '').trim().split(/\s+/).filter(Boolean).slice(0, maxWords).join(' ');
         const buildInvitationSubject = (summary) => {
-            const normalizedSummary = truncateWords(summary || 'background', 12) || 'background';
-            return truncateWords(`Superb opportunity matching your ${normalizedSummary}`, 20);
+            const normalizedSummary = truncateWords(summary || 'background', 10) || 'background';
+            return `Strong opportunity matching your ${normalizedSummary}`;
+        };
+        const buildInvitationPraiseParagraph = (summary, adjective = 'outstanding') => {
+            const normalizedSummary = truncateWords(summary || 'background and expertise', 20) || 'background and expertise';
+            return `Your ${normalizedSummary} is ${adjective}.`;
         };
         const shouldRetryLegacyEmailOutreachRpc = (error) => {
             const message = String(error?.message || error?.details || error?.hint || '').toLowerCase();
@@ -2760,20 +2764,27 @@
                         )
                     }
                 ] : [
-                    { role: 'system', content: 'Return JSON only: {"background_summary":"", "paragraph2":""}.' },
+                    { role: 'system', content: 'Return JSON only: {"subject_summary":"","paragraph2_summary":"","praise_adjective":""}.' },
                     {
                         role: 'user',
                         content: (
-                            `Candidate name: ${candidateName}. Seniority: ${seniority}. Company: ${company}. Role: ${role}. Preferred contact: ${contact}. ` +
-                            'Background_summary only: summarize the seniority/background in 4 to 10 words. ' +
-                            'Paragraph2 only: praise education/corporate background and expertise from seniority, under 30 words.'
+                            `Candidate name: ${candidateName}. Field brief_background: ${seniority}. Company: ${company}. Role: ${role}. Preferred contact: ${contact}. ` +
+                            'subject_summary: exactly 6 to 10 words summarizing the candidate achievement and advantage from brief_background. ' +
+                            'paragraph2_summary: exactly 14 to 20 words summarizing the candidate achievement and advantage from brief_background. ' +
+                            'praise_adjective: one word similar to outstanding, excellent, exceptional, remarkable, impressive, or strong. ' +
+                            'Do not include placeholders, quotes, company, role, greeting, or full sentence punctuation in the summaries.'
                         )
                     }
                 ]);
                 const title = mode === OUTREACH_MODE_SEEKING
                     ? 'Apply for roles if your team can kindly provide a fit.'
-                    : buildInvitationSubject(replaceInvitePlaceholders(String(payload?.background_summary || seniority).trim(), context));
-                const paragraph2 = replaceInvitePlaceholders(String(payload?.paragraph2 || `Your ${seniority} background and expertise stand out.`).trim(), context);
+                    : buildInvitationSubject(replaceInvitePlaceholders(String(payload?.subject_summary || seniority).trim(), context));
+                const paragraph2 = mode === OUTREACH_MODE_SEEKING
+                    ? replaceInvitePlaceholders(String(payload?.paragraph2 || `I am a veteran in ${role}, with ${seniority} background and expertise.`).trim(), context)
+                    : buildInvitationPraiseParagraph(
+                        replaceInvitePlaceholders(String(payload?.paragraph2_summary || seniority).trim(), context),
+                        replaceInvitePlaceholders(String(payload?.praise_adjective || 'outstanding').trim(), context)
+                    );
                 const body = [
                     `Hi ${candidateName},`,
                     paragraph2,
@@ -2795,7 +2806,7 @@
                         `Hi ${candidateName},`,
                         mode === OUTREACH_MODE_SEEKING
                             ? `I am a veteran in ${role}, with ${seniority} background and expertise.`
-                            : `Your ${seniority} background and expertise stand out.`,
+                            : buildInvitationPraiseParagraph(seniority),
                         buildOpportunityParagraph(mode, company, role),
                         mode === OUTREACH_MODE_SEEKING
                             ? `My profile link is ${contact}.`
