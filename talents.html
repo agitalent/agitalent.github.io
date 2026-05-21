@@ -980,6 +980,23 @@
             color: var(--muted);
             line-height: 1.5;
         }
+        .calendar-connect-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .calendar-connected-check {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            color: var(--accent-2);
+            font-size: 0.95rem;
+            white-space: nowrap;
+        }
+        .calendar-connected-check input {
+            accent-color: var(--accent-2);
+        }
         @media (max-width: 1040px) {
             html,
             body {
@@ -1171,6 +1188,17 @@
                                     </div>
                                 </div>
                                 <div class="schedule-status" id="automate-schedule-status">Choose how many top automated results to invite. When set above 0, search completion will automatically queue Google Calendar invitations for those top records.</div>
+                            </div>
+                            <div class="schedule-panel" id="calendar-connect-panel" style="display:none; margin-top:12px;">
+                                <div class="actions calendar-connect-actions" id="calendar-connect-actions">
+                                    <button class="button-secondary" data-icon="◌" id="calendar-connect-button" type="button">Connect Google Calendar</button>
+                                    <label class="calendar-connected-check" id="calendar-connected-check" for="calendar-connected-checkbox">
+                                        <input id="calendar-connected-checkbox" type="checkbox" checked disabled>
+                                        <span>Connected</span>
+                                    </label>
+                                    <button class="button-secondary button-danger" data-icon="×" id="calendar-disconnect-button" type="button" style="display:none;">Disconnect</button>
+                                </div>
+                                <div class="schedule-status" id="calendar-connect-status"></div>
                             </div>
                             <div class="sql-box" id="search-automation-box" style="display:none;">
                                 <pre id="search-automation-output"></pre>
@@ -1461,6 +1489,11 @@
         const automateScheduleCompanyInput = document.getElementById('automate-schedule-company');
         const automateScheduleRoleInput = document.getElementById('automate-schedule-role');
         const automateScheduleContactInput = document.getElementById('automate-schedule-contact');
+        const calendarConnectPanelEl = document.getElementById('calendar-connect-panel');
+        const calendarConnectButton = document.getElementById('calendar-connect-button');
+        const calendarDisconnectButton = document.getElementById('calendar-disconnect-button');
+        const calendarConnectStatusEl = document.getElementById('calendar-connect-status');
+        const calendarConnectedCheckEl = document.getElementById('calendar-connected-check');
         const signupPromoEl = document.getElementById('signup-promo');
         const signupPromoButton = document.getElementById('signup-promo-button');
         const topbarAuthActionsEl = document.getElementById('topbar-auth-actions');
@@ -1600,6 +1633,11 @@
         let activePrompt = '';
         let automatedSearchState = null;
         let automateScheduleValues = null;
+        let googleCalendarIntegration = {
+            loading: false,
+            connected: false,
+            google_email: ''
+        };
         let currentOffset = 0;
         let totalCount = 0;
         let lastRowsLength = 0;
@@ -1632,6 +1670,7 @@
         const TALENTS_THEME_KEY = 'talentsTheme';
         const OUTREACH_MODE_HIRING = 'hiring_talents';
         const OUTREACH_MODE_SEEKING = 'seeking_jobs';
+        const SUPABASE_AUTH_EMAIL_DOMAIN = 'users.agitalent.tech';
 
         const setStatus = (message, isError = false) => {
             statusEl.textContent = message;
@@ -1641,6 +1680,68 @@
         const setAdminStatus = (message, isError = false) => {
             adminAuthStatusEl.textContent = message;
             adminAuthStatusEl.classList.toggle('error', isError);
+        };
+        const edgeFunctionJson = async (functionName, { method = 'GET', body = null } = {}) => {
+            if (!supabaseClient) {
+                throw new Error('Supabase client failed to initialize.');
+            }
+            const { data: sessionData } = await supabaseClient.auth.getSession();
+            const accessToken = sessionData?.session?.access_token || '';
+            if (!accessToken) {
+                throw new Error('Supabase Auth session is required.');
+            }
+            try {
+                const { data, error } = await supabaseClient.functions.invoke(functionName, {
+                    method,
+                    body,
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                    }
+                });
+                if (error) throw error;
+                return data || {};
+            } catch (error) {
+                throw new Error(`Could not reach Supabase Edge Function "${functionName}". Check that the function is deployed at ${SUPABASE_URL}/functions/v1/${functionName}, CORS is enabled, and the browser can reach your Supabase project. Original error: ${error instanceof Error ? error.message : String(error)}`);
+            }
+        };
+        const isNonAdminLoggedIn = () => isLoggedIn() && !isAdminLoggedIn();
+        const updateCalendarConnectUi = () => {
+            if (!calendarConnectPanelEl || !calendarConnectStatusEl || !calendarConnectButton || !calendarDisconnectButton) return;
+            const visible = isNonAdminLoggedIn();
+            calendarConnectPanelEl.style.display = visible ? '' : 'none';
+            if (!visible) return;
+            calendarConnectButton.disabled = googleCalendarIntegration.loading;
+            calendarDisconnectButton.disabled = googleCalendarIntegration.loading;
+            if (calendarConnectedCheckEl) {
+                calendarConnectedCheckEl.style.display = 'none';
+            }
+            if (googleCalendarIntegration.loading) {
+                calendarConnectButton.textContent = 'Connecting...';
+                calendarConnectButton.style.display = '';
+                calendarDisconnectButton.style.display = 'none';
+                calendarConnectStatusEl.textContent = 'Connecting your Google Calendar...';
+                calendarConnectStatusEl.classList.remove('error');
+                return;
+            }
+            if (googleCalendarIntegration.connected) {
+                calendarConnectButton.textContent = 'Connect Google Calendar';
+                calendarConnectButton.disabled = true;
+                calendarConnectButton.style.display = '';
+                calendarDisconnectButton.style.display = '';
+                if (calendarConnectedCheckEl) {
+                    calendarConnectedCheckEl.style.display = 'inline-flex';
+                }
+                calendarConnectStatusEl.textContent = googleCalendarIntegration.google_email
+                    ? `Connected as ${googleCalendarIntegration.google_email}.`
+                    : '';
+                calendarConnectStatusEl.classList.remove('error');
+                return;
+            }
+            calendarConnectButton.textContent = 'Connect Google Calendar';
+            calendarConnectButton.style.display = '';
+            calendarDisconnectButton.style.display = 'none';
+            calendarConnectStatusEl.textContent = 'Connect your Google Calendar to send invitations from your own Google account.';
+            calendarConnectStatusEl.classList.remove('error');
         };
 
         const setModalStatus = (element, message, isError = false) => {
@@ -1702,6 +1803,92 @@
 
         const isLoggedIn = () => Boolean(adminUser?.username);
         const isAdminLoggedIn = () => Boolean(adminUser?.username && adminUser?.rights === 'admin');
+        const normalizeSupabaseAuthLocalPart = (username) => {
+            const normalized = String(username || '')
+                .trim()
+                .toLowerCase()
+                .replace(/[^a-z0-9.+-]/g, '-')
+                .replace(/-+/g, '-')
+                .replace(/^[.-]+|[.-]+$/g, '');
+            return normalized || 'user';
+        };
+        const appUsernameToSupabaseEmail = (username) => `${normalizeSupabaseAuthLocalPart(username)}@${SUPABASE_AUTH_EMAIL_DOMAIN}`;
+        const ensureSupabaseAuthSession = async (username, password) => {
+            if (!supabaseClient) {
+                throw new Error('Supabase client failed to initialize.');
+            }
+            const email = appUsernameToSupabaseEmail(username);
+            const signInWithSyntheticEmail = async () => {
+                const secondSignIn = await supabaseClient.auth.signInWithPassword({
+                    email,
+                    password
+                });
+                if (secondSignIn.error) throw secondSignIn.error;
+                return secondSignIn.data?.session || null;
+            };
+            const signInResult = await supabaseClient.auth.signInWithPassword({
+                email,
+                password
+            });
+            if (signInResult.error) {
+                try {
+                    const provisionResult = await supabaseClient.functions.invoke('provision-auth-user', {
+                        method: 'POST',
+                        body: {
+                            username: String(username || '').trim(),
+                            password
+                        }
+                    });
+                    if (provisionResult.error) {
+                        throw provisionResult.error;
+                    }
+                    if (provisionResult.data?.session?.access_token && provisionResult.data?.session?.refresh_token) {
+                        const sessionResult = await supabaseClient.auth.setSession({
+                            access_token: provisionResult.data.session.access_token,
+                            refresh_token: provisionResult.data.session.refresh_token
+                        });
+                        if (sessionResult.error) {
+                            throw sessionResult.error;
+                        }
+                        return sessionResult.data?.session || provisionResult.data.session;
+                    }
+                } catch (provisionError) {
+                    throw new Error(
+                        `Supabase Auth provisioning failed through ${SUPABASE_URL}/functions/v1/provision-auth-user. Check that provision-auth-user is deployed, verify_jwt is false for this function, and CORS allows this page. Original error: ${provisionError instanceof Error ? provisionError.message : String(provisionError)}`
+                    );
+                }
+                return await signInWithSyntheticEmail();
+            }
+            return signInResult.data?.session || null;
+        };
+        const ensureSupabaseAuthSessionSafely = async (username, password) => {
+            try {
+                return await ensureSupabaseAuthSession(username, password);
+            } catch (error) {
+                return {
+                    session: null,
+                    error: error instanceof Error ? error.message : String(error || 'Unknown Supabase Auth error.')
+                };
+            }
+        };
+        const ensureEdgeFunctionSession = async () => {
+            if (!isNonAdminLoggedIn()) {
+                throw new Error('Supabase Auth session is required.');
+            }
+            if (!supabaseClient) {
+                throw new Error('Supabase client failed to initialize.');
+            }
+            const { data: sessionData } = await supabaseClient.auth.getSession();
+            if (sessionData?.session?.access_token) {
+                return sessionData.session;
+            }
+            const authBootstrap = await ensureSupabaseAuthSessionSafely(adminUser?.username || '', adminPassword || '');
+            const { data: refreshedSessionData } = await supabaseClient.auth.getSession();
+            if (!refreshedSessionData?.session?.access_token) {
+                throw new Error(authBootstrap?.error || 'Supabase Auth session could not be created for this user.');
+            }
+            return refreshedSessionData.session;
+        };
         const canUseEmailTools = () => isLoggedIn();
         const canUseScheduleTools = () => isLoggedIn();
         const isProfileSelectedForSchedule = (profileId) => selectedScheduleProfileIds.includes(profileId);
@@ -2220,9 +2407,9 @@
             signupPromoEl.style.display = isLoggedIn() ? 'none' : 'grid';
             adminAddUserPanel.style.display = isAdminLoggedIn() ? '' : 'none';
             if (searchAutomateControlsEl) {
-                searchAutomateControlsEl.style.display = isAdminLoggedIn() ? '' : 'none';
+                searchAutomateControlsEl.style.display = isLoggedIn() ? '' : 'none';
             }
-            if (!isAdminLoggedIn() && searchAutomateToggle) {
+            if (!isLoggedIn() && searchAutomateToggle) {
                 searchAutomateToggle.checked = false;
             }
             dashboardGridEl.classList.toggle('user-mode', isLoggedIn() && !isAdminLoggedIn());
@@ -2255,6 +2442,7 @@
             }
             updateUserOperationUi();
             updateAutomateScheduleUi();
+            updateCalendarConnectUi();
             updateResetPasswordUi();
             startAccessWindowMonitor();
         };
@@ -2823,15 +3011,19 @@
             const visible = Boolean(searchAutomateToggle?.checked);
             automateSchedulePanelEl.style.display = visible ? '' : 'none';
             if (!visible) return;
-            const enabled = isAdminLoggedIn();
+            const enabled = isAdminLoggedIn() || (isNonAdminLoggedIn() && googleCalendarIntegration.connected);
             automateScheduleFormEl.querySelectorAll('input, select, textarea').forEach((element) => {
                 if (element === automateTopCountInput || element instanceof HTMLElement) {
                     element.disabled = !enabled;
                 }
             });
             automateScheduleStatusEl.textContent = enabled
-                ? 'Choose how many top automated results to invite. When set above 0, search completion will automatically queue Google Calendar invitations for those top records.'
-                : 'Log in with admin rights to auto-send Google Calendar invitations after automated search.';
+                ? (isAdminLoggedIn()
+                    ? 'Choose how many top automated results to invite. When set above 0, search completion will automatically queue Google Calendar invitations for those top records.'
+                    : 'Choose how many top automated results to invite. When set above 0, search completion will create Google Calendar invitations from your connected Google account.')
+                : (isNonAdminLoggedIn()
+                    ? 'Connect Google Calendar to use Automate as a non-admin user.'
+                    : 'Log in to use automated invitation sending.');
             automateScheduleStatusEl.classList.toggle('error', visible && !enabled);
             syncAutomateScheduleForm();
         };
@@ -3790,7 +3982,7 @@
             }
         };
         const autoQueueAutomatedScheduleInvites = async () => {
-            if (!searchAutomateToggle?.checked || !isAdminLoggedIn()) return null;
+            if (!searchAutomateToggle?.checked || !isLoggedIn()) return null;
             const payload = parseAutomateScheduleForm();
             automateScheduleValues = payload;
             if (!payload.top_count) return { queuedCount: 0, requestedCount: 0 };
@@ -3803,13 +3995,56 @@
             }
             let lastScheduledFor = '';
             for (const profile of candidates) {
-                const { data, error } = await supabaseClient.rpc('admin_enqueue_schedule_invite', {
-                    ...authRpcCredentials(),
-                    p_profile_id: profile.id,
-                    p_schedule: payload
-                });
-                if (error) throw error;
-                lastScheduledFor = data?.scheduled_for || lastScheduledFor;
+                if (isAdminLoggedIn()) {
+                    const { data, error } = await supabaseClient.rpc('admin_enqueue_schedule_invite', {
+                        ...authRpcCredentials(),
+                        p_profile_id: profile.id,
+                        p_schedule: payload
+                    });
+                    if (error) throw error;
+                    lastScheduledFor = data?.scheduled_for || lastScheduledFor;
+                } else if (googleCalendarIntegration.connected) {
+                    const draft = await generateScheduleDraft(profile, payload);
+                    const { error } = await supabaseClient.rpc('log_schedule_outreach', {
+                        ...authRpcCredentials(),
+                        p_profile_id: profile.id,
+                        p_schedule: payload,
+                        p_invite_title: draft.subject,
+                        p_invite_content: draft.body
+                    });
+                    if (error) throw error;
+                    await ensureEdgeFunctionSession();
+                    const startAt = `${payload.date}T${payload.time}:00`;
+                    const endParts = addMinutesToScheduleTime(payload.date, payload.time, 15);
+                    const endAt = `${endParts.date}T${endParts.hour}:${endParts.minute}:00`;
+                    await edgeFunctionJson('create-calendar-event', {
+                        method: 'POST',
+                        body: {
+                            event: {
+                                summary: draft.subject,
+                                description: draft.body,
+                                start: {
+                                    dateTime: startAt,
+                                    timeZone: payload.timezone,
+                                },
+                                end: {
+                                    dateTime: endAt,
+                                    timeZone: payload.timezone,
+                                },
+                                attendees: [{ email: String(profile._candidate_email || profile.email || '').trim() }],
+                                conferenceData: {
+                                    createRequest: {
+                                        requestId: String(profile.id),
+                                        conferenceSolutionKey: { type: 'hangoutsMeet' }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    lastScheduledFor = `${payload.date} ${payload.time} ${payload.timezone}`;
+                } else {
+                    throw new Error('Connect Google Calendar to use Automate as a non-admin user.');
+                }
             }
             applyOutreachDefaultsLocally(payload);
             currentRows = currentRows.map((row) => (
@@ -4065,10 +4300,78 @@
                 adminPassword = password;
                 adminUsernameInput.value = username;
                 adminPasswordInput.value = '';
+                if (data?.rights !== 'admin') {
+                    await ensureSupabaseAuthSessionSafely(username, password);
+                }
             } catch (_error) {
                 adminUser = null;
                 adminPassword = '';
                 clearAdminSession();
+            }
+        };
+        const loadGoogleCalendarIntegration = async () => {
+            googleCalendarIntegration = {
+                loading: false,
+                connected: false,
+                google_email: ''
+            };
+            updateCalendarConnectUi();
+            if (!isNonAdminLoggedIn()) return;
+            try {
+                googleCalendarIntegration.loading = true;
+                updateCalendarConnectUi();
+                await ensureEdgeFunctionSession();
+                const data = await edgeFunctionJson('google-calendar-status');
+                googleCalendarIntegration = {
+                    loading: false,
+                    connected: Boolean(data?.connected),
+                    google_email: String(data?.google_email || '').trim()
+                };
+            } catch (_error) {
+                googleCalendarIntegration = {
+                    loading: false,
+                    connected: false,
+                    google_email: ''
+                };
+            }
+            updateCalendarConnectUi();
+        };
+        const startGoogleCalendarConnect = async () => {
+            if (!isNonAdminLoggedIn()) return;
+            try {
+                googleCalendarIntegration.loading = true;
+                updateCalendarConnectUi();
+                await ensureEdgeFunctionSession();
+                const data = await edgeFunctionJson('google-oauth-start');
+                const authUrl = String(data?.authorization_url || '').trim();
+                if (!authUrl) {
+                    throw new Error('Google Calendar connection is not configured yet.');
+                }
+                window.location.href = authUrl;
+            } catch (error) {
+                googleCalendarIntegration.loading = false;
+                updateCalendarConnectUi();
+                setStatus(error.message || 'Google Calendar connection could not be started.', true);
+            }
+        };
+        const disconnectGoogleCalendar = async () => {
+            if (!isNonAdminLoggedIn()) return;
+            try {
+                googleCalendarIntegration.loading = true;
+                updateCalendarConnectUi();
+                await ensureEdgeFunctionSession();
+                await edgeFunctionJson('google-calendar-disconnect', { method: 'POST' });
+                googleCalendarIntegration = {
+                    loading: false,
+                    connected: false,
+                    google_email: ''
+                };
+                updateCalendarConnectUi();
+                setStatus('Google Calendar disconnected.');
+            } catch (error) {
+                googleCalendarIntegration.loading = false;
+                updateCalendarConnectUi();
+                setStatus(error.message || 'Google Calendar disconnect failed.', true);
             }
         };
 
@@ -4154,9 +4457,13 @@
             adminUsernameInput.value = data?.username || '';
             adminPasswordInput.value = '';
             persistAdminSession();
+            if (data?.rights !== 'admin') {
+                await ensureSupabaseAuthSessionSafely(data?.username || '', password);
+            }
             updateAdminUi();
             if (!validateActiveAccessWindow()) return;
             await loadOutreachDefaults();
+            await loadGoogleCalendarIntegration();
             await loadDashboardMetrics();
             await runSearch(false);
             if (closeElement) {
@@ -4210,10 +4517,18 @@
         };
 
         const logoutCurrentUser = (statusMessage = 'Login is required to browse candidate records.') => {
+            if (supabaseClient) {
+                supabaseClient.auth.signOut().catch(() => null);
+            }
             adminUser = null;
             adminPassword = '';
             adminTargetUser = null;
             outreachDefaults = { company: '', role: '', contact: '', mode: OUTREACH_MODE_HIRING };
+            googleCalendarIntegration = {
+                loading: false,
+                connected: false,
+                google_email: ''
+            };
             editingProfileId = null;
             resetPasswordOpen = false;
             if (accessWindowTimer) {
@@ -4303,6 +4618,16 @@
         if (searchAutomateToggle) {
             searchAutomateToggle.addEventListener('change', () => {
                 updateAutomateScheduleUi();
+            });
+        }
+        if (calendarConnectButton) {
+            calendarConnectButton.addEventListener('click', async () => {
+                await startGoogleCalendarConnect();
+            });
+        }
+        if (calendarDisconnectButton) {
+            calendarDisconnectButton.addEventListener('click', async () => {
+                await disconnectGoogleCalendar();
             });
         }
         if (automateScheduleFormEl) {
@@ -4874,8 +5199,12 @@
                 adminResetNewPasswordInput.value = '';
                 resetPasswordOpen = false;
                 persistAdminSession();
+                if (data?.rights !== 'admin') {
+                    await ensureSupabaseAuthSessionSafely(username, newPassword);
+                }
                 updateAdminUi();
                 await loadOutreachDefaults();
+                await loadGoogleCalendarIntegration();
                 await loadDashboardMetrics();
                 setAdminStatus('Password reset successful.');
             } catch (error) {
@@ -4914,9 +5243,13 @@
                 changePasswordCurrentInput.value = '';
                 changePasswordNewInput.value = '';
                 persistAdminSession();
+                if (data?.rights !== 'admin') {
+                    await ensureSupabaseAuthSessionSafely(username, newPassword);
+                }
                 await loadAccountSummary();
                 updateAdminUi();
                 await loadOutreachDefaults();
+                await loadGoogleCalendarIntegration();
                 await loadDashboardMetrics();
                 setModalStatus(changePasswordStatusEl, 'Password changed successfully.');
                 window.setTimeout(() => closeModal(changePasswordModalEl), 500);
@@ -5086,7 +5419,6 @@
                         if (!String(profile._candidate_email || '').trim()) {
                             throw new Error('Candidate email is required to prefill the calendar invitation.');
                         }
-                        setStatus('Generating schedule draft...');
                         applyOutreachDefaultsLocally(payload);
                         const draft = await generateScheduleDraft(profile, payload);
                         const { error } = await supabaseClient.rpc('log_schedule_outreach', {
@@ -5099,13 +5431,47 @@
                         if (error) throw error;
                         currentRows = currentRows.map((row) => row.id === profileId ? { ...row, Recently_Contacted: true } : row);
                         await loadDashboardMetrics();
-                        const calendarUrl = buildManualScheduleUrl(profile, payload, draft);
-                        const draftWindow = window.open(calendarUrl, '_blank', 'noopener');
-                        if (!draftWindow) {
-                            window.location.href = calendarUrl;
+                        if (googleCalendarIntegration.connected) {
+                            setStatus('Creating Google Calendar event from your connected account...');
+                            const startAt = `${payload.date}T${payload.time}:00`;
+                            const endParts = addMinutesToScheduleTime(payload.date, payload.time, 15);
+                            const endAt = `${endParts.date}T${endParts.hour}:${endParts.minute}:00`;
+                            await edgeFunctionJson('create-calendar-event', {
+                                method: 'POST',
+                                body: {
+                                    event: {
+                                        summary: draft.subject,
+                                        description: draft.body,
+                                        start: {
+                                            dateTime: startAt,
+                                            timeZone: payload.timezone,
+                                        },
+                                        end: {
+                                            dateTime: endAt,
+                                            timeZone: payload.timezone,
+                                        },
+                                        attendees: [{ email: String(profile._candidate_email || '').trim() }],
+                                        conferenceData: {
+                                            createRequest: {
+                                                requestId: String(profileId),
+                                                conferenceSolutionKey: { type: 'hangoutsMeet' }
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                            schedulingProfileId = null;
+                            setStatus('Invitation created in your connected Google Calendar and sent from your Google account.');
+                        } else {
+                            setStatus('Generating schedule draft...');
+                            const calendarUrl = buildManualScheduleUrl(profile, payload, draft);
+                            const draftWindow = window.open(calendarUrl, '_blank', 'noopener');
+                            if (!draftWindow) {
+                                window.location.href = calendarUrl;
+                            }
+                            schedulingProfileId = null;
+                            setStatus('Schedule draft opened in Google Calendar with the subject, attendee, and description prefilled. Review it there and confirm sending manually.');
                         }
-                        schedulingProfileId = null;
-                        setStatus('Schedule draft opened in Google Calendar with the subject, attendee, and description prefilled. Review it there and confirm sending manually.');
                     }
                     renderRows(currentRows);
                 } catch (error) {
