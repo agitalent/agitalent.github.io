@@ -2865,7 +2865,7 @@
                 .trim();
             cleaned = cleaned.replace(/^["']+|["']+$/g, '').trim();
             cleaned = cleaned
-                .replace(/\b(has\s+been|have\s+been|will\s+be|would\s+be)\b/gi, ' ')
+                .replace(/\b(i'm|i've|you're|you've|he's|she's|we're|we've|they're|they've|has\s+been|have\s+been|will\s+be|would\s+be)\b/gi, ' ')
                 .replace(/\b(am|is|are|i|my|me|myself|mine|you|your|yours|he|his|him|she|her|we|us|our|they|them|their)\b/gi, ' ')
                 .replace(/\s+([,.;:!?])/g, '$1')
                 .replace(/[,\s]+$/g, '')
@@ -2889,7 +2889,7 @@
             return `${opportunityWord} Opportunity Matching Your ${backgroundDescriptor} Background`;
         };
         const buildCalendarPraiseParagraph = (briefBackground = 'strong professional background') => (
-            `Your profile is highly impressive: ${sanitizeCalendarBriefBackground(briefBackground)}`
+            `2rd paragraph Your profile is highly impressive: ${sanitizeCalendarBriefBackground(briefBackground)}`
         );
         const buildInvitationSubject = ({ opportunityWord = 'Great', summary = 'Professional Background' } = {}) => {
             const normalizedWord = titleCaseWords(truncateWords(opportunityWord || 'Great', 1)) || 'Great';
