@@ -1603,7 +1603,6 @@
             'status',
             'created_at',
             'updated_at',
-            'brief_bio',
             '_candidate_email'
         ]);
         const EDITABLE_PROFILE_FIELDS = [
@@ -1644,7 +1643,7 @@
             seniority: 'brief_background'
         };
         const REQUIRED_FIELDS = new Set(['agent_type', 'name_or_handle', 'status']);
-        const PUBLIC_PROFILE_SELECT = 'id, agent_type, name_or_handle, email, bio_link, location, domain_focus, seniority, brief_bio, skills, needs, recent_evidence, status, created_at, updated_at';
+        const PUBLIC_PROFILE_SELECT = 'id, agent_type, name_or_handle, email, bio_link, location, domain_focus, seniority, skills, needs, recent_evidence, status, created_at, updated_at';
         const SIGNED_OUT_PROFILE_SELECT = 'id, name_or_handle, seniority, location, "Recently_Contacted", created_at, updated_at';
         const SIGNED_OUT_VISIBLE_PROFILE_FIELDS = new Set(['seniority', 'location', 'Recently_Contacted']);
 
@@ -2905,7 +2904,7 @@
         };
         const generateScheduleDraft = async (profile, values) => {
             const candidateName = String(profile.name_or_handle || profile.name || 'Candidate').trim();
-            const briefBio = String(profile.brief_bio || profile.seniority || 'professional background').trim();
+            const briefBio = String(profile.seniority || 'professional background').trim();
             const company = String(values.company || '').trim();
             const role = String(values.role || '').trim();
             const contact = String(values.contact || '').trim();
@@ -2923,11 +2922,11 @@
                     {
                         role: 'user',
                         content: (
-                            `Candidate name: ${candidateName}. Supabase profiles.brief_bio: ${briefBio}. Company: ${company}. Role: ${role}. Preferred contact: ${contact}. ` +
-                            'Use only profiles.brief_bio. No hallucinations. ' +
+                            `Candidate name: ${candidateName}. Supabase profile bio field: ${briefBio}. Company: ${company}. Role: ${role}. Preferred contact: ${contact}. ` +
+                            'Use only the supplied profile bio field. No hallucinations. ' +
                             'subject.opportunity_word: one professional positive word such as Great, Exciting, Strong, Outstanding, Interesting, or Compelling; avoid spammy words. ' +
-                            'subject.summary: max 10 words, title-style capitalization preferred, strongest achievement or advantage from brief_bio. ' +
-                            'calendar_invitation.achievement_summary: max 18 words, concise strongest differentiator from brief_bio. ' +
+                            'subject.summary: max 10 words, title-style capitalization preferred, strongest achievement or advantage from the supplied profile bio field. ' +
+                            'calendar_invitation.achievement_summary: max 18 words, concise strongest differentiator from the supplied profile bio field. ' +
                             'calendar_invitation.praise: 1 to 3 professional words, varied naturally, not exaggerated. ' +
                             'Do not include full sentences in schema fields.'
                         )
