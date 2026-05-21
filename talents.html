@@ -2712,6 +2712,62 @@
             .filter(Boolean)
             .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
             .join(' ');
+        const CALENDAR_OPPORTUNITY_WORDS = [
+            'Strong', 'Exciting', 'Compelling', 'Interesting', 'Promising', 'Attractive', 'Exceptional',
+            'Valuable', 'Relevant', 'Unique', 'Meaningful', 'High-Impact', 'Outstanding', 'Notable',
+            'Strategic', 'Impressive', 'Appealing', 'Distinguished', 'Excellent', 'Select', 'Premier',
+            'Top-Tier', 'High-Caliber', 'Frontier', 'Cutting-Edge', 'Transformative', 'Influential',
+            'Rare', 'Exclusive', 'Landmark', 'Defining', 'High-Leverage', 'High-Upside', 'Ambitious',
+            'Innovative', 'Challenging', 'Impactful', 'Mission-Driven'
+        ];
+        const CALENDAR_BACKGROUND_DESCRIPTORS = [
+            'Ideal', 'Remarkable', 'Extraordinary', 'Superb', 'Brilliant', 'Stellar', 'Terrific',
+            'Fantastic', 'Incredible', 'Phenomenal', 'Distinguished', 'Accomplished', 'Sophisticated',
+            'Elite', 'Specialized', 'Experienced', 'Proven', 'Seasoned', 'Acclaimed', 'Respected',
+            'Admirable', 'Praiseworthy', 'Commendable', 'Exemplary', 'First-Class', 'World-Class',
+            'Refined', 'Polished', 'Acutely-Aligned', 'Well-Suited', 'Tailored', 'Compatible',
+            'Fitting', 'Appropriate', 'Suited', 'Qualified', 'Capable', 'Expert', 'Adept',
+            'Proficient', 'Competent', 'Masterful', 'Strong-Fit', 'Natural-Fit', 'Ideal-Fit',
+            'Standout', 'Esteemed', 'Recognized', 'Established', 'Solid', 'Powerful', 'Dynamic',
+            'Visionary', 'Insightful', 'Versatile', 'Multifaceted', 'Well-Rounded'
+        ];
+        const hashString = (value) => {
+            let hash = 2166136261;
+            String(value || '').split('').forEach((char) => {
+                hash ^= char.charCodeAt(0);
+                hash = Math.imul(hash, 16777619);
+            });
+            return hash >>> 0;
+        };
+        const seededChoice = (options, seed) => {
+            const safeOptions = Array.isArray(options) && options.length ? options : ['Great'];
+            return safeOptions[hashString(seed) % safeOptions.length];
+        };
+        const normalizePraiseBody = (text, fallbackBio = 'a strong professional background') => {
+            const cleaned = String(text || fallbackBio || 'a strong professional background')
+                .replace(/^you\s+are\s+/i, '')
+                .replace(/[.!?]+$/g, '')
+                .trim();
+            return truncateWords(cleaned || fallbackBio || 'a strong professional background', 18);
+        };
+        const buildCalendarInvitationSubject = (profile = {}, values = {}) => {
+            const seed = [
+                profile.id,
+                profile.name_or_handle,
+                profile.name,
+                profile.seniority,
+                values.date,
+                values.time,
+                values.company,
+                values.role
+            ].filter(Boolean).join('|');
+            const opportunityWord = seededChoice(CALENDAR_OPPORTUNITY_WORDS, `${seed}:opportunity`);
+            const backgroundDescriptor = seededChoice(CALENDAR_BACKGROUND_DESCRIPTORS, `${seed}:background`);
+            return `${opportunityWord} Opportunity Matching Your ${backgroundDescriptor} Background`;
+        };
+        const buildCalendarPraiseParagraph = (praiseBody = 'a strong professional background') => (
+            `You are ${normalizePraiseBody(praiseBody)}.`
+        );
         const buildInvitationSubject = ({ opportunityWord = 'Great', summary = 'Professional Background' } = {}) => {
             const normalizedWord = titleCaseWords(truncateWords(opportunityWord || 'Great', 1)) || 'Great';
             const normalizedSummary = titleCaseWords(normalizeSummaryWithoutPronouns(summary || 'Professional Background', 10) || 'Professional Background');
@@ -2722,17 +2778,11 @@
             const normalizedPraise = truncateWords(praise || 'impressive', 3) || 'impressive';
             return `Your ${normalizedSummary} is ${normalizedPraise}.`;
         };
-        const normalizeScheduleCopyPayload = (payload = {}, fallbackBio = 'professional background') => {
-            const subjectPayload = payload?.subject && typeof payload.subject === 'object' ? payload.subject : {};
+        const normalizeScheduleCopyPayload = (payload = {}, fallbackBio = 'a strong professional background') => {
             const invitationPayload = payload?.calendar_invitation && typeof payload.calendar_invitation === 'object' ? payload.calendar_invitation : {};
             return {
-                subject: {
-                    opportunity_word: String(subjectPayload.opportunity_word || 'Great').trim(),
-                    summary: String(subjectPayload.summary || fallbackBio || 'Professional Background').trim()
-                },
                 calendar_invitation: {
-                    achievement_summary: String(invitationPayload.achievement_summary || fallbackBio || 'professional background').trim(),
-                    praise: String(invitationPayload.praise || 'impressive').trim()
+                    praise_body: normalizePraiseBody(invitationPayload.praise_body, fallbackBio)
                 }
             };
         };
@@ -2773,24 +2823,14 @@
                 schema: {
                     type: 'object',
                     additionalProperties: false,
-                    required: ['subject', 'calendar_invitation'],
+                    required: ['calendar_invitation'],
                     properties: {
-                        subject: {
-                            type: 'object',
-                            additionalProperties: false,
-                            required: ['opportunity_word', 'summary'],
-                            properties: {
-                                opportunity_word: { type: 'string' },
-                                summary: { type: 'string' }
-                            }
-                        },
                         calendar_invitation: {
                             type: 'object',
                             additionalProperties: false,
-                            required: ['achievement_summary', 'praise'],
+                            required: ['praise_body'],
                             properties: {
-                                achievement_summary: { type: 'string' },
-                                praise: { type: 'string' }
+                                praise_body: { type: 'string' }
                             }
                         }
                     }
@@ -2915,32 +2955,25 @@
                         role: 'system',
                         content: (
                             'Return JSON only using this exact schema: ' +
-                            '{"subject":{"opportunity_word":"string","summary":"string"},"calendar_invitation":{"achievement_summary":"string","praise":"string"}}. ' +
-                            'Do not generate full messages. Fill only the schema fields.'
+                            '{"calendar_invitation":{"praise_body":"string"}}. ' +
+                            'Do not generate full messages. Fill only the schema field.'
                         )
                     },
                     {
                         role: 'user',
                         content: (
-                            `Candidate name: ${candidateName}. Supabase profile bio field: ${briefBio}. Company: ${company}. Role: ${role}. Preferred contact: ${contact}. ` +
-                            'Use only the supplied profile bio field. No hallucinations. ' +
-                            'subject.opportunity_word: one professional positive word such as Great, Exciting, Strong, Outstanding, Interesting, or Compelling; avoid spammy words. ' +
-                            'subject.summary: max 10 words, title-style capitalization preferred, strongest achievement or advantage from the supplied profile bio field. ' +
-                            'calendar_invitation.achievement_summary: max 18 words, concise strongest differentiator from the supplied profile bio field. ' +
-                            'calendar_invitation.praise: 1 to 3 professional words, varied naturally, not exaggerated. ' +
-                            'Do not include full sentences in schema fields.'
+                            `Candidate name: ${candidateName}. Supabase profile brief_background field: ${briefBio}. Company: ${company}. Role: ${role}. Preferred contact: ${contact}. ` +
+                            'Use only the supplied brief_background field. No hallucinations. ' +
+                            'calendar_invitation.praise_body: exactly 18 words that complete a 20-word sentence starting with "You are". ' +
+                            'Do not include "You are"; return only the words after it. Keep the praise professional, specific, and grounded in brief_background.'
                         )
                     }
                 ], scheduleInvitationResponseFormat());
                 const normalizedPayload = normalizeScheduleCopyPayload(payload, briefBio);
-                const subject = buildInvitationSubject({
-                    opportunityWord: replaceInvitePlaceholders(normalizedPayload.subject.opportunity_word, context),
-                    summary: replaceInvitePlaceholders(normalizedPayload.subject.summary, context)
-                });
-                const paragraph2 = buildInvitationPraiseParagraph({
-                    achievementSummary: replaceInvitePlaceholders(normalizedPayload.calendar_invitation.achievement_summary, context),
-                    praise: replaceInvitePlaceholders(normalizedPayload.calendar_invitation.praise, context)
-                });
+                const subject = buildCalendarInvitationSubject(profile, values);
+                const paragraph2 = buildCalendarPraiseParagraph(
+                    replaceInvitePlaceholders(normalizedPayload.calendar_invitation.praise_body, context)
+                );
                 const body = [
                     `Hi ${candidateName},`,
                     paragraph2,
@@ -2953,10 +2986,10 @@
                 };
             } catch (_error) {
                 return {
-                    subject: buildInvitationSubject({ summary: briefBio }),
+                    subject: buildCalendarInvitationSubject(profile, values),
                     body: [
                         `Hi ${candidateName},`,
-                        buildInvitationPraiseParagraph({ achievementSummary: briefBio }),
+                        buildCalendarPraiseParagraph(briefBio),
                         buildOpportunityParagraph(OUTREACH_MODE_HIRING, company, role),
                         `Feel free to reach out via ${contact}.`
                     ].join('\n\n')
