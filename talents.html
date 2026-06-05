@@ -1204,6 +1204,10 @@
                                 <textarea id="search-input" placeholder=""></textarea>
                                 <button class="button button-icon" id="search-button" type="button" aria-label="Search">→</button>
                             </div>
+                            <div class="field" style="margin-top:10px;">
+                                <label for="screen-filter-input">Filter</label>
+                                <input id="screen-filter-input" type="text" placeholder="Only used by LLM screening">
+                            </div>
                             <div class="user-actions" id="search-automate-controls" style="display:none; margin-top:12px;">
                                 <label class="checkbox-inline" for="search-automate-toggle">
                                     <input id="search-automate-toggle" type="checkbox">
@@ -1553,6 +1557,7 @@
 
         const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
         const searchInput = document.getElementById('search-input');
+        const screenFilterInput = document.getElementById('screen-filter-input');
         const searchButton = document.getElementById('search-button');
         const searchAutomateControlsEl = document.getElementById('search-automate-controls');
         const searchAutomateToggle = document.getElementById('search-automate-toggle');
@@ -1713,6 +1718,7 @@
         const SIGNED_OUT_VISIBLE_PROFILE_FIELDS = new Set(['seniority', 'location', 'Recently_Contacted']);
 
         let activePrompt = '';
+        let activeScreenFilter = '';
         let automatedSearchState = null;
         let automateScheduleValues = null;
         let googleCalendarIntegration = {
@@ -4155,7 +4161,7 @@
             ]);
             return mergeAutomatedSearchEntityTerms(prompt, payload);
         };
-        const llmProfileMatchesAutomateSearch = async (searchPrompt, profile) => {
+        const llmProfileMatchesAutomateSearch = async (searchPrompt, screenFilter, profile) => {
             if (!hasDeepseekApiKey()) {
                 throw new Error('Automate screening requires a DeepSeek API key.');
             }
@@ -4173,6 +4179,7 @@
                     role: 'user',
                     content: JSON.stringify({
                         search_request: String(searchPrompt || '').trim(),
+                        filter_request: String(screenFilter || '').trim(),
                         profile: {
                             name: profile?.name_or_handle || '',
                             brief_background: profile?.seniority || '',
@@ -4470,7 +4477,7 @@
             setSearchAutomationStep('screening');
             const candidates = [];
             for (const profile of preCandidates) {
-                const matched = await llmProfileMatchesAutomateSearch(activePrompt, profile);
+                const matched = await llmProfileMatchesAutomateSearch(activePrompt, activeScreenFilter, profile);
                 if (matched) {
                     candidates.push(profile);
                 }
@@ -5093,6 +5100,7 @@
             try {
                 if (usePrompt) {
                     activePrompt = searchInput.value.trim();
+                    activeScreenFilter = screenFilterInput?.value.trim() || '';
                     rememberSearchQuery(activePrompt);
                     if (searchAutomateToggle?.checked) {
                         if (!activePrompt) {
