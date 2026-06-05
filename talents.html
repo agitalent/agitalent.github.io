@@ -4155,21 +4155,6 @@
             ]);
             return mergeAutomatedSearchEntityTerms(prompt, payload);
         };
-        const llmAutomateMatchResponseFormat = () => ({
-            type: 'json_schema',
-            json_schema: {
-                name: 'automate_profile_match',
-                strict: true,
-                schema: {
-                    type: 'object',
-                    additionalProperties: false,
-                    required: ['matched'],
-                    properties: {
-                        matched: { type: 'boolean' }
-                    }
-                }
-            }
-        });
         const llmProfileMatchesAutomateSearch = async (searchPrompt, profile) => {
             if (!hasDeepseekApiKey()) {
                 throw new Error('Automate screening requires a DeepSeek API key.');
@@ -4196,7 +4181,7 @@
                         }
                     })
                 }
-            ], llmAutomateMatchResponseFormat());
+            ]);
             return Boolean(payload?.matched);
         };
         const buildAutomatedSearchSql = (spec) => {
