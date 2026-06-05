@@ -1204,6 +1204,12 @@
                                 <textarea id="search-input" placeholder=""></textarea>
                                 <button class="button button-icon" id="search-button" type="button" aria-label="Search">→</button>
                             </div>
+                            <div class="user-actions" style="margin-top:10px;">
+                                <label class="checkbox-inline" for="search-deep-toggle">
+                                    <input id="search-deep-toggle" type="checkbox">
+                                    <span>Deep</span>
+                                </label>
+                            </div>
                             <div class="field" style="margin-top:10px;">
                                 <label for="screen-filter-input">Filter</label>
                                 <input id="screen-filter-input" type="text" placeholder="Only used by LLM screening">
@@ -1557,6 +1563,7 @@
 
         const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
         const searchInput = document.getElementById('search-input');
+        const searchDeepToggle = document.getElementById('search-deep-toggle');
         const screenFilterInput = document.getElementById('screen-filter-input');
         const searchButton = document.getElementById('search-button');
         const searchAutomateControlsEl = document.getElementById('search-automate-controls');
@@ -1719,6 +1726,8 @@
 
         let activePrompt = '';
         let activeScreenFilter = '';
+        let deepSearchLockedPrompt = '';
+        let deepSearchExcludedProfileIds = new Set();
         let automatedSearchState = null;
         let automateScheduleValues = null;
         let googleCalendarIntegration = {
@@ -3949,7 +3958,6 @@
             return 4;
         };
         const automatedSearchTraceText = (spec, sql, rankedRows = []) => {
-            const groups = automatedSearchEntityGroups(spec);
             const expandableTerms = normalizeSearchSpecArray([
                 ...(spec?.domain_terms || []),
                 ...(spec?.include_terms || []),
@@ -3957,19 +3965,6 @@
                 ...(spec?.concept_expansions || [])
             ]);
             const lines = [
-                'Parsed query structure:',
-                JSON.stringify({
-                    expandable_terms: {
-                        roles_titles_skills_domains: expandableTerms
-                    },
-                    normalized_entities: {
-                        companies: groups.companies.map((group) => ({ canonical: group.canonical, aliases: group.aliases, abbreviations: group.abbreviations, subsidiaries: group.subsidiaries, divisions: group.divisions })),
-                        schools: groups.schools.map((group) => ({ canonical: group.canonical, aliases: group.aliases, abbreviations: group.abbreviations, departments: group.departments, institutes: group.institutes })),
-                        locations: groups.locations.map((group) => ({ canonical: group.canonical, aliases: group.aliases })),
-                        people: groups.people.map((group) => ({ canonical: group.canonical, aliases: group.aliases }))
-                    }
-                }, null, 2),
-                '',
                 'Expanded role terms:',
                 JSON.stringify(expandableTerms, null, 2),
                 '',
@@ -3987,6 +3982,18 @@
                 });
             }
             return lines.join('\n');
+        };
+        const syncDeepSearchUi = () => {
+            const deepEnabled = Boolean(searchDeepToggle?.checked);
+            if (searchInput) {
+                searchInput.readOnly = deepEnabled;
+            }
+            if (!deepEnabled) {
+                deepSearchLockedPrompt = '';
+                deepSearchExcludedProfileIds = new Set();
+            } else if (!deepSearchLockedPrompt && searchInput?.value.trim()) {
+                deepSearchLockedPrompt = searchInput.value.trim();
+            }
         };
         const hasDeepseekApiKey = () => Boolean(DEEPSEEK_API_KEY);
         const heuristicAgentTypesFromPrompt = (prompt) => {
@@ -4435,6 +4442,7 @@
                 ? recentlyFlaggedRows.filter((row) => !row.Recently_Contacted)
                 : recentlyFlaggedRows;
             const filteredRows = automatedCandidateRows
+                .filter((row) => !(searchDeepToggle?.checked && deepSearchExcludedProfileIds.has(row.id)))
                 .filter((row) => matchesAutomatedSearchSpec(row, spec))
                 .map((row) => {
                     const ranking = automatedSearchRankingScore(row, spec);
@@ -4554,6 +4562,9 @@
                 ));
             }
             await loadDashboardMetrics();
+            if (searchDeepToggle?.checked) {
+                candidates.forEach((profile) => deepSearchExcludedProfileIds.add(profile.id));
+            }
             return {
                 queuedCount: candidates.length,
                 requestedCount: payload.top_count,
@@ -5099,7 +5110,18 @@
 
             try {
                 if (usePrompt) {
-                    activePrompt = searchInput.value.trim();
+                    const deepEnabled = Boolean(searchDeepToggle?.checked);
+                    if (deepEnabled) {
+                        if (!deepSearchLockedPrompt) {
+                            deepSearchLockedPrompt = searchInput.value.trim();
+                        }
+                        activePrompt = deepSearchLockedPrompt;
+                        if (searchInput) {
+                            searchInput.value = deepSearchLockedPrompt;
+                        }
+                    } else {
+                        activePrompt = searchInput.value.trim();
+                    }
                     activeScreenFilter = screenFilterInput?.value.trim() || '';
                     rememberSearchQuery(activePrompt);
                     if (searchAutomateToggle?.checked) {
@@ -5167,6 +5189,11 @@
         if (searchAutomateToggle) {
             searchAutomateToggle.addEventListener('change', () => {
                 updateAutomateScheduleUi();
+            });
+        }
+        if (searchDeepToggle) {
+            searchDeepToggle.addEventListener('change', () => {
+                syncDeepSearchUi();
             });
         }
         if (calendarConnectButton) {
@@ -6148,6 +6175,7 @@
         (async () => {
             try {
                 loadTheme();
+                syncDeepSearchUi();
                 await restoreAdminSession();
                 updateAdminUi();
                 if (isLoggedIn()) {
