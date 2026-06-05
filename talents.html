@@ -1259,7 +1259,7 @@
                                         <input data-outreach-input="contact" id="automate-schedule-contact" name="contact" type="text">
                                     </div>
                                 </div>
-                                <div class="schedule-status" id="automate-schedule-status">Choose how many top automated results to invite. When set above 0, search completion will automatically queue Google Calendar invitations for those top records.</div>
+                                <div class="schedule-status" id="automate-schedule-status">Choose how many top automated results to invite. When set above 0, search completion will automatically queue Google Calendar invitations for those top records. LLM will screen each schedule sent.</div>
                             </div>
                             <div class="schedule-panel" id="calendar-connect-panel" style="display:none; margin-top:12px;">
                                 <div class="actions calendar-connect-actions" id="calendar-connect-actions">
@@ -2962,7 +2962,7 @@
         });
         const deepseekJson = async (messages, responseFormat = { type: 'json_object' }) => {
             if (!DEEPSEEK_API_KEY) {
-                return {};
+                throw new Error('Missing DeepSeek API key.');
             }
             const response = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
                 method: 'POST',
@@ -3460,8 +3460,8 @@
             });
             automateScheduleStatusEl.textContent = enabled
                 ? (isAdminLoggedIn()
-                    ? 'Choose how many top automated results to invite. When set above 0, search completion will automatically queue Google Calendar invitations for those top records.'
-                    : 'Choose how many top automated results to invite. When set above 0, search completion will create Google Calendar invitations from your connected Google account.')
+                    ? 'Choose how many top automated results to invite. When set above 0, search completion will automatically queue Google Calendar invitations for those top records. LLM will screen each schedule sent.'
+                    : 'Choose how many top automated results to invite. When set above 0, search completion will create Google Calendar invitations from your connected Google account. LLM will screen each schedule sent.')
                 : (isNonAdminLoggedIn()
                     ? 'Connect Google Calendar to use Automate as a non-admin user.'
                     : 'Log in to use automated invitation sending.');
@@ -4155,6 +4155,50 @@
             ]);
             return mergeAutomatedSearchEntityTerms(prompt, payload);
         };
+        const llmAutomateMatchResponseFormat = () => ({
+            type: 'json_schema',
+            json_schema: {
+                name: 'automate_profile_match',
+                strict: true,
+                schema: {
+                    type: 'object',
+                    additionalProperties: false,
+                    required: ['matched'],
+                    properties: {
+                        matched: { type: 'boolean' }
+                    }
+                }
+            }
+        });
+        const llmProfileMatchesAutomateSearch = async (searchPrompt, profile) => {
+            if (!hasDeepseekApiKey()) {
+                throw new Error('Automate screening requires a DeepSeek API key.');
+            }
+            const payload = await deepseekJson([
+                {
+                    role: 'system',
+                    content: [
+                        'Return JSON only.',
+                        'Decide if the candidate profile matches the original search request closely enough for automated schedule sending.',
+                        'Use only brief_background/seniority, domain_focus, and location.',
+                        'Be conservative. Return matched=true only when the profile is clearly aligned with the original search request.'
+                    ].join(' ')
+                },
+                {
+                    role: 'user',
+                    content: JSON.stringify({
+                        search_request: String(searchPrompt || '').trim(),
+                        profile: {
+                            name: profile?.name_or_handle || '',
+                            brief_background: profile?.seniority || '',
+                            domain_focus: profile?.domain_focus || '',
+                            location: profile?.location || ''
+                        }
+                    })
+                }
+            ], llmAutomateMatchResponseFormat());
+            return Boolean(payload?.matched);
+        };
         const buildAutomatedSearchSql = (spec) => {
             const clauses = [];
             const selectedAgentTypes = normalizeSearchSpecArray(spec?.agent_types).map((item) => normalizeAccessAgentType(item));
@@ -4432,11 +4476,23 @@
             automateScheduleValues = payload;
             if (!payload.top_count) return { queuedCount: 0, requestedCount: 0 };
             const rankedRows = Array.isArray(automatedSearchState?.rankedRows) ? automatedSearchState.rankedRows : [];
-            const candidates = rankedRows
+            const preCandidates = rankedRows
                 .filter((row) => String(row._candidate_email || row.email || '').trim())
                 .slice(0, payload.top_count);
-            if (!candidates.length) {
+            if (!preCandidates.length) {
                 throw new Error('No top automated results with candidate email were available for calendar invitations.');
+            }
+            setSearchAutomationStep('screening');
+            const candidates = [];
+            for (const profile of preCandidates) {
+                const matched = await llmProfileMatchesAutomateSearch(activePrompt, profile);
+                if (matched) {
+                    candidates.push(profile);
+                }
+            }
+            const skippedCount = preCandidates.length - candidates.length;
+            if (!candidates.length) {
+                throw new Error('No top automated results matched the original search request closely enough for automated scheduling.');
             }
             let lastScheduledFor = '';
             for (const [index, profile] of candidates.entries()) {
@@ -4509,6 +4565,8 @@
             return {
                 queuedCount: candidates.length,
                 requestedCount: payload.top_count,
+                screenedCount: preCandidates.length,
+                skippedCount,
                 lastScheduledFor
             };
         };
@@ -5086,9 +5144,12 @@
                     const autoScheduleResult = await autoQueueAutomatedScheduleInvites();
                     setSearchAutomationStep('');
                     if (autoScheduleResult?.queuedCount) {
+                        const screeningSummary = typeof autoScheduleResult.screenedCount === 'number'
+                            ? ` LLM screened ${autoScheduleResult.screenedCount} top result${autoScheduleResult.screenedCount === 1 ? '' : 's'} before scheduling and skipped ${autoScheduleResult.skippedCount || 0}.`
+                            : '';
                         setStatus(autoScheduleResult.lastScheduledFor
-                            ? `${autoScheduleResult.queuedCount} top automated invitations queued. The online worker should send them within about 5-10 minutes; the selected time remains the meeting time (${autoScheduleResult.lastScheduledFor}).`
-                            : `${autoScheduleResult.queuedCount} top automated invitations queued for Google Calendar delivery.`);
+                            ? `${autoScheduleResult.queuedCount} top automated invitations queued.${screeningSummary} The online worker should send them within about 5-10 minutes; the selected time remains the meeting time (${autoScheduleResult.lastScheduledFor}).`
+                            : `${autoScheduleResult.queuedCount} top automated invitations queued for Google Calendar delivery.${screeningSummary}`);
                     } else {
                         setStatus(`Loaded ${lastRowsLength} profile${lastRowsLength === 1 ? '' : 's'} from the automated search.`);
                     }
