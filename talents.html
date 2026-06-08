@@ -3242,6 +3242,13 @@
         };
         const bioLinkIconSvg = (value) => {
             const normalized = String(value || '').toLowerCase();
+            if (normalized.includes('arxiv.org')) {
+                return `
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M6.15 19.5 11.58 5h.87l5.4 14.5h-2.14l-1.18-3.34H9.48L8.3 19.5H6.15Zm3.99-5.1h3.7l-1.84-5.29-1.86 5.29Z"/>
+                    </svg>
+                `;
+            }
             if (normalized.includes('linkedin')) {
                 return `
                     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
