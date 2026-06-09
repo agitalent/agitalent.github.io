@@ -1204,12 +1204,6 @@
                                 <textarea id="search-input" placeholder=""></textarea>
                                 <button class="button button-icon" id="search-button" type="button" aria-label="Search">→</button>
                             </div>
-                            <div class="user-actions" id="search-contacted-controls" style="display:none; margin-top:10px;">
-                                <label class="checkbox-inline" for="search-contacted-toggle">
-                                    <input id="search-contacted-toggle" type="checkbox">
-                                    <span>Contacted</span>
-                                </label>
-                            </div>
                             <div class="user-actions" style="margin-top:10px;">
                                 <label class="checkbox-inline" for="search-deep-toggle">
                                     <input id="search-deep-toggle" type="checkbox">
@@ -1292,6 +1286,12 @@
                             <div class="search-history-panel" id="search-history-panel" style="display:none;">
                                 <div class="search-history-title">Recent searches</div>
                                 <div class="search-history-list" id="search-history-list"></div>
+                                <div class="user-actions" id="search-contacted-controls" style="display:none; margin-top:10px;">
+                                    <label class="checkbox-inline" for="search-contacted-toggle">
+                                        <input id="search-contacted-toggle" type="checkbox">
+                                        <span>Contacted</span>
+                                    </label>
+                                </div>
                             </div>
                             <div class="sql-box" id="search-automation-box" style="display:none;">
                                 <pre id="search-automation-output"></pre>
@@ -4526,47 +4526,14 @@
             const { scrollToTop = true } = options;
             const safeOffset = clampVisibleOffset(offset);
 
-            const [scheduleResult, emailResult] = await Promise.all([
-                supabaseClient
-                    .from('schedule_invites')
-                    .select('profile_id, invite_content, invite_title, created_at, scheduled_for')
-                    .order('created_at', { ascending: false })
-                    .limit(200),
-                supabaseClient
-                    .from('email_outreach_log')
-                    .select('profile_id, subject, created_at, company, role_title, preferred_contact')
-                    .order('created_at', { ascending: false })
-                    .limit(200)
-            ]);
-
-            if (scheduleResult.error) throw scheduleResult.error;
-            if (emailResult.error) throw emailResult.error;
-
-            const contactedEntries = [
-                ...(Array.isArray(scheduleResult.data) ? scheduleResult.data.map((row) => ({
-                    profile_id: row.profile_id,
-                    contact_time: row.created_at || row.scheduled_for,
-                    contact_content: row.invite_content || row.invite_title || '',
-                    contact_type: 'schedule'
-                })) : []),
-                ...(Array.isArray(emailResult.data) ? emailResult.data.map((row) => ({
-                    profile_id: row.profile_id,
-                    contact_time: row.created_at,
-                    contact_content: row.subject || [row.company, row.role_title, row.preferred_contact].filter(Boolean).join(' | '),
-                    contact_type: 'email'
-                })) : [])
-            ]
-                .filter((row) => row.profile_id)
-                .sort((left, right) => new Date(right.contact_time || 0).getTime() - new Date(left.contact_time || 0).getTime());
-
-            const latestByProfile = new Map();
-            contactedEntries.forEach((entry) => {
-                if (!latestByProfile.has(entry.profile_id)) {
-                    latestByProfile.set(entry.profile_id, entry);
-                }
+            const { data, error } = await supabaseClient.rpc('contacted_profiles_feed', {
+                ...authRpcCredentials(),
+                p_limit: 200
             });
-            const profileIds = Array.from(latestByProfile.keys());
-            if (!profileIds.length) {
+            if (error) throw error;
+
+            const contactedRows = Array.isArray(data) ? data : [];
+            if (!contactedRows.length) {
                 contactedBrowseRows = [];
                 currentRows = [];
                 totalCount = 0;
@@ -4576,33 +4543,14 @@
                 updatePagination();
                 return;
             }
-
-            let profileQuery = supabaseClient
-                .from(profileSourceName())
-                .select(profileSelectColumns())
-                .in('id', profileIds);
-            if (isLoggedIn() && !isAdminLoggedIn()) {
-                profileQuery = profileQuery.in('agent_type', profileAgentTypeFilterValues(adminUser?.access_agent_types || adminUser?.access_agent_type));
-            }
-            const { data: profileData, error: profileError } = await profileQuery;
-            if (profileError) throw profileError;
-
-            const profileMap = new Map(
-                (Array.isArray(profileData) ? stripPrivateProfileFields(await applyRecentContactFlags(profileData)) : []).map((row) => [row.id, row])
-            );
-            contactedBrowseRows = profileIds
-                .map((profileId) => {
-                    const profile = profileMap.get(profileId);
-                    const contact = latestByProfile.get(profileId);
-                    if (!profile || !contact) return null;
-                    return {
-                        ...profile,
-                        Contact_Time: contact.contact_time,
-                        Contact_Content: contact.contact_content,
-                        Contact_Type: contact.contact_type
-                    };
-                })
-                .filter(Boolean);
+            contactedBrowseRows = contactedRows.map((row) => ({
+                ...row,
+                Recently_Contacted: true,
+                Contact_Time: row.contact_time,
+                Contact_Content: row.contact_content,
+                Contact_Type: row.contact_type,
+                _candidate_email: String(row.email || '').trim()
+            }));
 
             totalCount = capVisibleCount(contactedBrowseRows.length);
             currentOffset = safeOffset;
