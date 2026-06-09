@@ -1204,6 +1204,12 @@
                                 <textarea id="search-input" placeholder=""></textarea>
                                 <button class="button button-icon" id="search-button" type="button" aria-label="Search">→</button>
                             </div>
+                            <div class="user-actions" id="search-contacted-controls" style="display:none; margin-top:10px;">
+                                <label class="checkbox-inline" for="search-contacted-toggle">
+                                    <input id="search-contacted-toggle" type="checkbox">
+                                    <span>Contacted</span>
+                                </label>
+                            </div>
                             <div class="user-actions" style="margin-top:10px;">
                                 <label class="checkbox-inline" for="search-deep-toggle">
                                     <input id="search-deep-toggle" type="checkbox">
@@ -1563,6 +1569,8 @@
 
         const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
         const searchInput = document.getElementById('search-input');
+        const searchContactedControlsEl = document.getElementById('search-contacted-controls');
+        const searchContactedToggle = document.getElementById('search-contacted-toggle');
         const searchDeepToggle = document.getElementById('search-deep-toggle');
         const screenFilterInput = document.getElementById('screen-filter-input');
         const searchButton = document.getElementById('search-button');
@@ -1715,9 +1723,12 @@
             agent_type: AGENT_TYPE_OPTIONS,
             status: ['active', 'paused', 'archived']
         };
-        const LONG_TEXT_FIELDS = new Set(['seniority']);
+        const LONG_TEXT_FIELDS = new Set(['seniority', 'Contact_Content']);
         const FIELD_LABELS = {
-            seniority: 'brief_background'
+            seniority: 'brief_background',
+            Contact_Time: 'contact_time',
+            Contact_Content: 'contact_content',
+            Contact_Type: 'contact_type'
         };
         const REQUIRED_FIELDS = new Set(['agent_type', 'name_or_handle', 'status']);
         const PUBLIC_PROFILE_SELECT = 'id, agent_type, name_or_handle, email, bio_link, location, domain_focus, seniority, skills, needs, recent_evidence, status, created_at, updated_at';
@@ -1729,6 +1740,7 @@
         let deepSearchLockedPrompt = '';
         let deepSearchExcludedProfileIds = new Set();
         let automatedSearchState = null;
+        let contactedBrowseRows = [];
         let automateScheduleValues = null;
         let googleCalendarIntegration = {
             loading: false,
@@ -2687,6 +2699,9 @@
             if (searchAutomateControlsEl) {
                 searchAutomateControlsEl.style.display = isLoggedIn() ? '' : 'none';
             }
+            if (searchContactedControlsEl) {
+                searchContactedControlsEl.style.display = isLoggedIn() ? '' : 'none';
+            }
             if (screenFilterInput) {
                 const filterField = screenFilterInput.closest('.field');
                 if (filterField) {
@@ -2702,6 +2717,9 @@
             if (!isLoggedIn() && searchAutomateToggle) {
                 searchAutomateToggle.checked = false;
                 searchAutomateToggle.disabled = false;
+            }
+            if (!isLoggedIn() && searchContactedToggle) {
+                searchContactedToggle.checked = false;
             }
             if (!isLoggedIn() && searchDeepToggle) {
                 searchDeepToggle.checked = false;
@@ -4498,6 +4516,104 @@
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         };
+        const fetchContactedProfiles = async (offset = 0, options = {}) => {
+            if (!supabaseClient) {
+                throw new Error('Supabase client failed to initialize.');
+            }
+            if (!isLoggedIn()) {
+                throw new Error('Login is required to browse contacted profiles.');
+            }
+            const { scrollToTop = true } = options;
+            const safeOffset = clampVisibleOffset(offset);
+
+            const [scheduleResult, emailResult] = await Promise.all([
+                supabaseClient
+                    .from('schedule_invites')
+                    .select('profile_id, invite_content, invite_title, created_at, scheduled_for')
+                    .order('created_at', { ascending: false })
+                    .limit(200),
+                supabaseClient
+                    .from('email_outreach_log')
+                    .select('profile_id, subject, created_at, company, role_title, preferred_contact')
+                    .order('created_at', { ascending: false })
+                    .limit(200)
+            ]);
+
+            if (scheduleResult.error) throw scheduleResult.error;
+            if (emailResult.error) throw emailResult.error;
+
+            const contactedEntries = [
+                ...(Array.isArray(scheduleResult.data) ? scheduleResult.data.map((row) => ({
+                    profile_id: row.profile_id,
+                    contact_time: row.created_at || row.scheduled_for,
+                    contact_content: row.invite_content || row.invite_title || '',
+                    contact_type: 'schedule'
+                })) : []),
+                ...(Array.isArray(emailResult.data) ? emailResult.data.map((row) => ({
+                    profile_id: row.profile_id,
+                    contact_time: row.created_at,
+                    contact_content: row.subject || [row.company, row.role_title, row.preferred_contact].filter(Boolean).join(' | '),
+                    contact_type: 'email'
+                })) : [])
+            ]
+                .filter((row) => row.profile_id)
+                .sort((left, right) => new Date(right.contact_time || 0).getTime() - new Date(left.contact_time || 0).getTime());
+
+            const latestByProfile = new Map();
+            contactedEntries.forEach((entry) => {
+                if (!latestByProfile.has(entry.profile_id)) {
+                    latestByProfile.set(entry.profile_id, entry);
+                }
+            });
+            const profileIds = Array.from(latestByProfile.keys());
+            if (!profileIds.length) {
+                contactedBrowseRows = [];
+                currentRows = [];
+                totalCount = 0;
+                currentOffset = 0;
+                lastRowsLength = 0;
+                renderRows([]);
+                updatePagination();
+                return;
+            }
+
+            let profileQuery = supabaseClient
+                .from(profileSourceName())
+                .select(profileSelectColumns())
+                .in('id', profileIds);
+            if (isLoggedIn() && !isAdminLoggedIn()) {
+                profileQuery = profileQuery.in('agent_type', profileAgentTypeFilterValues(adminUser?.access_agent_types || adminUser?.access_agent_type));
+            }
+            const { data: profileData, error: profileError } = await profileQuery;
+            if (profileError) throw profileError;
+
+            const profileMap = new Map(
+                (Array.isArray(profileData) ? stripPrivateProfileFields(await applyRecentContactFlags(profileData)) : []).map((row) => [row.id, row])
+            );
+            contactedBrowseRows = profileIds
+                .map((profileId) => {
+                    const profile = profileMap.get(profileId);
+                    const contact = latestByProfile.get(profileId);
+                    if (!profile || !contact) return null;
+                    return {
+                        ...profile,
+                        Contact_Time: contact.contact_time,
+                        Contact_Content: contact.contact_content,
+                        Contact_Type: contact.contact_type
+                    };
+                })
+                .filter(Boolean);
+
+            totalCount = capVisibleCount(contactedBrowseRows.length);
+            currentOffset = safeOffset;
+            const rows = contactedBrowseRows.slice(safeOffset, safeOffset + PAGE_SIZE);
+            lastRowsLength = rows.length;
+            renderRows(rows);
+            updatePagination();
+            if (scrollToTop) {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        };
         const autoQueueAutomatedScheduleInvites = async () => {
             if (!searchAutomateToggle?.checked || !isLoggedIn()) return null;
             const payload = parseAutomateScheduleForm();
@@ -4674,6 +4790,10 @@
         const fetchProfiles = async (offset = 0, options = {}) => {
             if (!supabaseClient) {
                 throw new Error('Supabase client failed to initialize.');
+            }
+            if (searchContactedToggle?.checked && isLoggedIn()) {
+                await fetchContactedProfiles(offset, options);
+                return;
             }
             if (searchMode === 'automate') {
                 await fetchProfilesAutomated(offset, options);
@@ -5138,6 +5258,13 @@
 
             try {
                 if (usePrompt) {
+                    if (searchContactedToggle?.checked && isLoggedIn()) {
+                        activePrompt = '';
+                        automatedSearchState = null;
+                        setSearchAutomationStep('');
+                        setStatus('Loading contacted profiles...');
+                        searchMode = 'latest';
+                    } else {
                     const deepEnabled = Boolean(searchDeepToggle?.checked);
                     if (deepEnabled) {
                         if (!deepSearchLockedPrompt) {
@@ -5173,6 +5300,7 @@
                         setSearchAutomationStep('');
                         setStatus('Searching profiles...');
                         searchMode = 'prompt';
+                    }
                     }
                 } else {
                     activePrompt = '';
@@ -5217,6 +5345,23 @@
         if (searchAutomateToggle) {
             searchAutomateToggle.addEventListener('change', () => {
                 updateAutomateScheduleUi();
+            });
+        }
+        if (searchContactedToggle) {
+            searchContactedToggle.addEventListener('change', async () => {
+                if (searchContactedToggle.checked) {
+                    if (searchAutomateToggle) searchAutomateToggle.checked = false;
+                    if (searchDeepToggle) {
+                        searchDeepToggle.checked = false;
+                        syncDeepSearchUi();
+                    }
+                }
+                updateAutomateScheduleUi();
+                try {
+                    await fetchProfiles(0);
+                } catch (error) {
+                    setStatus(error.message || 'Loading contacted profiles failed.', true);
+                }
             });
         }
         if (searchDeepToggle) {
