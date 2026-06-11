@@ -3332,6 +3332,22 @@
         const titleForProfile = (profile) => {
             return profile.name_or_handle || profile.name || profile.id || 'Profile';
         };
+        const buildXShareText = (profile) => {
+            return [
+                String(profile?.name_or_handle || '').trim(),
+                String(profile?.seniority || '').trim(),
+                String(profile?.domain_focus || '').trim(),
+                'https://agitalent.tech/'
+            ].filter(Boolean).join(', ');
+        };
+        const openXShare = (profile) => {
+            const text = buildXShareText(profile);
+            const shareUrl = `https://x.com/intent/post?text=${encodeURIComponent(text)}`;
+            const popup = window.open(shareUrl, '_blank', 'noopener,noreferrer');
+            if (!popup) {
+                window.location.href = shareUrl;
+            }
+        };
 
         const badgeForProfile = (profile) => {
             if (!isLoggedIn()) return '';
@@ -3688,6 +3704,7 @@
                     ? `
                         <div class="card-actions">
                             ${isAdminLoggedIn() ? `<button class="button-secondary" data-icon="✎" type="button" data-action="edit-profile" data-id="${escapeHtml(profile.id)}">Edit</button>` : ''}
+                            ${isAdminLoggedIn() ? `<button class="button-secondary" data-icon="✕" type="button" data-action="share-x" data-id="${escapeHtml(profile.id)}">Share</button>` : ''}
                             ${canUseScheduleTools() ? `<button class="button-secondary" data-icon="↗" type="button" data-action="open-schedule" data-id="${escapeHtml(profile.id)}">Schedule</button>` : ''}
                             <button class="button-secondary" data-icon="✉" type="button" data-action="open-email" data-id="${escapeHtml(profile.id)}">Email</button>
                         </div>
@@ -5511,6 +5528,16 @@
             if (action === 'cancel-edit') {
                 editingProfileId = null;
                 renderRows(currentRows);
+                return;
+            }
+
+            if (action === 'share-x') {
+                const profile = currentRows.find((row) => row.id === profileId);
+                if (!profile) {
+                    setStatus('Profile not found.', true);
+                    return;
+                }
+                openXShare(profile);
                 return;
             }
 
