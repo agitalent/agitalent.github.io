@@ -3348,6 +3348,14 @@
                 window.location.href = shareUrl;
             }
         };
+        const openLinkedInShare = (profile) => {
+            const text = buildXShareText(profile);
+            const shareUrl = `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(text)}`;
+            const popup = window.open(shareUrl, '_blank', 'noopener,noreferrer');
+            if (!popup) {
+                window.location.href = shareUrl;
+            }
+        };
 
         const badgeForProfile = (profile) => {
             if (!isLoggedIn()) return '';
@@ -3705,6 +3713,7 @@
                         <div class="card-actions">
                             ${isAdminLoggedIn() ? `<button class="button-secondary" data-icon="✎" type="button" data-action="edit-profile" data-id="${escapeHtml(profile.id)}">Edit</button>` : ''}
                             ${isAdminLoggedIn() ? `<button class="button-secondary" data-icon="✕" type="button" data-action="share-x" data-id="${escapeHtml(profile.id)}">Share</button>` : ''}
+                            ${isAdminLoggedIn() ? `<button class="button-secondary" data-icon="in" type="button" data-action="share-linkedin" data-id="${escapeHtml(profile.id)}">LinkedIn</button>` : ''}
                             ${canUseScheduleTools() ? `<button class="button-secondary" data-icon="↗" type="button" data-action="open-schedule" data-id="${escapeHtml(profile.id)}">Schedule</button>` : ''}
                             <button class="button-secondary" data-icon="✉" type="button" data-action="open-email" data-id="${escapeHtml(profile.id)}">Email</button>
                         </div>
@@ -5538,6 +5547,16 @@
                     return;
                 }
                 openXShare(profile);
+                return;
+            }
+
+            if (action === 'share-linkedin') {
+                const profile = currentRows.find((row) => row.id === profileId);
+                if (!profile) {
+                    setStatus('Profile not found.', true);
+                    return;
+                }
+                openLinkedInShare(profile);
                 return;
             }
 
