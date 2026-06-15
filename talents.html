@@ -4003,7 +4003,7 @@
             if (!supabaseClient) {
                 throw new Error('Supabase client failed to initialize.');
             }
-            if (!automatedSearchState?.sql || !automatedSearchState?.spec) {
+            if (!automatedSearchState?.spec) {
                 throw new Error('Automated search is not ready.');
             }
             const { scrollToTop = true } = options;
@@ -4020,12 +4020,6 @@
                 query = query.eq('status', 'active').in('agent_type', ['candidate', 'job_seeker']);
             } else if (!isAdminLoggedIn()) {
                 query = query.in('agent_type', profileAgentTypeFilterValues(adminUser?.access_agent_types || adminUser?.access_agent_type));
-            }
-            if (spec?.agent_types?.length) {
-                query = query.in('agent_type', profileAgentTypeFilterValues(spec.agent_types));
-            }
-            if (spec?.statuses?.length && isAdminLoggedIn()) {
-                query = query.in('status', spec.statuses);
             }
             const allKeywords = automatedSearchTerms(spec);
             const retrievalClauses = allKeywords.flatMap((term) => [
@@ -4050,8 +4044,10 @@
                     return {
                         ...row,
                         _automated_rank_score: ranking.finalScore,
-                        _automated_rank_tier: ranking.tier,
-                        _automated_rank_summary: ranking
+                        _automated_rank_summary: ranking,
+                        Match_Score: ranking.finalScore,
+                        Matched_Field: ranking.matchedField,
+                        Matched_Keyword: ranking.matchedKeyword
                     };
                 })
                 .sort((left, right) => (
@@ -4059,7 +4055,7 @@
                     || (new Date(right.updated_at || right.created_at || 0).getTime() - new Date(left.updated_at || left.created_at || 0).getTime())
                 ));
             automatedSearchState.rankedRows = filteredRows;
-            setSearchAutomationTrace(automatedSearchTraceText(spec, automatedSearchState?.sql || buildAutomatedSearchSql(spec), filteredRows));
+            setSearchAutomationTrace(automatedSearchTraceText(spec, buildAutomatedSearchSql(spec), filteredRows));
             totalCount = capVisibleCount(filteredRows.length);
             currentOffset = safeOffset;
             const rows = filteredRows.slice(safeOffset, safeOffset + PAGE_SIZE);
