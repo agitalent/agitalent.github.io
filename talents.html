@@ -3163,13 +3163,52 @@
                 const count = Number(point.count || 0);
                 const height = Math.max(10, Math.round((count / maxValue) * 120));
                 return `
-                    <div class="bar-item">
+                    <div class="bar-item" data-day="${escapeHtml(point.day)}">
                         <div class="bar-value">${count}</div>
                         <div class="bar-column" style="height:${height}px;"></div>
                         <div class="bar-label">${escapeHtml(formatChartDayLabel(point.day))}</div>
                     </div>
                 `;
             }).join('');
+        };
+
+        const downloadTextFile = (filename, content) => {
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            anchor.download = filename;
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+            URL.revokeObjectURL(url);
+        };
+
+        const downloadDashboardRecordsForDay = async (isoDay) => {
+            if (!supabaseClient) {
+                throw new Error('Supabase client failed to initialize.');
+            }
+            if (!isAdminLoggedIn()) {
+                throw new Error('Admin login is required.');
+            }
+            const startIso = `${isoDay}T00:00:00`;
+            const endDate = new Date(`${isoDay}T00:00:00`);
+            endDate.setDate(endDate.getDate() + 1);
+            const endIso = endDate.toISOString().slice(0, 19);
+            const { data, error } = await supabaseClient
+                .from('profiles')
+                .select('name_or_handle, seniority, domain_focus, created_at, updated_at')
+                .gte('created_at', startIso)
+                .lt('created_at', endIso)
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            const rows = Array.isArray(data) ? data : [];
+            const lines = rows.map((row) => [
+                String(row.name_or_handle || '').trim(),
+                String(row.seniority || '').trim(),
+                String(row.domain_focus || '').trim()
+            ].join(', '));
+            downloadTextFile(`new-records-${isoDay}.txt`, lines.join('\n'));
         };
 
         const loadDashboardMetrics = async () => {
@@ -4875,6 +4914,20 @@
         if (calendarDisconnectButton) {
             calendarDisconnectButton.addEventListener('click', async () => {
                 await disconnectGoogleCalendar();
+            });
+        }
+        if (dashboardNewRecordsChartEl) {
+            dashboardNewRecordsChartEl.addEventListener('click', async (event) => {
+                const bar = event.target.closest('.bar-item');
+                if (!bar || !dashboardNewRecordsChartEl.contains(bar)) return;
+                if (!isAdminLoggedIn()) return;
+                const isoDay = bar.dataset.day;
+                if (!isoDay) return;
+                try {
+                    await downloadDashboardRecordsForDay(isoDay);
+                } catch (error) {
+                    setStatus(error.message || 'Download failed.', true);
+                }
             });
         }
         if (searchHistoryListEl) {
