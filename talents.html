@@ -3406,6 +3406,90 @@
             'inflection', 'grok', 'baidu', 'alibaba', 'alibaba-inc', 'tencent', 'bytedance', 'sensetime', 'megvii',
             '01.ai', 'moonshot'
         ];
+        const TREND_INSTITUTION_EMAIL_MAP = {
+            'stanford.edu': 'stanford',
+            'mit.edu': 'mit',
+            'berkeley.edu': 'berkeley',
+            'cmu.edu': 'cmu',
+            'illinois.edu': 'illinois',
+            'uiuc.edu': 'uiuc',
+            'cornell.edu': 'cornell',
+            'washington.edu': 'washington',
+            'gatech.edu': 'gatech',
+            'utexas.edu': 'utexas',
+            'princeton.edu': 'princeton',
+            'umich.edu': 'umich',
+            'ucla.edu': 'ucla',
+            'ucsd.edu': 'ucsd',
+            'columbia.edu': 'columbia',
+            'harvard.edu': 'harvard',
+            'ox.ac.uk': 'oxford',
+            'cam.ac.uk': 'cambridge',
+            'ethz.ch': 'ethz',
+            'inf.ethz.ch': 'ethz',
+            'epfl.ch': 'epfl',
+            'imperial.ac.uk': 'imperial college',
+            'ucl.ac.uk': 'ucl',
+            'ed.ac.uk': 'edinburgh',
+            'kth.se': 'kth',
+            'tum.de': 'tum',
+            'nus.edu.sg': 'nus',
+            'ntu.edu.sg': 'ntu',
+            'hkust.edu.hk': 'hkust',
+            'ust.hk': 'hkust',
+            'cuhk.edu.hk': 'cuhk',
+            'hku.hk': 'hku',
+            'cityu.edu.hk': 'cityu',
+            'unimelb.edu.au': 'unimelb',
+            'sydney.edu.au': 'sydney',
+            'unsw.edu.au': 'unsw',
+            'anu.edu.au': 'anu',
+            'monash.edu': 'monash',
+            'uq.edu.au': 'uq',
+            'kaist.ac.kr': 'kaist',
+            'snu.ac.kr': 'snu',
+            'tsinghua.edu.cn': 'tsinghua',
+            'pku.edu.cn': 'pku',
+            'sjtu.edu.cn': 'sjtu',
+            'zju.edu.cn': 'zju',
+            'fudan.edu.cn': 'fudan',
+            'ustc.edu.cn': 'ustc',
+            'nju.edu.cn': 'nju',
+            'hit.edu.cn': 'hit',
+            'buaa.edu.cn': 'buaa',
+            'seu.edu.cn': 'seu'
+        };
+        const TREND_COMPANY_EMAIL_MAP = {
+            'openai.com': 'openai',
+            'anthropic.com': 'anthropic',
+            'google.com': 'google',
+            'deepmind.com': 'deepmind',
+            'microsoft.com': 'microsoft',
+            'meta.com': 'meta',
+            'x.ai': 'x.ai',
+            'nvidia.com': 'nvidia',
+            'amazon.com': 'amazon',
+            'aws.amazon.com': 'aws',
+            'cohere.com': 'cohere',
+            'mistral.ai': 'mistral',
+            'character.ai': 'character.ai',
+            'perplexity.ai': 'perplexity',
+            'scale.com': 'scale',
+            'huggingface.co': 'hugging face',
+            'databricks.com': 'databricks',
+            'adept.ai': 'adept',
+            'inflection.ai': 'inflection',
+            'grok.com': 'grok',
+            'baidu.com': 'baidu',
+            'alibaba-inc.com': 'alibaba',
+            'alibaba.com': 'alibaba',
+            'tencent.com': 'tencent',
+            'bytedance.com': 'bytedance',
+            'sensetime.com': 'sensetime',
+            'megvii.com': 'megvii',
+            '01.ai': '01.ai',
+            'moonshot.cn': 'moonshot'
+        };
         const topKeywordCounts = (items, limit = 10) => {
             const counts = new Map();
             items.forEach((item) => {
@@ -3444,7 +3528,7 @@
             if (!supabaseClient || !isLoggedIn() || isAdminLoggedIn()) return;
             const { data, error } = await supabaseClient
                 .from('profiles')
-                .select('domain_focus, seniority')
+                .select('domain_focus, email')
                 .limit(1000);
             if (error) throw error;
             const rows = Array.isArray(data) ? data : [];
@@ -3452,13 +3536,13 @@
                 .split(',')
                 .map((item) => sanitizeSearchValue(item).toLowerCase())
                 .filter(Boolean));
-            const briefBackgrounds = rows.map((row) => String(row.seniority || '').toLowerCase());
-            const institutionMatches = briefBackgrounds.flatMap((text) =>
-                TREND_INSTITUTION_TERMS.filter((term) => text.includes(term))
-            );
-            const companyMatches = briefBackgrounds.flatMap((text) =>
-                TREND_COMPANY_TERMS.filter((term) => text.includes(term))
-            );
+            const emails = rows.map((row) => String(row.email || '').toLowerCase().trim());
+            const institutionMatches = emails
+                .map((email) => TREND_INSTITUTION_EMAIL_MAP[email.split('@')[1] || ''])
+                .filter(Boolean);
+            const companyMatches = emails
+                .map((email) => TREND_COMPANY_EMAIL_MAP[email.split('@')[1] || ''])
+                .filter(Boolean);
             renderTrendChart(trendHotNichesEl, topKeywordCounts(nicheKeywords, 10));
             renderTrendChart(trendActiveInstitutionsEl, topKeywordCounts(institutionMatches, 10));
             renderTrendChart(trendActiveCompaniesEl, topKeywordCounts(companyMatches, 10));
