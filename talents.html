@@ -2756,7 +2756,9 @@
             if (!isLoggedIn()) {
                 setAccountCardOpen(false);
             }
-            dashboardPrimaryTitleEl.textContent = 'New records, last 7 days';
+            dashboardPrimaryTitleEl.textContent = dashboardRecordsRange.start && dashboardRecordsRange.end
+                ? `New records, ${dashboardRecordsRange.start} to ${dashboardRecordsRange.end}`
+                : 'New records, last 7 days';
             dashboardSecondaryTitleEl.textContent = isAdminLoggedIn() ? 'New users, last 7 days' : 'Email outreach, last 7 days';
             dashboardTertiaryTitleEl.textContent = 'New schedules, last 7 days';
             document.getElementById('dashboard-tertiary-card').style.display = isLoggedIn() ? '' : 'none';
