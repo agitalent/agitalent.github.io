@@ -408,6 +408,7 @@
             align-items: center;
             gap: 8px;
             min-width: 0;
+            cursor: pointer;
         }
         .trend-bar-column {
             width: 100%;
@@ -415,12 +416,24 @@
             min-height: 18px;
             border-radius: 0 12px 12px 0;
             background: linear-gradient(180deg, #7fffd4, #47e5a5);
+            transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease;
         }
         .trend-bar-label {
             font-size: 11px;
             color: var(--muted);
             text-align: left;
             word-break: break-word;
+            transition: transform 140ms ease, color 140ms ease, text-shadow 140ms ease;
+        }
+        .trend-bar-item.active .trend-bar-label {
+            color: var(--text);
+            transform: scale(1.08);
+            text-shadow: 0 0 12px rgba(127, 255, 212, 0.45);
+        }
+        .trend-bar-item.active .trend-bar-column {
+            transform: scaleY(1.08);
+            box-shadow: 0 0 14px rgba(127, 255, 212, 0.35);
+            filter: saturate(1.15);
         }
         .bar-chart {
             display: grid;
@@ -3420,6 +3433,12 @@
                     </div>
                 `;
             }).join('');
+            element.querySelectorAll('.trend-bar-item').forEach((item) => {
+                item.addEventListener('click', () => {
+                    element.querySelectorAll('.trend-bar-item').forEach((row) => row.classList.remove('active'));
+                    item.classList.add('active');
+                });
+            });
         };
         const computeTrendInsights = async () => {
             if (!supabaseClient || !isLoggedIn() || isAdminLoggedIn()) return;
