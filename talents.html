@@ -357,6 +357,44 @@
             font-size: 15px;
             color: var(--dashboard-title);
         }
+        .dashboard-switcher {
+            display: none;
+            gap: 10px;
+            margin: 0 0 14px;
+            flex-wrap: wrap;
+        }
+        .dashboard-switcher.visible {
+            display: flex;
+        }
+        .dashboard-page {
+            display: none;
+            width: 100%;
+        }
+        .dashboard-page.active {
+            display: block;
+        }
+        .trend-list {
+            display: grid;
+            gap: 10px;
+        }
+        .trend-block {
+            border: 1px solid var(--soft-border-light);
+            border-radius: 16px;
+            background: var(--soft-bg-2);
+            padding: 14px;
+        }
+        .trend-block h4 {
+            margin: 0 0 10px;
+            font-size: 13px;
+            color: var(--dashboard-title);
+        }
+        .trend-block ol {
+            margin: 0;
+            padding-left: 18px;
+            color: var(--muted);
+            display: grid;
+            gap: 6px;
+        }
         .bar-chart {
             display: grid;
             grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -1168,32 +1206,57 @@
         <section class="hero">
             <div class="hero-head" id="dashboard-section">
                 <div class="eyebrow" data-icon="◔">Dashboard</div>
-                <div class="dashboard-grid" id="dashboard-grid">
-                    <div class="dashboard-card" id="dashboard-primary-card">
-                        <h3 data-icon="▣" id="dashboard-primary-title">New records, last 7 days</h3>
-                        <div class="schedule-grid" id="dashboard-primary-range" style="display:none; margin-bottom:12px;">
-                            <div class="field">
-                                <label for="dashboard-records-start-date">Start date</label>
-                                <input id="dashboard-records-start-date" type="date">
+                <div class="dashboard-switcher" id="dashboard-switcher">
+                    <button class="button-secondary" data-icon="▣" id="dashboard-show-metrics" type="button">Data Metrics</button>
+                    <button class="button-secondary" data-icon="◍" id="dashboard-show-trends" type="button">Trend Insight</button>
+                </div>
+                <div class="dashboard-page active" id="dashboard-page-metrics">
+                    <div class="dashboard-grid" id="dashboard-grid">
+                        <div class="dashboard-card" id="dashboard-primary-card">
+                            <h3 data-icon="▣" id="dashboard-primary-title">New records, last 7 days</h3>
+                            <div class="schedule-grid" id="dashboard-primary-range" style="display:none; margin-bottom:12px;">
+                                <div class="field">
+                                    <label for="dashboard-records-start-date">Start date</label>
+                                    <input id="dashboard-records-start-date" type="date">
+                                </div>
+                                <div class="field">
+                                    <label for="dashboard-records-end-date">End date</label>
+                                    <input id="dashboard-records-end-date" type="date">
+                                </div>
+                                <div class="field">
+                                    <label>&nbsp;</label>
+                                    <button class="button-secondary" data-icon="↻" id="dashboard-records-apply-range" type="button">Apply</button>
+                                </div>
                             </div>
-                            <div class="field">
-                                <label for="dashboard-records-end-date">End date</label>
-                                <input id="dashboard-records-end-date" type="date">
+                            <div class="bar-chart empty" id="dashboard-new-records-chart">-</div>
+                        </div>
+                        <div class="dashboard-card" id="dashboard-secondary-card">
+                            <h3 data-icon="◎" id="dashboard-secondary-title">New users, last 7 days</h3>
+                            <div class="bar-chart empty" id="dashboard-new-users-chart">-</div>
+                        </div>
+                        <div class="dashboard-card" id="dashboard-tertiary-card">
+                            <h3 data-icon="↗" id="dashboard-tertiary-title">New schedules, last 7 days</h3>
+                            <div class="bar-chart empty" id="dashboard-sent-schedules-chart">-</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="dashboard-page" id="dashboard-page-trends">
+                    <div class="dashboard-card">
+                        <h3 data-icon="◍">Trend Insight</h3>
+                        <div class="trend-list">
+                            <div class="trend-block">
+                                <h4>hot research niches</h4>
+                                <ol id="trend-hot-niches"></ol>
                             </div>
-                            <div class="field">
-                                <label>&nbsp;</label>
-                                <button class="button-secondary" data-icon="↻" id="dashboard-records-apply-range" type="button">Apply</button>
+                            <div class="trend-block">
+                                <h4>active research institutions</h4>
+                                <ol id="trend-active-institutions"></ol>
+                            </div>
+                            <div class="trend-block">
+                                <h4>active research companies</h4>
+                                <ol id="trend-active-companies"></ol>
                             </div>
                         </div>
-                        <div class="bar-chart empty" id="dashboard-new-records-chart">-</div>
-                    </div>
-                    <div class="dashboard-card" id="dashboard-secondary-card">
-                        <h3 data-icon="◎" id="dashboard-secondary-title">New users, last 7 days</h3>
-                        <div class="bar-chart empty" id="dashboard-new-users-chart">-</div>
-                    </div>
-                    <div class="dashboard-card" id="dashboard-tertiary-card">
-                        <h3 data-icon="↗" id="dashboard-tertiary-title">New schedules, last 7 days</h3>
-                        <div class="bar-chart empty" id="dashboard-sent-schedules-chart">-</div>
                     </div>
                 </div>
             </div>
@@ -1653,6 +1716,11 @@
         const adminLogoutButton = document.getElementById('admin-logout-button');
         const adminAuthStatusEl = document.getElementById('admin-auth-status');
         const dashboardSectionEl = document.getElementById('dashboard-section');
+        const dashboardSwitcherEl = document.getElementById('dashboard-switcher');
+        const dashboardShowMetricsButton = document.getElementById('dashboard-show-metrics');
+        const dashboardShowTrendsButton = document.getElementById('dashboard-show-trends');
+        const dashboardPageMetricsEl = document.getElementById('dashboard-page-metrics');
+        const dashboardPageTrendsEl = document.getElementById('dashboard-page-trends');
         const dashboardGridEl = document.getElementById('dashboard-grid');
         const dashboardPrimaryTitleEl = document.getElementById('dashboard-primary-title');
         const dashboardSecondaryTitleEl = document.getElementById('dashboard-secondary-title');
@@ -1665,6 +1733,9 @@
         const dashboardNewRecordsChartEl = document.getElementById('dashboard-new-records-chart');
         const dashboardNewUsersChartEl = document.getElementById('dashboard-new-users-chart');
         const dashboardSentSchedulesChartEl = document.getElementById('dashboard-sent-schedules-chart');
+        const trendHotNichesEl = document.getElementById('trend-hot-niches');
+        const trendActiveInstitutionsEl = document.getElementById('trend-active-institutions');
+        const trendActiveCompaniesEl = document.getElementById('trend-active-companies');
         const loginModalEl = document.getElementById('login-modal');
         const loginModalUsernameInput = document.getElementById('login-modal-username');
         const loginModalPasswordInput = document.getElementById('login-modal-password');
@@ -1772,6 +1843,7 @@
         let searchMode = 'latest';
         let currentRows = [];
         let dashboardRecordsRange = { start: '', end: '' };
+        let dashboardViewMode = 'metrics';
         let adminUser = null;
         let adminPassword = '';
         let editingProfileId = null;
@@ -2718,6 +2790,15 @@
             if (dashboardPrimaryRangeEl) {
                 dashboardPrimaryRangeEl.style.display = isAdminLoggedIn() ? '' : 'none';
             }
+            if (dashboardSwitcherEl) {
+                dashboardSwitcherEl.classList.toggle('visible', isLoggedIn() && !isAdminLoggedIn());
+            }
+            if (dashboardPageMetricsEl) {
+                dashboardPageMetricsEl.classList.toggle('active', dashboardViewMode === 'metrics' || isAdminLoggedIn());
+            }
+            if (dashboardPageTrendsEl) {
+                dashboardPageTrendsEl.classList.toggle('active', !isAdminLoggedIn() && dashboardViewMode === 'trends');
+            }
             if (searchAutomateControlsEl) {
                 searchAutomateControlsEl.style.display = isLoggedIn() ? '' : 'none';
             }
@@ -3271,6 +3352,61 @@
             });
             return Array.from(counts.entries()).map(([day, count]) => ({ day, count }));
         };
+        const TREND_INSTITUTION_TERMS = [
+            'stanford', 'mit', 'massachusetts institute of technology', 'berkeley', 'uc berkeley', 'carnegie mellon', 'cmu',
+            'illinois', 'uiuc', 'cornell', 'washington', 'gatech', 'georgia tech', 'utexas', 'princeton', 'umich', 'michigan',
+            'ucla', 'ucsd', 'columbia', 'harvard', 'oxford', 'cambridge', 'eth zurich', 'ethz', 'epfl', 'imperial college',
+            'ucl', 'edinburgh', 'kth', 'tum', 'nus', 'ntu', 'hkust', 'cuhk', 'hku', 'cityu', 'unimelb', 'melbourne',
+            'sydney', 'unsw', 'anu', 'monash', 'uq', 'kaist', 'snu', 'tsinghua', 'pku', 'sjtu', 'zju', 'fudan', 'ustc',
+            'nju', 'hit', 'buaa', 'seu'
+        ];
+        const TREND_COMPANY_TERMS = [
+            'openai', 'anthropic', 'google', 'deepmind', 'microsoft', 'meta', 'x.ai', 'nvidia', 'amazon', 'aws',
+            'cohere', 'mistral', 'character.ai', 'perplexity', 'scale', 'hugging face', 'databricks', 'adept',
+            'inflection', 'grok', 'baidu', 'alibaba', 'alibaba-inc', 'tencent', 'bytedance', 'sensetime', 'megvii',
+            '01.ai', 'moonshot'
+        ];
+        const topKeywordCounts = (items, limit = 10) => {
+            const counts = new Map();
+            items.forEach((item) => {
+                counts.set(item, (counts.get(item) || 0) + 1);
+            });
+            return Array.from(counts.entries())
+                .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+                .slice(0, limit);
+        };
+        const renderTrendList = (element, items) => {
+            if (!element) return;
+            if (!items.length) {
+                element.innerHTML = '<li>No data</li>';
+                return;
+            }
+            element.innerHTML = items.map(([label, count]) => `<li>${escapeHtml(label)} (${count})</li>`).join('');
+        };
+        const computeTrendInsights = async () => {
+            if (!supabaseClient || !isLoggedIn() || isAdminLoggedIn()) return;
+            const { data, error } = await supabaseClient
+                .from('profiles')
+                .select('domain_focus, seniority')
+                .in('agent_type', profileAgentTypeFilterValues(adminUser?.access_agent_types || adminUser?.access_agent_type))
+                .limit(1000);
+            if (error) throw error;
+            const rows = Array.isArray(data) ? data : [];
+            const nicheKeywords = rows.flatMap((row) => String(row.domain_focus || '')
+                .split(',')
+                .map((item) => sanitizeSearchValue(item).toLowerCase())
+                .filter(Boolean));
+            const briefBackgrounds = rows.map((row) => String(row.seniority || '').toLowerCase());
+            const institutionMatches = briefBackgrounds.flatMap((text) =>
+                TREND_INSTITUTION_TERMS.filter((term) => text.includes(term))
+            );
+            const companyMatches = briefBackgrounds.flatMap((text) =>
+                TREND_COMPANY_TERMS.filter((term) => text.includes(term))
+            );
+            renderTrendList(trendHotNichesEl, topKeywordCounts(nicheKeywords, 10));
+            renderTrendList(trendActiveInstitutionsEl, topKeywordCounts(institutionMatches, 10));
+            renderTrendList(trendActiveCompaniesEl, topKeywordCounts(companyMatches, 10));
+        };
 
         const loadDashboardMetrics = async () => {
             if (!supabaseClient || !isLoggedIn() || !adminPassword) {
@@ -3293,6 +3429,7 @@
             renderDashboardChart(dashboardNewRecordsChartEl, data?.new_records_last_7d || []);
             renderDashboardChart(dashboardNewUsersChartEl, data?.email_outreach_last_7d || []);
             renderDashboardChart(dashboardSentSchedulesChartEl, data?.sent_schedules_last_7d || []);
+            await computeTrendInsights();
         };
 
         const applyRecentContactFlags = async (rows) => {
@@ -5007,6 +5144,23 @@
                     await loadDashboardMetrics();
                 } catch (error) {
                     setStatus(error.message || 'Dashboard range update failed.', true);
+                }
+            });
+        }
+        if (dashboardShowMetricsButton) {
+            dashboardShowMetricsButton.addEventListener('click', () => {
+                dashboardViewMode = 'metrics';
+                updateAdminUi();
+            });
+        }
+        if (dashboardShowTrendsButton) {
+            dashboardShowTrendsButton.addEventListener('click', async () => {
+                dashboardViewMode = 'trends';
+                updateAdminUi();
+                try {
+                    await computeTrendInsights();
+                } catch (error) {
+                    setStatus(error.message || 'Trend insights failed.', true);
                 }
             });
         }
