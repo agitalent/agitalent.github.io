@@ -1321,15 +1321,9 @@
                                 <textarea id="search-input" placeholder=""></textarea>
                                 <button class="button button-icon" id="search-button" type="button" aria-label="Search">→</button>
                             </div>
-                            <div class="user-actions" style="margin-top:10px;">
-                                <label class="checkbox-inline" for="search-deep-toggle">
-                                    <input id="search-deep-toggle" type="checkbox">
-                                    <span>Deep</span>
-                                </label>
-                            </div>
                             <div class="field" style="margin-top:10px;">
-                                <label for="screen-filter-input">Filter</label>
-                                <input id="screen-filter-input" type="text" placeholder="Only used by LLM screening">
+                                <label for="screen-filter-input">LLM Filtering</label>
+                                <input id="screen-filter-input" type="text" placeholder="">
                             </div>
                             <div class="user-actions" id="search-automate-controls" style="display:none; margin-top:12px;">
                                 <label class="checkbox-inline" for="search-automate-toggle">
@@ -1910,7 +1904,6 @@
         const ADMIN_SESSION_KEY = 'talentsAdminSession';
         const TALENTS_THEME_KEY = 'talentsTheme';
         const OUTREACH_MODE_HIRING = 'hiring_talents';
-        const OUTREACH_MODE_SEEKING = 'seeking_jobs';
         const SUPABASE_AUTH_EMAIL_DOMAIN = 'users.agitalent.tech';
         const DEBUG_AUTH = ['localhost', '127.0.0.1', ''].includes(window.location.hostname);
         const authDebugState = {
@@ -2320,32 +2313,18 @@
             value.setDate(value.getDate() + days);
             return value.toISOString().slice(0, 10);
         };
-        const normalizeOutreachMode = (value) => (
-            String(value || '').trim() === OUTREACH_MODE_SEEKING ? OUTREACH_MODE_SEEKING : OUTREACH_MODE_HIRING
-        );
+        const normalizeOutreachMode = () => OUTREACH_MODE_HIRING;
         const outreachModeConfig = (mode) => {
             const normalizedMode = normalizeOutreachMode(mode);
-            if (normalizedMode === OUTREACH_MODE_SEEKING) {
-                return {
-                    mode: normalizedMode,
-                    companyLabel: 'Your Name',
-                    roleLabel: 'Specialized Domain',
-                    contactLabel: 'Your Profile Link',
-                    companyPlaceholder: 'Alex Chen',
-                    rolePlaceholder: 'Agentic coding systems',
-                    contactPlaceholder: 'https://linkedin.com/in/alexchen',
-                    completionMessage: 'Complete your name, specialized domain, and profile link before sending.'
-                };
-            }
             return {
                 mode: normalizedMode,
-                companyLabel: 'Company',
-                roleLabel: 'Role',
+                companyLabel: 'Introduce Yourself',
+                roleLabel: 'Why Contact',
                 contactLabel: 'Preferred Contact Means',
-                companyPlaceholder: 'OpenAI',
-                rolePlaceholder: 'Research Engineer',
+                companyPlaceholder: 'I am a research engineer focused on multimodal AI systems',
+                rolePlaceholder: 'Reaching out because your background strongly aligns with this opportunity',
                 contactPlaceholder: 'email@example.com or WeChat: agitalent',
-                completionMessage: 'Complete company, role, and preferred contact before sending.'
+                completionMessage: 'Complete Introduce Yourself, Why Contact, and preferred contact before sending.'
             };
         };
         const normalizedOutreachDefaults = () => ({
@@ -2854,7 +2833,7 @@
             if (searchDeepToggle) {
                 const deepContainer = searchDeepToggle.closest('.user-actions');
                 if (deepContainer) {
-                    deepContainer.style.display = isLoggedIn() ? '' : 'none';
+                    deepContainer.style.display = 'none';
                 }
             }
             if (!isLoggedIn() && searchAutomateToggle) {
@@ -2996,11 +2975,7 @@
             return `https://calendar.google.com/calendar/render?${params.toString()}`;
         };
 
-        const buildOpportunityParagraph = (mode, company, role) => (
-            normalizeOutreachMode(mode) === OUTREACH_MODE_SEEKING
-                ? `${String(company || '').trim()} is currently seeking roles in ${String(role || '').trim()}.`
-                : `${String(company || '').trim()} is currently hiring ${String(role || '').trim()}.`
-        );
+        const buildOpportunityParagraph = (_mode, company, role) => `${String(company || '').trim()}, ${String(role || '').trim()}`;
         const truncateWords = (text, maxWords) => String(text || '').trim().split(/\s+/).filter(Boolean).slice(0, maxWords).join(' ');
         const normalizeSummaryWithoutPronouns = (text, maxWords) => {
             const pronouns = new Set([
@@ -3084,8 +3059,8 @@
             const backgroundDescriptor = seededChoice(CALENDAR_BACKGROUND_DESCRIPTORS, `${seed}:background`);
             return `${opportunityWord} Opportunity Matching Your ${backgroundDescriptor} Background`;
         };
-        const buildCalendarPraiseParagraph = (briefBackground = 'strong professional background') => (
-            `Your profile is highly impressive: ${sanitizeCalendarBriefBackground(briefBackground)}`
+        const buildCalendarPraiseParagraph = (briefBackground = 'strong professional background', domainFocus = 'AI research') => (
+            `Your profile is really impressive: ${sanitizeCalendarBriefBackground(briefBackground)}, specialized in ${String(domainFocus || 'AI research').trim()}`
         );
         const buildInvitationSubject = ({ opportunityWord = 'Great', summary = 'Professional Background' } = {}) => {
             const normalizedWord = titleCaseWords(truncateWords(opportunityWord || 'Great', 1)) || 'Great';
@@ -3186,57 +3161,31 @@
         const generateEmailDraft = async (profile, values) => {
             const candidateName = String(profile.name_or_handle || profile.name || 'Candidate').trim();
             const seniority = String(profile.seniority || 'background').trim();
+            const domainFocus = String(profile.domain_focus || 'AI research').trim();
             const company = String(values.company || '').trim();
             const role = String(values.role || '').trim();
             const contact = String(values.contact || '').trim();
             const mode = normalizeOutreachMode(values.outreach_mode);
             const context = { candidateName, company, role, contact };
             try {
-                const payload = await deepseekJson(mode === OUTREACH_MODE_SEEKING ? [
-                    { role: 'system', content: 'Return JSON only: {"paragraph2":""}.' },
+                const payload = await deepseekJson([
+                    { role: 'system', content: 'Return JSON only: {"subject_summary":""}.' },
                     {
                         role: 'user',
                         content: (
-                            `Candidate name: ${candidateName}. Seniority: ${seniority}. Seeking domain: ${role}. Profile link: ${contact}. ` +
-                            'Paragraph2 only: write one concise sentence, under 30 words, highlighting that the sender is a veteran in the specialized domain.'
-                        )
-                    }
-                ] : [
-                    { role: 'system', content: 'Return JSON only: {"subject_summary":"","paragraph2_summary":"","praise_adjective":"","followup_clause":""}.' },
-                    {
-                        role: 'user',
-                        content: (
-                            `Candidate name: ${candidateName}. Field brief_background: ${seniority}. Company: ${company}. Role: ${role}. Preferred contact: ${contact}. ` +
-                            'subject_summary: exactly 6 to 10 words summarizing the candidate achievement and advantage from brief_background. ' +
-                            'paragraph2_summary: exactly 14 to 20 words summarizing the candidate achievement and advantage from brief_background. ' +
-                            'Do not include pronouns in subject_summary or paragraph2_summary: no I, me, my, you, your, he, his, she, her, they, their, we, our. ' +
-                            'praise_adjective: one word similar to outstanding, excellent, exceptional, remarkable, impressive, or strong. ' +
-                            'followup_clause: 6 to 12 words continuing after a comma, explaining why the opportunity fits. ' +
-                            'Do not include placeholders, quotes, company, role, greeting, or full sentence punctuation in the summaries.'
+                            `Candidate name: ${candidateName}. Field brief_background: ${seniority}. Field domain_focus: ${domainFocus}. ` +
+                            'subject_summary: exactly 6 to 10 words summarizing the candidate achievement and advantage from brief_background and domain_focus. ' +
+                            'Do not include placeholders, quotes, greeting, or full sentence punctuation in the summary.'
                         )
                     }
                 ]);
-                const title = mode === OUTREACH_MODE_SEEKING
-                    ? 'Apply for roles if your team can kindly provide a fit.'
-                    : buildInvitationSubject({ summary: replaceInvitePlaceholders(String(payload?.subject_summary || seniority).trim(), context) });
-                const paragraph2 = mode === OUTREACH_MODE_SEEKING
-                    ? replaceInvitePlaceholders(String(payload?.paragraph2 || `I am a veteran in ${role}, with ${seniority} background and expertise.`).trim(), context)
-                    : buildInvitationPraiseParagraph(
-                        {
-                            achievementSummary: replaceInvitePlaceholders(String(payload?.paragraph2_summary || seniority).trim(), context),
-                            praise: [
-                                replaceInvitePlaceholders(String(payload?.praise_adjective || 'outstanding').trim(), context),
-                                replaceInvitePlaceholders(String(payload?.followup_clause || '').trim(), context)
-                            ].filter(Boolean).join(', ')
-                        }
-                    );
+                const title = buildInvitationSubject({ summary: replaceInvitePlaceholders(String(payload?.subject_summary || seniority).trim(), context) });
+                const paragraph2 = buildCalendarPraiseParagraph(seniority, domainFocus);
                 const body = [
                     `Hi ${candidateName},`,
                     paragraph2,
                     buildOpportunityParagraph(mode, company, role),
-                    mode === OUTREACH_MODE_SEEKING
-                        ? `My profile link is ${contact}.`
-                        : `Feel free to reach out via ${contact}.`
+                    `Feel free to reach out via ${contact}.`
                 ].join('\n\n');
                 return {
                     subject: title,
@@ -3244,18 +3193,12 @@
                 };
             } catch (_error) {
                 return {
-                    subject: mode === OUTREACH_MODE_SEEKING
-                        ? 'Apply for roles if your team can kindly provide a fit.'
-                        : buildInvitationSubject({ summary: seniority }),
+                    subject: buildInvitationSubject({ summary: seniority }),
                     body: [
                         `Hi ${candidateName},`,
-                        mode === OUTREACH_MODE_SEEKING
-                            ? `I am a veteran in ${role}, with ${seniority} background and expertise.`
-                            : buildInvitationPraiseParagraph({ achievementSummary: seniority }),
+                        buildCalendarPraiseParagraph(seniority, domainFocus),
                         buildOpportunityParagraph(mode, company, role),
-                        mode === OUTREACH_MODE_SEEKING
-                            ? `My profile link is ${contact}.`
-                            : `Feel free to reach out via ${contact}.`
+                        `Feel free to reach out via ${contact}.`
                     ].join('\n\n')
                 };
             }
@@ -3263,6 +3206,7 @@
         const generateScheduleDraft = async (profile, values) => {
             const candidateName = String(profile.name_or_handle || profile.name || 'Candidate').trim();
             const briefBio = String(profile.seniority || 'professional background').trim();
+            const domainFocus = String(profile.domain_focus || 'AI research').trim();
             const company = String(values.company || '').trim();
             const role = String(values.role || '').trim();
             const contact = String(values.contact || '').trim();
@@ -3270,7 +3214,8 @@
             try {
                 const subject = buildCalendarInvitationSubject(profile, values);
                 const paragraph2 = buildCalendarPraiseParagraph(
-                    replaceInvitePlaceholders(briefBio, context)
+                    replaceInvitePlaceholders(briefBio, context),
+                    replaceInvitePlaceholders(domainFocus, context)
                 );
                 const body = [
                     `Hi ${candidateName},`,
@@ -3287,7 +3232,7 @@
                     subject: buildCalendarInvitationSubject(profile, values),
                     body: [
                         `Hi ${candidateName},`,
-                        buildCalendarPraiseParagraph(briefBio),
+                        buildCalendarPraiseParagraph(briefBio, domainFocus),
                         buildOpportunityParagraph(OUTREACH_MODE_HIRING, company, role),
                         `Feel free to reach out via ${contact}.`
                     ].join('\n\n')
@@ -3845,25 +3790,6 @@
             ...scheduleDefaults()
         });
 
-        const renderOutreachModeOptions = (profileId, values, prefix) => {
-            const selectedMode = normalizeOutreachMode(values.outreach_mode);
-            return `
-                <div class="field wide">
-                    <label>Outreach Type</label>
-                    <div class="outreach-mode-group">
-                        <label class="outreach-mode-option" for="${prefix}-mode-hiring-${escapeHtml(profileId)}">
-                            <input id="${prefix}-mode-hiring-${escapeHtml(profileId)}" name="outreach_mode" type="radio" value="${OUTREACH_MODE_HIRING}" ${selectedMode === OUTREACH_MODE_HIRING ? 'checked' : ''}>
-                            hiring talents
-                        </label>
-                        <label class="outreach-mode-option" for="${prefix}-mode-seeking-${escapeHtml(profileId)}">
-                            <input id="${prefix}-mode-seeking-${escapeHtml(profileId)}" name="outreach_mode" type="radio" value="${OUTREACH_MODE_SEEKING}" ${selectedMode === OUTREACH_MODE_SEEKING ? 'checked' : ''}>
-                            seeking jobs
-                        </label>
-                    </div>
-                </div>
-            `;
-        };
-
         const applyOutreachModePresentation = (form, mode) => {
             if (!form) return;
             const config = outreachModeConfig(mode);
@@ -3950,7 +3876,6 @@
             return `
                 <div class="schedule-panel">
                     <div class="schedule-grid" data-email-form="${escapeHtml(profile.id)}">
-                        ${!isAdminLoggedIn() ? renderOutreachModeOptions(profile.id, values, 'email') : ''}
                         <div class="field">
                             <div class="field-label-row">
                                 <label data-outreach-label="company" for="email-company-${escapeHtml(profile.id)}">${escapeHtml(config.companyLabel)}</label>
@@ -4009,7 +3934,6 @@
             return `
                 <div class="schedule-panel">
                     <div class="schedule-grid" data-schedule-form="${escapeHtml(profile.id)}">
-                        ${!isAdminLoggedIn() ? renderOutreachModeOptions(profile.id, values, 'schedule') : ''}
                         <div class="field">
                             <label for="schedule-date-${escapeHtml(profile.id)}">Date</label>
                             <input id="schedule-date-${escapeHtml(profile.id)}" name="date" type="date" value="${escapeHtml(values.date)}">
@@ -4220,7 +4144,7 @@
             return lines.join('\n');
         };
         const syncDeepSearchUi = () => {
-            const deepEnabled = Boolean(searchDeepToggle?.checked);
+            const deepEnabled = Boolean(searchAutomateToggle?.checked);
             if (searchInput) {
                 searchInput.readOnly = deepEnabled;
             }
@@ -4425,7 +4349,7 @@
                 ? recentlyFlaggedRows.filter((row) => !row.Recently_Contacted)
                 : recentlyFlaggedRows;
             const filteredRows = automatedCandidateRows
-                .filter((row) => !(searchDeepToggle?.checked && deepSearchExcludedProfileIds.has(row.id)))
+                .filter((row) => !(searchAutomateToggle?.checked && deepSearchExcludedProfileIds.has(row.id)))
                 .filter((row) => matchesAutomatedSearchSpec(row, spec))
                 .map((row) => {
                     const ranking = automatedSearchRankingScore(row, spec);
@@ -4592,7 +4516,7 @@
                 ));
             }
             await loadDashboardMetrics();
-            if (searchDeepToggle?.checked) {
+            if (searchAutomateToggle?.checked) {
                 candidates.forEach((profile) => deepSearchExcludedProfileIds.add(profile.id));
             }
             return {
@@ -5151,7 +5075,7 @@
                         setStatus('Loading contacted profiles...');
                         searchMode = 'latest';
                     } else {
-                    const deepEnabled = Boolean(searchDeepToggle?.checked);
+                    const deepEnabled = Boolean(searchAutomateToggle?.checked);
                     if (deepEnabled) {
                         if (!deepSearchLockedPrompt) {
                             deepSearchLockedPrompt = searchInput.value.trim();
@@ -5230,6 +5154,7 @@
         });
         if (searchAutomateToggle) {
             searchAutomateToggle.addEventListener('change', () => {
+                syncDeepSearchUi();
                 updateAutomateScheduleUi();
             });
         }
@@ -5237,10 +5162,6 @@
             searchContactedToggle.addEventListener('change', async () => {
                 if (searchContactedToggle.checked) {
                     if (searchAutomateToggle) searchAutomateToggle.checked = false;
-                    if (searchDeepToggle) {
-                        searchDeepToggle.checked = false;
-                        syncDeepSearchUi();
-                    }
                 }
                 updateAutomateScheduleUi();
                 try {
@@ -5248,11 +5169,6 @@
                 } catch (error) {
                     setStatus(error.message || 'Loading contacted profiles failed.', true);
                 }
-            });
-        }
-        if (searchDeepToggle) {
-            searchDeepToggle.addEventListener('change', () => {
-                syncDeepSearchUi();
             });
         }
         if (calendarConnectButton) {
