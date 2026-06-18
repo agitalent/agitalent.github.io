@@ -375,7 +375,7 @@
         }
         .trend-list {
             display: grid;
-            gap: 10px;
+            gap: 14px;
         }
         .trend-block {
             border: 1px solid var(--soft-border-light);
@@ -388,12 +388,38 @@
             font-size: 13px;
             color: var(--dashboard-title);
         }
-        .trend-block ol {
-            margin: 0;
-            padding-left: 18px;
-            color: var(--muted);
+        .trend-chart {
             display: grid;
-            gap: 6px;
+            grid-template-columns: repeat(10, minmax(0, 1fr));
+            align-items: end;
+            gap: 8px;
+            min-height: 180px;
+        }
+        .trend-chart.empty {
+            display: flex;
+            min-height: 120px;
+            align-items: center;
+            justify-content: center;
+            color: var(--muted);
+        }
+        .trend-bar-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+        .trend-bar-column {
+            width: 100%;
+            min-height: 10px;
+            border-radius: 12px 12px 4px 4px;
+            background: linear-gradient(180deg, #7fffd4, #47e5a5);
+        }
+        .trend-bar-label {
+            font-size: 11px;
+            color: var(--muted);
+            text-align: center;
+            word-break: break-word;
         }
         .bar-chart {
             display: grid;
@@ -1246,15 +1272,15 @@
                         <div class="trend-list">
                             <div class="trend-block">
                                 <h4>hot research niches</h4>
-                                <ol id="trend-hot-niches"></ol>
+                                <div class="trend-chart empty" id="trend-hot-niches">-</div>
                             </div>
                             <div class="trend-block">
                                 <h4>active research institutions</h4>
-                                <ol id="trend-active-institutions"></ol>
+                                <div class="trend-chart empty" id="trend-active-institutions">-</div>
                             </div>
                             <div class="trend-block">
                                 <h4>active research companies</h4>
-                                <ol id="trend-active-companies"></ol>
+                                <div class="trend-chart empty" id="trend-active-companies">-</div>
                             </div>
                         </div>
                     </div>
@@ -3375,20 +3401,30 @@
                 .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
                 .slice(0, limit);
         };
-        const renderTrendList = (element, items) => {
+        const renderTrendChart = (element, items) => {
             if (!element) return;
             if (!items.length) {
-                element.innerHTML = '<li>No data</li>';
+                element.className = 'trend-chart empty';
+                element.textContent = '-';
                 return;
             }
-            element.innerHTML = items.map(([label, count]) => `<li>${escapeHtml(label)} (${count})</li>`).join('');
+            const maxValue = Math.max(...items.map(([, count]) => Number(count || 0)), 1);
+            element.className = 'trend-chart';
+            element.innerHTML = items.map(([label, count]) => {
+                const height = Math.max(10, Math.round((Number(count || 0) / maxValue) * 120));
+                return `
+                    <div class="trend-bar-item">
+                        <div class="trend-bar-column" style="height:${height}px;"></div>
+                        <div class="trend-bar-label">${escapeHtml(label)}</div>
+                    </div>
+                `;
+            }).join('');
         };
         const computeTrendInsights = async () => {
             if (!supabaseClient || !isLoggedIn() || isAdminLoggedIn()) return;
             const { data, error } = await supabaseClient
                 .from('profiles')
                 .select('domain_focus, seniority')
-                .in('agent_type', profileAgentTypeFilterValues(adminUser?.access_agent_types || adminUser?.access_agent_type))
                 .limit(1000);
             if (error) throw error;
             const rows = Array.isArray(data) ? data : [];
@@ -3403,9 +3439,9 @@
             const companyMatches = briefBackgrounds.flatMap((text) =>
                 TREND_COMPANY_TERMS.filter((term) => text.includes(term))
             );
-            renderTrendList(trendHotNichesEl, topKeywordCounts(nicheKeywords, 10));
-            renderTrendList(trendActiveInstitutionsEl, topKeywordCounts(institutionMatches, 10));
-            renderTrendList(trendActiveCompaniesEl, topKeywordCounts(companyMatches, 10));
+            renderTrendChart(trendHotNichesEl, topKeywordCounts(nicheKeywords, 10));
+            renderTrendChart(trendActiveInstitutionsEl, topKeywordCounts(institutionMatches, 10));
+            renderTrendChart(trendActiveCompaniesEl, topKeywordCounts(companyMatches, 10));
         };
 
         const loadDashboardMetrics = async () => {
