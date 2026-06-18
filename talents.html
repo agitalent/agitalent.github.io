@@ -2361,7 +2361,7 @@
         );
         const profileSourceName = () => (isLoggedIn() ? 'profiles' : 'public_profile_directory');
         const searchableProfileFields = () => (
-            isAdminLoggedIn()
+            isLoggedIn()
                 ? ['name_or_handle', 'email', 'bio_link', 'location', 'domain_focus', 'seniority']
                 : ['name_or_handle', 'location', 'seniority']
         );
@@ -3528,8 +3528,7 @@
             if (!supabaseClient || !isLoggedIn() || isAdminLoggedIn()) return;
             const { data, error } = await supabaseClient
                 .from('profiles')
-                .select('domain_focus, email')
-                .limit(1000);
+                .select('domain_focus, email');
             if (error) throw error;
             const rows = Array.isArray(data) ? data : [];
             const nicheKeywords = rows.flatMap((row) => String(row.domain_focus || '')
