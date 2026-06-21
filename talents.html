@@ -2377,6 +2377,19 @@
             }
             return refreshedSessionData.session;
         };
+        const normalizeAccountType = (value) => String(value || '').trim().toLowerCase();
+        const isPlatinumAccount = (user = adminUser) => normalizeAccountType(user?.account_type) === 'platinum';
+        const reservePlatinumInvitationCode = async (profileId, context) => {
+            if (!supabaseClient || !isLoggedIn() || !adminPassword || !isPlatinumAccount()) return '';
+            const { data, error } = await supabaseClient.rpc('reserve_platinum_invitation_code', {
+                p_username: adminUser.username,
+                p_password: adminPassword,
+                p_profile_id: profileId,
+                p_context: context
+            });
+            if (error) throw error;
+            return String(data?.code || '').trim();
+        };
         const canUseEmailTools = () => isLoggedIn();
         const canUseScheduleTools = () => isLoggedIn();
         const isProfileSelectedForSchedule = (profileId) => selectedScheduleProfileIds.includes(profileId);
@@ -3276,6 +3289,8 @@
             const contact = String(values.contact || '').trim();
             const mode = normalizeOutreachMode(values.outreach_mode);
             const context = { candidateName, company, role, contact };
+            const invitationCode = await reservePlatinumInvitationCode(profile?.id || null, 'email');
+            const invitationParagraph = invitationCode ? `Invitation Code ${invitationCode}` : '';
             try {
                 const payload = await deepseekJson([
                     { role: 'system', content: 'Return JSON only: {"subject_summary":""}.' },
@@ -3294,8 +3309,9 @@
                     `Hi ${candidateName},`,
                     paragraph2,
                     buildOpportunityParagraph(mode, company, role),
-                    `Feel free to reach out via ${contact}.`
-                ].join('\n\n');
+                    `Feel free to reach out via ${contact}.`,
+                    invitationParagraph
+                ].filter(Boolean).join('\n\n');
                 return {
                     subject: title,
                     body: replaceInvitePlaceholders(body, context)
@@ -3307,8 +3323,9 @@
                         `Hi ${candidateName},`,
                         buildCalendarPraiseParagraph(seniority, domainFocus),
                         buildOpportunityParagraph(mode, company, role),
-                        `Feel free to reach out via ${contact}.`
-                    ].join('\n\n')
+                        `Feel free to reach out via ${contact}.`,
+                        invitationParagraph
+                    ].filter(Boolean).join('\n\n')
                 };
             }
         };
@@ -3320,6 +3337,8 @@
             const role = String(values.role || '').trim();
             const contact = String(values.contact || '').trim();
             const context = { candidateName, company, role, contact };
+            const invitationCode = await reservePlatinumInvitationCode(profile?.id || null, 'schedule');
+            const invitationParagraph = invitationCode ? `Invitation Code ${invitationCode}` : '';
             try {
                 const subject = buildCalendarInvitationSubject(profile, values);
                 const paragraph2 = buildCalendarPraiseParagraph(
@@ -3330,8 +3349,9 @@
                     `Hi ${candidateName},`,
                     paragraph2,
                     buildOpportunityParagraph(OUTREACH_MODE_HIRING, company, role),
-                    `Feel free to reach out via ${contact}.`
-                ].join('\n\n');
+                    `Feel free to reach out via ${contact}.`,
+                    invitationParagraph
+                ].filter(Boolean).join('\n\n');
                 return {
                     subject,
                     body: replaceInvitePlaceholders(body, context)
@@ -3343,8 +3363,9 @@
                         `Hi ${candidateName},`,
                         buildCalendarPraiseParagraph(briefBio, domainFocus),
                         buildOpportunityParagraph(OUTREACH_MODE_HIRING, company, role),
-                        `Feel free to reach out via ${contact}.`
-                    ].join('\n\n')
+                        `Feel free to reach out via ${contact}.`,
+                        invitationParagraph
+                    ].filter(Boolean).join('\n\n')
                 };
             }
         };
