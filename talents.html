@@ -3669,6 +3669,28 @@
                 // Ignore storage failures so profile links still render.
             }
         };
+        const syncBioLinkRedirects = (profiles) => {
+            if (!Array.isArray(profiles) || !profiles.length) return;
+            try {
+                const redirects = readBioLinkRedirectMap();
+                let changed = false;
+                for (const profile of profiles) {
+                    const rawValue = String(profile?.bio_link || '').trim();
+                    if (!rawValue) continue;
+                    const realHref = normalizeLink(rawValue);
+                    if (!realHref) continue;
+                    const generatedHref = generatedBioLinkHref(profile, realHref);
+                    if (redirects[generatedHref] === realHref) continue;
+                    redirects[generatedHref] = realHref;
+                    changed = true;
+                }
+                if (changed) {
+                    window.localStorage.setItem(BIO_LINK_REDIRECT_STORAGE_KEY, JSON.stringify(redirects));
+                }
+            } catch (error) {
+                // Ignore storage failures so profile links still render.
+            }
+        };
         const renderBioLinkIcon = (profile, value) => {
             const href = normalizeLink(value);
             const generatedHref = generatedBioLinkHref(profile, href);
@@ -4034,6 +4056,7 @@
 
         const renderRows = (rows) => {
             currentRows = rows;
+            syncBioLinkRedirects(rows);
             if (!rows.length) {
                 resultsEl.innerHTML = '<div class="empty">No profiles matched this query.</div>';
                 return;
