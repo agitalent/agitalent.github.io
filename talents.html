@@ -1537,6 +1537,7 @@
                             <div class="user-actions">
                                 <button class="button-secondary" data-icon="＋" id="admin-add-user-button" type="button">Create User</button>
                                 <button class="button-secondary" data-icon="✓" id="admin-save-user-access-button" type="button">Save Access</button>
+                                <button class="button-secondary" data-icon="◎" id="admin-save-account-button" type="button">Save Account</button>
                                 <button class="button-secondary button-danger" data-icon="−" id="admin-delete-user-button" type="button">Delete User</button>
                             </div>
                             <div class="field" style="margin-top:14px;">
@@ -1827,6 +1828,7 @@
         const adminUserAccessTypeInputs = Array.from(document.querySelectorAll('#admin-user-access-types input[data-access-type]'));
         const adminAddUserButton = document.getElementById('admin-add-user-button');
         const adminSaveUserAccessButton = document.getElementById('admin-save-user-access-button');
+        const adminSaveAccountButton = document.getElementById('admin-save-account-button');
         const adminDeleteUserButton = document.getElementById('admin-delete-user-button');
         const adminInviteCodeOutput = document.getElementById('admin-invite-code-output');
         const adminBatchInviteToggle = document.getElementById('admin-batch-invite-toggle');
@@ -2963,6 +2965,7 @@
             setSelectedAdminAccountType(adminTargetUser?.account_type || selectedAdminAccountType);
             adminAddUserButton.textContent = adminTargetUser ? 'Renew User' : 'Create User';
             adminSaveUserAccessButton.disabled = !isAdminLoggedIn() || !username || !adminTargetUser;
+            adminSaveAccountButton.disabled = !isAdminLoggedIn() || !username || !adminTargetUser;
             adminDeleteUserButton.disabled = !isAdminLoggedIn() || !username || !adminTargetUser;
             adminGenerateInviteButton.disabled = !isAdminLoggedIn();
             updateInviteEmailAction();
@@ -6036,6 +6039,41 @@
                 setAddUserStatus(error.message || 'Access update failed.', true);
             } finally {
                 adminSaveUserAccessButton.disabled = false;
+                updateUserOperationUi();
+            }
+        });
+
+        adminSaveAccountButton.addEventListener('click', async () => {
+            if (!supabaseClient) {
+                setAddUserStatus('Supabase client failed to initialize.', true);
+                return;
+            }
+            if (!isAdminLoggedIn()) {
+                setAddUserStatus('Admin rights are required.', true);
+                return;
+            }
+            const username = adminTargetUser?.username || adminAddUserUsernameInput.value.trim();
+            if (!username || !adminTargetUser?.username) {
+                setAddUserStatus('Load an existing user first.', true);
+                return;
+            }
+            adminSaveAccountButton.disabled = true;
+            try {
+                const data = await updateAppUserAccessRpc({
+                    username: adminUser.username,
+                    password: adminPassword,
+                    targetUsername: username,
+                    accessAgentTypes: adminTargetUser?.access_agent_types || adminTargetUser?.access_agent_type || [DEFAULT_NON_ADMIN_ACCESS_TYPE]
+                });
+                adminTargetUser = data && data.username
+                    ? { ...adminTargetUser, ...data, account_type: normalizeAccountType(selectedAdminAccountType) }
+                    : { ...adminTargetUser, account_type: normalizeAccountType(selectedAdminAccountType) };
+                setSelectedAdminAccountType(adminTargetUser?.account_type);
+                setAddUserStatus(`Account type updated for ${username}: ${String(adminTargetUser?.account_type || '').trim() || 'trial'}.`);
+            } catch (error) {
+                setAddUserStatus(error.message || 'Account type update failed.', true);
+            } finally {
+                adminSaveAccountButton.disabled = false;
                 updateUserOperationUi();
             }
         });
