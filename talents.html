@@ -4107,7 +4107,7 @@
                     <article class="card">
                         <div class="card-head">
                             <div style="display:flex; align-items:center; gap:10px;">
-                                ${isAdminLoggedIn() && !isEditing ? `<input type="checkbox" data-action="toggle-schedule-select" data-id="${escapeHtml(profile.id)}" ${isProfileSelectedForSchedule(profile.id) ? 'checked' : ''}>` : ''}
+                                ${canUseScheduleTools() && !isEditing ? `<input type="checkbox" data-action="toggle-schedule-select" data-id="${escapeHtml(profile.id)}" ${isProfileSelectedForSchedule(profile.id) ? 'checked' : ''}>` : ''}
                                 <h3 class="card-title">${escapeHtml(titleForProfile(profile))}</h3>
                                 ${profile.Recently_Contacted ? '<div class="pill">Alert: Recently_Contacted</div>' : ''}
                             </div>
@@ -5989,7 +5989,7 @@
                     setAdminStatus('Log in to use scheduling.', true);
                     return;
                 }
-                if (isAdminLoggedIn() && !isProfileSelectedForSchedule(profileId)) {
+                if (!isProfileSelectedForSchedule(profileId)) {
                     selectedScheduleProfileIds = [profileId];
                 }
                 schedulingProfileId = profileId;
@@ -6118,63 +6118,98 @@
                             setStatus(lastScheduledFor ? `Invitation queued. The online worker should send it within about 5-10 minutes; the selected time remains the meeting time (${lastScheduledFor}).` : 'Invitation queued for Google Calendar delivery.');
                         }
                     } else {
-                        const profile = currentRows.find((row) => row.id === profileId);
-                        if (!profile) throw new Error('Profile not found.');
-                        if (!String(profile._candidate_email || '').trim()) {
+                        const targets = selectedScheduleProfilesInOrder();
+                        const profiles = targets.length ? targets : currentRows.filter((row) => row.id === profileId);
+                        if (!profiles.length) throw new Error('Profile not found.');
+                        const invalidProfile = profiles.find((profile) => !String(profile._candidate_email || '').trim());
+                        if (invalidProfile) {
                             throw new Error('Candidate email is required to prefill the calendar invitation.');
                         }
                         applyOutreachDefaultsLocally(payload);
-                        const draft = await generateScheduleDraft(profile, payload);
-                        const { error } = await supabaseClient.rpc('log_schedule_outreach', {
-                            ...authRpcCredentials(),
-                            p_profile_id: profileId,
-                            p_schedule: payload,
-                            p_invite_title: draft.subject,
-                            p_invite_content: draft.body
-                        });
-                        if (error) throw error;
-                        currentRows = currentRows.map((row) => row.id === profileId ? { ...row, Recently_Contacted: true } : row);
-                        await loadDashboardMetrics();
                         if (googleCalendarIntegration.connected) {
-                            setStatus('Creating Google Calendar event from your connected account...');
-                            const startAt = `${payload.date}T${payload.time}:00`;
-                            const endParts = addMinutesToScheduleTime(payload.date, payload.time, 15);
-                            const endAt = `${endParts.date}T${endParts.hour}:${endParts.minute}:00`;
-                            await edgeFunctionJson('create-calendar-event', {
-                                method: 'POST',
-                                body: {
-                                    event: {
-                                        summary: draft.subject,
-                                        description: draft.body,
-                                        start: {
-                                            dateTime: startAt,
-                                            timeZone: payload.timezone,
-                                        },
-                                        end: {
-                                            dateTime: endAt,
-                                            timeZone: payload.timezone,
-                                        },
-                                        attendees: [{ email: String(profile._candidate_email || '').trim() }],
-                                        conferenceData: {
-                                            createRequest: {
-                                                requestId: String(profileId),
-                                                conferenceSolutionKey: { type: 'hangoutsMeet' }
+                            setStatus(profiles.length > 1 ? `Creating ${profiles.length} Google Calendar events from your connected account...` : 'Creating Google Calendar event from your connected account...');
+                            let lastScheduledFor = '';
+                            for (const [index, profile] of profiles.entries()) {
+                                const scheduledPayload = schedulePayloadWithOffset(payload, index);
+                                const draft = await generateScheduleDraft(profile, scheduledPayload);
+                                const { error } = await supabaseClient.rpc('log_schedule_outreach', {
+                                    ...authRpcCredentials(),
+                                    p_profile_id: profile.id,
+                                    p_schedule: scheduledPayload,
+                                    p_invite_title: draft.subject,
+                                    p_invite_content: draft.body
+                                });
+                                if (error) throw error;
+                                const startAt = `${scheduledPayload.date}T${scheduledPayload.time}:00`;
+                                const endParts = addMinutesToScheduleTime(scheduledPayload.date, scheduledPayload.time, 15);
+                                const endAt = `${endParts.date}T${endParts.hour}:${endParts.minute}:00`;
+                                await edgeFunctionJson('create-calendar-event', {
+                                    method: 'POST',
+                                    body: {
+                                        event: {
+                                            summary: draft.subject,
+                                            description: draft.body,
+                                            start: {
+                                                dateTime: startAt,
+                                                timeZone: scheduledPayload.timezone,
+                                            },
+                                            end: {
+                                                dateTime: endAt,
+                                                timeZone: scheduledPayload.timezone,
+                                            },
+                                            attendees: [{ email: String(profile._candidate_email || '').trim() }],
+                                            conferenceData: {
+                                                createRequest: {
+                                                    requestId: `${profile.id}-${index}`,
+                                                    conferenceSolutionKey: { type: 'hangoutsMeet' }
+                                                }
                                             }
                                         }
                                     }
-                                }
-                            });
-                            schedulingProfileId = null;
-                            setStatus('Invitation created in your connected Google Calendar and sent from your Google account.');
-                        } else {
-                            setStatus('Generating schedule draft...');
-                            const calendarUrl = buildManualScheduleUrl(profile, payload, draft);
-                            const draftWindow = window.open(calendarUrl, '_blank', 'noopener');
-                            if (!draftWindow) {
-                                window.location.href = calendarUrl;
+                                });
+                                lastScheduledFor = `${scheduledPayload.date} ${scheduledPayload.time} ${scheduledPayload.timezone}`;
                             }
+                            currentRows = currentRows.map((row) => (
+                                profiles.some((profile) => profile.id === row.id)
+                                    ? { ...row, Recently_Contacted: true }
+                                    : row
+                            ));
+                            await loadDashboardMetrics();
                             schedulingProfileId = null;
-                            setStatus('Schedule draft opened in Google Calendar with the subject, attendee, and description prefilled. Review it there and confirm sending manually.');
+                            selectedScheduleProfileIds = [];
+                            setStatus(profiles.length > 1
+                                ? (lastScheduledFor ? `${profiles.length} invitations created in your connected Google Calendar and sent from your Google account. The selected time remains the meeting time (${lastScheduledFor}).` : `${profiles.length} invitations created in your connected Google Calendar and sent from your Google account.`)
+                                : 'Invitation created in your connected Google Calendar and sent from your Google account.');
+                        } else {
+                            setStatus(profiles.length > 1 ? `Generating ${profiles.length} schedule drafts...` : 'Generating schedule draft...');
+                            for (const [index, profile] of profiles.entries()) {
+                                const scheduledPayload = schedulePayloadWithOffset(payload, index);
+                                const draft = await generateScheduleDraft(profile, scheduledPayload);
+                                const { error } = await supabaseClient.rpc('log_schedule_outreach', {
+                                    ...authRpcCredentials(),
+                                    p_profile_id: profile.id,
+                                    p_schedule: scheduledPayload,
+                                    p_invite_title: draft.subject,
+                                    p_invite_content: draft.body
+                                });
+                                if (error) throw error;
+                                const calendarUrl = buildManualScheduleUrl(profile, scheduledPayload, draft);
+                                const draftWindow = window.open(calendarUrl, '_blank', 'noopener');
+                                if (!draftWindow) {
+                                    window.location.href = calendarUrl;
+                                }
+                            }
+                            currentRows = currentRows.map((row) => (
+                                profiles.some((profile) => profile.id === row.id)
+                                    ? { ...row, Recently_Contacted: true }
+                                    : row
+                            ));
+                            await loadDashboardMetrics();
+                            schedulingProfileId = null;
+                            selectedScheduleProfileIds = [];
+                            setStatus(profiles.length > 1
+                                ? `${profiles.length} schedule drafts opened in Google Calendar with the subject, attendee, and description prefilled. Review them there and confirm sending manually.`
+                                : 'Schedule draft opened in Google Calendar with the subject, attendee, and description prefilled. Review it there and confirm sending manually.');
                         }
                     }
                     renderRows(currentRows);
