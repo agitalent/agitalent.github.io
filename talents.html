@@ -706,6 +706,42 @@
             margin: 0;
             accent-color: var(--accent);
         }
+        .access-picker {
+            display: grid;
+            gap: 10px;
+        }
+        .access-picker-summary {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 44px;
+            padding: 0 16px;
+            border-radius: 14px;
+            border: 1px solid var(--button-secondary-border);
+            background: var(--button-secondary-bg);
+            color: var(--text);
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .access-picker-summary::after {
+            content: '▾';
+            margin-left: auto;
+            color: var(--accent-2);
+        }
+        .access-picker-summary.open::after {
+            content: '▴';
+        }
+        .access-picker-menu {
+            display: none;
+            gap: 10px;
+            padding: 12px;
+            border-radius: 16px;
+            border: 1px solid var(--soft-border);
+            background: var(--soft-bg);
+        }
+        .access-picker-menu.open {
+            display: grid;
+        }
         :root[data-theme="light"] .checkbox-inline {
             color: #000000;
         }
@@ -1441,27 +1477,30 @@
                                 </div>
                                 <div class="field wide">
                                     <label data-icon="▣">Access Types</label>
-                                    <div class="user-actions" id="admin-user-access-types">
-                                        <label class="checkbox-inline" for="admin-user-access-type-candidate">
-                                            <input id="admin-user-access-type-candidate" type="checkbox" value="candidate" data-access-type>
-                                            <span>Candidate</span>
-                                        </label>
-                                        <label class="checkbox-inline" for="admin-user-access-type-investor">
-                                            <input id="admin-user-access-type-investor" type="checkbox" value="investor" data-access-type>
-                                            <span>Investor</span>
-                                        </label>
-                                        <label class="checkbox-inline" for="admin-user-access-type-manufacturer">
-                                            <input id="admin-user-access-type-manufacturer" type="checkbox" value="manufacturer" data-access-type>
-                                            <span>Manufacturer</span>
-                                        </label>
-                                        <label class="checkbox-inline" for="admin-user-access-type-buyer">
-                                            <input id="admin-user-access-type-buyer" type="checkbox" value="buyer" data-access-type>
-                                            <span>Buyer</span>
-                                        </label>
-                                        <label class="checkbox-inline" for="admin-user-access-type-billionaire">
-                                            <input id="admin-user-access-type-billionaire" type="checkbox" value="billionaire" data-access-type>
-                                            <span>Billionaire</span>
-                                        </label>
+                                    <div class="access-picker">
+                                        <button class="access-picker-summary" id="admin-user-access-types-toggle" type="button" aria-expanded="false" aria-controls="admin-user-access-types-menu">Candidate</button>
+                                        <div class="access-picker-menu" id="admin-user-access-types-menu">
+                                            <label class="checkbox-inline" for="admin-user-access-type-candidate">
+                                                <input id="admin-user-access-type-candidate" type="checkbox" value="candidate" data-access-type>
+                                                <span>Candidate</span>
+                                            </label>
+                                            <label class="checkbox-inline" for="admin-user-access-type-investor">
+                                                <input id="admin-user-access-type-investor" type="checkbox" value="investor" data-access-type>
+                                                <span>Investor</span>
+                                            </label>
+                                            <label class="checkbox-inline" for="admin-user-access-type-manufacturer">
+                                                <input id="admin-user-access-type-manufacturer" type="checkbox" value="manufacturer" data-access-type>
+                                                <span>Manufacturer</span>
+                                            </label>
+                                            <label class="checkbox-inline" for="admin-user-access-type-buyer">
+                                                <input id="admin-user-access-type-buyer" type="checkbox" value="buyer" data-access-type>
+                                                <span>Buyer</span>
+                                            </label>
+                                            <label class="checkbox-inline" for="admin-user-access-type-billionaire">
+                                                <input id="admin-user-access-type-billionaire" type="checkbox" value="billionaire" data-access-type>
+                                                <span>Billionaire</span>
+                                            </label>
+                                        </div>
                                     </div>
                                     <small>Used for user access and single trial invitation codes. Multiple selections are allowed.</small>
                                 </div>
@@ -1769,6 +1808,8 @@
         const adminBatchInviteToggle = document.getElementById('admin-batch-invite-toggle');
         const adminTrialInviteToggle = document.getElementById('admin-trial-invite-toggle');
         const adminGenerateInviteButton = document.getElementById('admin-generate-invite-button');
+        const adminUserAccessTypesToggleButton = document.getElementById('admin-user-access-types-toggle');
+        const adminUserAccessTypesMenuEl = document.getElementById('admin-user-access-types-menu');
         const adminRevealEmailButton = document.getElementById('admin-reveal-email-button');
         const adminAddUserStatusEl = document.getElementById('admin-add-user-status');
         const adminLogoutButton = document.getElementById('admin-logout-button');
@@ -1913,6 +1954,7 @@
         let selectedScheduleProfileIds = [];
         let resetPasswordOpen = false;
         let adminTargetUser = null;
+        let adminUserAccessTypesExpanded = false;
         let paypalButtonsRendered = false;
         let renewPaypalButtonsRendered = false;
         let accessWindowTimer = null;
@@ -2411,6 +2453,18 @@
         };
         const accessTypeLabels = (values) => normalizeAccessAgentTypes(values).map((value) => displayAgentType(value));
         const currentUserAccessLabel = () => accessTypeLabels(adminUser?.access_agent_types || adminUser?.access_agent_type).join(', ');
+        const updateAdminAccessTypesUi = () => {
+            const labels = accessTypeLabels(selectedAdminAccessTypes());
+            const summary = labels.length ? labels.join(', ') : 'Choose access types';
+            if (adminUserAccessTypesToggleButton) {
+                adminUserAccessTypesToggleButton.textContent = summary;
+                adminUserAccessTypesToggleButton.classList.toggle('open', adminUserAccessTypesExpanded);
+                adminUserAccessTypesToggleButton.setAttribute('aria-expanded', adminUserAccessTypesExpanded ? 'true' : 'false');
+            }
+            if (adminUserAccessTypesMenuEl) {
+                adminUserAccessTypesMenuEl.classList.toggle('open', adminUserAccessTypesExpanded);
+            }
+        };
         const selectedAdminAccessTypes = () => {
             const values = adminUserAccessTypeInputs
                 .filter((input) => input.checked)
@@ -2422,6 +2476,29 @@
             adminUserAccessTypeInputs.forEach((input) => {
                 input.checked = normalizedValues.has(String(input.value || '').trim());
             });
+            updateAdminAccessTypesUi();
+        };
+        const generateInvitationCodeRpc = async ({ username, password, validFrom, isTrial, accessAgentTypes }) => {
+            const payload = {
+                p_admin_username: username,
+                p_admin_password: password,
+                p_valid_from: validFrom,
+                p_is_trial: isTrial
+            };
+            if (typeof accessAgentTypes !== 'undefined') {
+                payload.p_access_agent_types = accessAgentTypes;
+            }
+            let { data, error } = await supabaseClient.rpc('admin_generate_app_user_invitation_code', payload);
+            if (error && accessAgentTypes && String(error.message || '').includes('Could not find the function public.admin_generate_app_user_invitation_code')) {
+                ({ data, error } = await supabaseClient.rpc('admin_generate_app_user_invitation_code', {
+                    p_admin_username: username,
+                    p_admin_password: password,
+                    p_valid_from: validFrom,
+                    p_is_trial: isTrial
+                }));
+            }
+            if (error) throw error;
+            return data;
         };
         const buildDefaultToggleState = () => {
             const defaults = normalizedOutreachDefaults();
@@ -5675,13 +5752,12 @@
                     const validFrom = todayIsoDate();
                     let generatedCount = 0;
                     for (let index = 0; index < batchSize; index += 1) {
-                        const { error } = await supabaseClient.rpc('admin_generate_app_user_invitation_code', {
-                            p_admin_username: adminUser.username,
-                            p_admin_password: adminPassword,
-                            p_valid_from: validFrom,
-                            p_is_trial: false
+                        await generateInvitationCodeRpc({
+                            username: adminUser.username,
+                            password: adminPassword,
+                            validFrom,
+                            isTrial: false
                         });
-                        if (error) throw error;
                         generatedCount += 1;
                     }
                     adminInviteCodeOutput.value = '';
@@ -5691,14 +5767,13 @@
                     if (useTrialInvite && !selectedAccessTypes.length) {
                         throw new Error('Choose at least one access type for the trial invitation.');
                     }
-                    const { data, error } = await supabaseClient.rpc('admin_generate_app_user_invitation_code', {
-                        p_admin_username: adminUser.username,
-                        p_admin_password: adminPassword,
-                        p_valid_from: todayIsoDate(),
-                        p_is_trial: useTrialInvite,
-                        p_access_agent_types: useTrialInvite ? selectedAccessTypes : [DEFAULT_NON_ADMIN_ACCESS_TYPE]
+                    const data = await generateInvitationCodeRpc({
+                        username: adminUser.username,
+                        password: adminPassword,
+                        validFrom: todayIsoDate(),
+                        isTrial: useTrialInvite,
+                        accessAgentTypes: useTrialInvite ? selectedAccessTypes : [DEFAULT_NON_ADMIN_ACCESS_TYPE]
                     });
-                    if (error) throw error;
                     adminInviteCodeOutput.value = String(data?.code || '').trim();
                     latestTrialInvitationCode = useTrialInvite ? String(data?.code || '').trim() : '';
                     setAddUserStatus(useTrialInvite
@@ -5730,9 +5805,16 @@
                 if (!selectedAdminAccessTypes().length) {
                     input.checked = true;
                 }
+                updateAdminAccessTypesUi();
                 updateUserOperationUi();
             });
         });
+        if (adminUserAccessTypesToggleButton) {
+            adminUserAccessTypesToggleButton.addEventListener('click', () => {
+                adminUserAccessTypesExpanded = !adminUserAccessTypesExpanded;
+                updateAdminAccessTypesUi();
+            });
+        }
 
         adminInviteCodeOutput.addEventListener('input', updateInviteEmailAction);
 
