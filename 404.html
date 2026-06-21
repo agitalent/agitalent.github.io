@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecting | AGI Talent</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #07110f;
+            --panel: rgba(10, 24, 20, 0.9);
+            --line: rgba(194, 255, 231, 0.14);
+            --text: #eff8f4;
+            --muted: rgba(239, 248, 244, 0.68);
+            --accent: #47e5a5;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            font-family: Arial, sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(71, 229, 165, 0.12), transparent 28%),
+                linear-gradient(180deg, #07110f 0%, #091612 52%, #06100d 100%);
+            color: var(--text);
+        }
+        main {
+            width: min(520px, 100%);
+            padding: 28px;
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            background: var(--panel);
+            text-align: center;
+        }
+        h1 {
+            margin: 0 0 10px;
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+        p {
+            margin: 0;
+            line-height: 1.6;
+            color: var(--muted);
+        }
+        a {
+            color: var(--accent);
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Redirecting to the profile…</h1>
+        <p id="redirect-message">If nothing happens, return to <a href="/talents.html">the talent directory</a> and open the profile again.</p>
+    </main>
+    <script>
+        const BIO_LINK_REDIRECT_STORAGE_KEY = 'agiTalentBioLinkRedirects';
+        const currentHref = window.location.origin + window.location.pathname;
+        const messageEl = document.getElementById('redirect-message');
+
+        const readRedirectMap = () => {
+            try {
+                const raw = window.localStorage.getItem(BIO_LINK_REDIRECT_STORAGE_KEY);
+                if (!raw) return {};
+                const parsed = JSON.parse(raw);
+                return parsed && typeof parsed === 'object' ? parsed : {};
+            } catch (error) {
