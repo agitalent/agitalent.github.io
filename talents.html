@@ -352,10 +352,28 @@
             background: var(--soft-bg);
             padding: 16px;
         }
+        .dashboard-card-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
         .dashboard-card h3 {
-            margin: 0 0 12px;
+            margin: 0;
             font-size: 15px;
             color: var(--dashboard-title);
+        }
+        .dashboard-inline-toggle {
+            min-height: 34px;
+            padding: 0 12px;
+            border-radius: 999px;
+            border: 1px solid var(--button-secondary-border);
+            background: var(--button-secondary-bg);
+            color: var(--text);
+            font: inherit;
+            cursor: pointer;
+            white-space: nowrap;
         }
         .dashboard-switcher {
             display: none;
@@ -1253,7 +1271,10 @@
                 <div class="dashboard-page active" id="dashboard-page-metrics">
                     <div class="dashboard-grid" id="dashboard-grid">
                         <div class="dashboard-card" id="dashboard-primary-card">
-                            <h3 data-icon="▣" id="dashboard-primary-title">New records, last 7 days</h3>
+                            <div class="dashboard-card-head">
+                                <h3 data-icon="▣" id="dashboard-primary-title">New records, last 7 days</h3>
+                                <button class="dashboard-inline-toggle" id="dashboard-primary-range-toggle" type="button">Show filters</button>
+                            </div>
                             <div class="schedule-grid" id="dashboard-primary-range" style="display:none; margin-bottom:12px;">
                                 <div class="field">
                                     <label for="dashboard-records-start-date">Start date</label>
@@ -1760,6 +1781,7 @@
         const dashboardSecondaryTitleEl = document.getElementById('dashboard-secondary-title');
         const dashboardTertiaryTitleEl = document.getElementById('dashboard-tertiary-title');
         const salesCtaEl = document.getElementById('sales-cta');
+        const dashboardPrimaryRangeToggleButton = document.getElementById('dashboard-primary-range-toggle');
         const dashboardPrimaryRangeEl = document.getElementById('dashboard-primary-range');
         const dashboardRecordsStartDateInput = document.getElementById('dashboard-records-start-date');
         const dashboardRecordsEndDateInput = document.getElementById('dashboard-records-end-date');
@@ -1874,6 +1896,7 @@
         let searchMode = 'latest';
         let currentRows = [];
         let dashboardRecordsRange = { start: '', end: '' };
+        let dashboardPrimaryRangeExpanded = false;
         let dashboardViewMode = 'metrics';
         let adminUser = null;
         let adminPassword = '';
@@ -1952,6 +1975,16 @@
         const setStatus = (message, isError = false) => {
             statusEl.textContent = message;
             statusEl.classList.toggle('error', isError);
+        };
+        const updateDashboardPrimaryRangeUi = () => {
+            const visible = isAdminLoggedIn() && dashboardPrimaryRangeExpanded;
+            if (dashboardPrimaryRangeEl) {
+                dashboardPrimaryRangeEl.style.display = visible ? '' : 'none';
+            }
+            if (dashboardPrimaryRangeToggleButton) {
+                dashboardPrimaryRangeToggleButton.style.display = isAdminLoggedIn() ? '' : 'none';
+                dashboardPrimaryRangeToggleButton.textContent = visible ? 'Hide filters' : 'Show filters';
+            }
         };
 
         const setAdminStatus = (message, isError = false) => {
@@ -2804,9 +2837,7 @@
             dashboardSectionEl.style.display = isLoggedIn() ? '' : 'none';
             signupPromoEl.style.display = isLoggedIn() ? 'none' : 'grid';
             adminAddUserPanel.style.display = isAdminLoggedIn() ? '' : 'none';
-            if (dashboardPrimaryRangeEl) {
-                dashboardPrimaryRangeEl.style.display = isAdminLoggedIn() ? '' : 'none';
-            }
+            updateDashboardPrimaryRangeUi();
             if (dashboardSwitcherEl) {
                 dashboardSwitcherEl.classList.toggle('visible', isLoggedIn() && !isAdminLoggedIn());
             }
@@ -5292,6 +5323,12 @@
                 } catch (error) {
                     setStatus(error.message || 'Dashboard range update failed.', true);
                 }
+            });
+        }
+        if (dashboardPrimaryRangeToggleButton) {
+            dashboardPrimaryRangeToggleButton.addEventListener('click', () => {
+                dashboardPrimaryRangeExpanded = !dashboardPrimaryRangeExpanded;
+                updateDashboardPrimaryRangeUi();
             });
         }
         if (dashboardShowMetricsButton) {
