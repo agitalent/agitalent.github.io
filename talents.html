@@ -1295,6 +1295,10 @@
                         <div class="account-card-label">Account expire date</div>
                         <div class="account-card-value" id="account-expire-date">-</div>
                     </div>
+                    <div class="account-card-row">
+                        <div class="account-card-label">Account type</div>
+                        <div class="account-card-value" id="account-type">-</div>
+                    </div>
                     <div class="account-card-actions">
                         <button class="button-secondary" data-icon="↻" id="topbar-renew-button" type="button" style="display:none;">Renew Plan</button>
                         <button class="button-secondary" data-icon="◌" id="topbar-change-password-button" type="button">Password Reset</button>
@@ -1797,6 +1801,7 @@
         const topbarAccountCardEl = document.getElementById('topbar-account-card');
         const accountValidDateEl = document.getElementById('account-valid-date');
         const accountExpireDateEl = document.getElementById('account-expire-date');
+        const accountTypeEl = document.getElementById('account-type');
         const themeToggleButton = document.getElementById('theme-toggle-button');
         const topbarLoginButton = document.getElementById('topbar-login-button');
         const topbarSignupButton = document.getElementById('topbar-signup-button');
@@ -2881,6 +2886,10 @@
         const refreshAccountCard = () => {
             accountValidDateEl.textContent = formatAccountDate(adminUser?.valid_from);
             accountExpireDateEl.textContent = formatAccountDate(adminUser?.expires_on);
+            if (accountTypeEl) {
+                const label = normalizeAccountType(adminUser?.account_type);
+                accountTypeEl.textContent = label ? label.charAt(0).toUpperCase() + label.slice(1) : '-';
+            }
             renewPlanValidDateInput.value = formatAccountDate(adminUser?.valid_from);
             renewPlanExpireDateInput.value = formatAccountDate(adminUser?.expires_on);
             topbarRenewButton.style.display = canRenewCurrentPlan() ? '' : 'none';
@@ -6004,6 +6013,12 @@
             const username = adminTargetUser?.username || adminAddUserUsernameInput.value.trim();
             if (!username || !adminTargetUser?.username) {
                 setAddUserStatus('Load an existing user first.', true);
+                return;
+            }
+            const currentAccountType = normalizeAccountType(adminTargetUser?.account_type);
+            const requestedAccountType = normalizeAccountType(selectedAdminAccountType);
+            if (currentAccountType !== requestedAccountType) {
+                setAddUserStatus(`Account type change for ${username} cannot be saved from this page until the backend account-type update function is deployed. Current: ${currentAccountType || 'trial'}. Requested: ${requestedAccountType}.`, true);
                 return;
             }
             adminSaveUserAccessButton.disabled = true;
