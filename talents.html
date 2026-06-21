@@ -685,6 +685,46 @@
             margin: 0;
             accent-color: var(--accent);
         }
+        .access-picker {
+            display: grid;
+            gap: 10px;
+        }
+        .access-picker-summary {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 44px;
+            padding: 0 16px;
+            border-radius: 14px;
+            border: 1px solid var(--button-secondary-border);
+            background: var(--button-secondary-bg);
+            color: var(--text);
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .access-picker-summary::after {
+            content: '▾';
+            margin-left: auto;
+            color: var(--accent-2);
+        }
+        .access-picker-summary.open::after {
+            content: '▴';
+        }
+        .access-picker-menu {
+            display: none;
+            gap: 10px;
+            padding: 12px;
+            border-radius: 16px;
+            border: 1px solid var(--soft-border);
+            background: var(--soft-bg);
+        }
+        .access-picker-menu.open {
+            display: grid;
+        }
+        .access-type-note {
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
         :root[data-theme="light"] .checkbox-inline {
             color: #000000;
         }
@@ -1441,6 +1481,27 @@
                                     </div>
                                     <small>Used for user access and single trial invitation codes. Multiple selections are allowed.</small>
                                 </div>
+                                <div class="field wide">
+                                    <label data-icon="◎">Account Type</label>
+                                    <div class="access-picker">
+                                        <button class="access-picker-summary" id="admin-account-type-toggle" type="button" aria-expanded="false" aria-controls="admin-account-type-menu">Trial</button>
+                                        <div class="access-picker-menu" id="admin-account-type-menu">
+                                            <label class="checkbox-inline" for="admin-account-type-trial">
+                                                <input id="admin-account-type-trial" type="checkbox" value="trial" data-account-type>
+                                                <span>Trial</span>
+                                            </label>
+                                            <label class="checkbox-inline" for="admin-account-type-premium">
+                                                <input id="admin-account-type-premium" type="checkbox" value="premium" data-account-type>
+                                                <span>Premium</span>
+                                            </label>
+                                            <label class="checkbox-inline" for="admin-account-type-platinum">
+                                                <input id="admin-account-type-platinum" type="checkbox" value="platinum" data-account-type>
+                                                <span>Platinum</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <small class="access-type-note">Premium can use Automate. Platinum also appends one-time invitation codes to email and schedule drafts.</small>
+                                </div>
                             </div>
                             <div class="user-actions">
                                 <button class="button-secondary" data-icon="＋" id="admin-add-user-button" type="button">Create User</button>
@@ -1450,7 +1511,8 @@
                             <div class="field" style="margin-top:14px;">
                                 <label data-icon="◇" for="admin-invite-code-output">Invitation Code</label>
                                 <input id="admin-invite-code-output" type="text" readonly placeholder="Generate a code for self-service sign up">
-                                <small>Share this code with a user so they can register from the Sign Up dialog.</small>
+                                <small>Share this code with a user so they can register from the Sign Up dialog. Invitation codes are valid for 7 days.</small>
+                                <div class="access-type-note" id="admin-valid-invite-count">Valid invitation codes available: -</div>
                             </div>
                             <div class="user-actions">
                                 <label class="checkbox-inline" for="admin-batch-invite-toggle">
@@ -1545,16 +1607,9 @@
             <div class="modal-head">
                 <div>
                     <h3 data-icon="✦" id="signup-modal-title">Sign Up</h3>
-                    <p class="modal-copy">Create a user account with a valid invitation code from <a class="modal-link" href="#signup-paypal-section">here</a>.</p>
+                    <p class="modal-copy">Create a trial user account with a valid invitation code.</p>
                 </div>
                 <button class="modal-close" type="button" data-close-modal="signup-modal" aria-label="Close sign up window">✕</button>
-            </div>
-            <div class="purchase-box" id="signup-paypal-section">
-                <strong data-icon="◇">Buy an invitation code</strong>
-                <div class="purchase-price">USD 50</div>
-                <p class="modal-copy" style="margin-top:8px;">Complete the PayPal payment below. After payment, you will get a invitation code.</p>
-                <div id="paypal-button-container" style="margin-top:14px;"></div>
-                <div class="purchase-code" id="signup-issued-code" style="display:none;"></div>
             </div>
             <div class="stack" style="margin-top:0;">
                 <div class="field">
@@ -1745,6 +1800,12 @@
         const adminBatchInviteToggle = document.getElementById('admin-batch-invite-toggle');
         const adminTrialInviteToggle = document.getElementById('admin-trial-invite-toggle');
         const adminGenerateInviteButton = document.getElementById('admin-generate-invite-button');
+        const adminUserAccessTypesToggleButton = document.getElementById('admin-user-access-types-toggle');
+        const adminUserAccessTypesMenuEl = document.getElementById('admin-user-access-types-menu');
+        const adminAccountTypeToggleButton = document.getElementById('admin-account-type-toggle');
+        const adminAccountTypeMenuEl = document.getElementById('admin-account-type-menu');
+        const adminAccountTypeInputs = Array.from(document.querySelectorAll('[data-account-type]'));
+        const adminValidInviteCountEl = document.getElementById('admin-valid-invite-count');
         const adminRevealEmailButton = document.getElementById('admin-reveal-email-button');
         const adminAddUserStatusEl = document.getElementById('admin-add-user-status');
         const adminLogoutButton = document.getElementById('admin-logout-button');
@@ -1890,6 +1951,9 @@
         let selectedScheduleProfileIds = [];
         let resetPasswordOpen = false;
         let adminTargetUser = null;
+        let adminUserAccessTypesExpanded = false;
+        let adminAccountTypeExpanded = false;
+        let selectedAdminAccountType = 'trial';
         let paypalButtonsRendered = false;
         let renewPaypalButtonsRendered = false;
         let accessWindowTimer = null;
@@ -2301,19 +2365,6 @@
             }
             return refreshedSessionData.session;
         };
-        const normalizeAccountType = (value) => String(value || '').trim().toLowerCase();
-        const isPlatinumAccount = (user = adminUser) => normalizeAccountType(user?.account_type) === 'platinum';
-        const reservePlatinumInvitationCode = async (profileId, context) => {
-            if (!supabaseClient || !isLoggedIn() || !adminPassword || !isPlatinumAccount()) return '';
-            const { data, error } = await supabaseClient.rpc('reserve_platinum_invitation_code', {
-                p_username: adminUser.username,
-                p_password: adminPassword,
-                p_profile_id: profileId,
-                p_context: context
-            });
-            if (error) throw error;
-            return String(data?.code || '').trim();
-        };
         const canUseEmailTools = () => isLoggedIn();
         const canUseScheduleTools = () => isLoggedIn();
         const isProfileSelectedForSchedule = (profileId) => selectedScheduleProfileIds.includes(profileId);
@@ -2390,6 +2441,77 @@
         };
         const accessTypeLabels = (values) => normalizeAccessAgentTypes(values).map((value) => displayAgentType(value));
         const currentUserAccessLabel = () => accessTypeLabels(adminUser?.access_agent_types || adminUser?.access_agent_type).join(', ');
+        const normalizeAccountType = (value) => {
+            const normalized = String(value || '').trim().toLowerCase();
+            return ['trial', 'premium', 'platinum'].includes(normalized) ? normalized : 'trial';
+        };
+        const updateAdminAccessTypesUi = () => {
+            const labels = accessTypeLabels(selectedAdminAccessTypes());
+            const summary = labels.length ? labels.join(', ') : 'Choose access types';
+            if (adminUserAccessTypesToggleButton) {
+                adminUserAccessTypesToggleButton.textContent = summary;
+                adminUserAccessTypesToggleButton.classList.toggle('open', adminUserAccessTypesExpanded);
+                adminUserAccessTypesToggleButton.setAttribute('aria-expanded', adminUserAccessTypesExpanded ? 'true' : 'false');
+            }
+            if (adminUserAccessTypesMenuEl) {
+                adminUserAccessTypesMenuEl.classList.toggle('open', adminUserAccessTypesExpanded);
+            }
+        };
+        const setSelectedAdminAccountType = (value) => {
+            selectedAdminAccountType = normalizeAccountType(value);
+            adminAccountTypeInputs.forEach((input) => {
+                input.checked = input.value === selectedAdminAccountType;
+            });
+            if (adminAccountTypeToggleButton) {
+                adminAccountTypeToggleButton.textContent = selectedAdminAccountType.charAt(0).toUpperCase() + selectedAdminAccountType.slice(1);
+                adminAccountTypeToggleButton.classList.toggle('open', adminAccountTypeExpanded);
+                adminAccountTypeToggleButton.setAttribute('aria-expanded', adminAccountTypeExpanded ? 'true' : 'false');
+            }
+            if (adminAccountTypeMenuEl) {
+                adminAccountTypeMenuEl.classList.toggle('open', adminAccountTypeExpanded);
+            }
+        };
+        const isPremiumAccount = (user = adminUser) => {
+            if (!user) return false;
+            if (user.rights === 'admin') return true;
+            const accountType = normalizeAccountType(user.account_type);
+            return accountType === 'premium' || accountType === 'platinum';
+        };
+        const isPlatinumAccount = (user = adminUser) => normalizeAccountType(user?.account_type) === 'platinum';
+        const refreshValidInvitationCodeCount = async () => {
+            if (!supabaseClient || !isAdminLoggedIn() || !adminValidInviteCountEl) return;
+            try {
+                const { data, error } = await supabaseClient.rpc('admin_count_valid_invitation_codes', {
+                    p_admin_username: adminUser.username,
+                    p_admin_password: adminPassword
+                });
+                if (error) throw error;
+                adminValidInviteCountEl.textContent = `Valid invitation codes available: ${Number(data?.valid_invitation_codes || 0)}`;
+            } catch (_error) {
+                adminValidInviteCountEl.textContent = 'Valid invitation codes available: unavailable';
+            }
+        };
+        const requirePremiumAutomate = () => {
+            if (!isLoggedIn() || isAdminLoggedIn() || isPremiumAccount()) return true;
+            if (searchAutomateToggle) searchAutomateToggle.checked = false;
+            updateAutomateScheduleUi();
+            setRenewPlanStatus('Automate is a premium feature. Pay USD 50 to activate premium access for one year from the payment date.');
+            refreshAccountCard();
+            openModal(renewPlanModalEl);
+            ensureRenewPayPalButtonsRendered();
+            return false;
+        };
+        const reservePlatinumInvitationCode = async (profileId, context) => {
+            if (!supabaseClient || !isLoggedIn() || !adminPassword || !isPlatinumAccount()) return '';
+            const { data, error } = await supabaseClient.rpc('reserve_platinum_invitation_code', {
+                p_username: adminUser.username,
+                p_password: adminPassword,
+                p_profile_id: profileId,
+                p_context: context
+            });
+            if (error) throw error;
+            return String(data?.code || '').trim();
+        };
         const selectedAdminAccessTypes = () => {
             const values = adminUserAccessTypeInputs
                 .filter((input) => input.checked)
@@ -2801,6 +2923,7 @@
         const updateUserOperationUi = () => {
             const username = adminTargetUser?.username || adminAddUserUsernameInput.value.trim();
             setSelectedAdminAccessTypes(adminTargetUser?.access_agent_types || adminTargetUser?.access_agent_type || selectedAdminAccessTypes());
+            setSelectedAdminAccountType(adminTargetUser?.account_type || selectedAdminAccountType);
             adminAddUserButton.textContent = adminTargetUser ? 'Renew User' : 'Create User';
             adminSaveUserAccessButton.disabled = !isAdminLoggedIn() || !username || !adminTargetUser;
             adminDeleteUserButton.disabled = !isAdminLoggedIn() || !username || !adminTargetUser;
@@ -2849,6 +2972,9 @@
                     deepContainer.style.display = 'none';
                 }
             }
+            if (isLoggedIn() && !isAdminLoggedIn() && searchAutomateToggle && !isPremiumAccount()) {
+                searchAutomateToggle.checked = false;
+            }
             if (!isLoggedIn() && searchAutomateToggle) {
                 searchAutomateToggle.checked = false;
                 searchAutomateToggle.disabled = false;
@@ -2866,6 +2992,7 @@
             topbarUserEl.style.display = isLoggedIn() ? 'inline-flex' : 'none';
             topbarUsernameEl.textContent = username || 'username';
             refreshAccountCard();
+            refreshValidInvitationCodeCount();
             if (!isLoggedIn()) {
                 setAccountCardOpen(false);
             }
@@ -3872,7 +3999,7 @@
             const visible = Boolean(searchAutomateToggle?.checked);
             automateSchedulePanelEl.style.display = visible ? '' : 'none';
             if (!visible) return;
-            const enabled = isAdminLoggedIn() || (isNonAdminLoggedIn() && googleCalendarIntegration.connected);
+            const enabled = isAdminLoggedIn() || (isNonAdminLoggedIn() && isPremiumAccount() && googleCalendarIntegration.connected);
             automateScheduleFormEl.querySelectorAll('input, select, textarea').forEach((element) => {
                 if (element === automateTopCountInput || element instanceof HTMLElement) {
                     element.disabled = !enabled;
@@ -3882,7 +4009,9 @@
                 ? (isAdminLoggedIn()
                     ? 'Choose how many top automated results to invite. When set above 0, search completion will automatically queue Google Calendar invitations for those top records. LLM will screen each schedule sent.'
                     : 'Choose how many top automated results to invite. When set above 0, search completion will create Google Calendar invitations from your connected Google account. LLM will screen each schedule sent.')
-                : (isNonAdminLoggedIn()
+                : (isNonAdminLoggedIn() && !isPremiumAccount()
+                    ? 'Automate is a premium feature. Pay USD 50 to activate premium access for one year from the payment date.'
+                    : isNonAdminLoggedIn()
                     ? 'Connect Google Calendar to use Automate as a non-admin user.'
                     : 'Log in to use automated invitation sending.');
             automateScheduleStatusEl.classList.toggle('error', visible && !enabled);
@@ -5175,6 +5304,9 @@
         });
         if (searchAutomateToggle) {
             searchAutomateToggle.addEventListener('change', () => {
+                if (searchAutomateToggle.checked && !requirePremiumAutomate()) {
+                    return;
+                }
                 syncDeepSearchUi();
                 updateAutomateScheduleUi();
             });
@@ -5631,6 +5763,28 @@
                 updateUserOperationUi();
             });
         });
+        if (adminUserAccessTypesToggleButton) {
+            adminUserAccessTypesToggleButton.addEventListener('click', () => {
+                adminUserAccessTypesExpanded = !adminUserAccessTypesExpanded;
+                updateAdminAccessTypesUi();
+            });
+        }
+        adminAccountTypeInputs.forEach((input) => {
+            input.addEventListener('change', () => {
+                if (input.checked) {
+                    setSelectedAdminAccountType(input.value);
+                } else if (!adminAccountTypeInputs.some((item) => item.checked)) {
+                    setSelectedAdminAccountType('trial');
+                }
+                updateUserOperationUi();
+            });
+        });
+        if (adminAccountTypeToggleButton) {
+            adminAccountTypeToggleButton.addEventListener('click', () => {
+                adminAccountTypeExpanded = !adminAccountTypeExpanded;
+                setSelectedAdminAccountType(selectedAdminAccountType);
+            });
+        }
 
         adminInviteCodeOutput.addEventListener('input', updateInviteEmailAction);
 
