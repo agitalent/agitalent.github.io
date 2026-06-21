@@ -4,6 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Redirecting | AGI Talent</title>
+    <script>
+        const BIO_LINK_REDIRECT_STORAGE_KEY = 'agiTalentBioLinkRedirects';
+        const currentHref = window.location.origin + window.location.pathname;
+        let redirectTarget = '';
+
+        try {
+            const raw = window.localStorage.getItem(BIO_LINK_REDIRECT_STORAGE_KEY);
+            if (raw) {
+                const redirects = JSON.parse(raw);
+                if (redirects && typeof redirects === 'object' && typeof redirects[currentHref] === 'string') {
+                    redirectTarget = redirects[currentHref];
+                }
+            }
+        } catch (error) {
+            redirectTarget = '';
+        }
+
+        if (redirectTarget) {
+            window.location.replace(redirectTarget);
+        } else {
+            document.documentElement.setAttribute('data-show-fallback', 'true');
+        }
+    </script>
     <style>
         :root {
             color-scheme: dark;
@@ -15,6 +38,9 @@
             --accent: #47e5a5;
         }
         * { box-sizing: border-box; }
+        html:not([data-show-fallback="true"]) body {
+            visibility: hidden;
+        }
         body {
             margin: 0;
             min-height: 100vh;
@@ -56,14 +82,10 @@
         <p id="redirect-message">If nothing happens, return to <a href="/talents.html">the talent directory</a> and open the profile again.</p>
     </main>
     <script>
-        const BIO_LINK_REDIRECT_STORAGE_KEY = 'agiTalentBioLinkRedirects';
-        const currentHref = window.location.origin + window.location.pathname;
         const messageEl = document.getElementById('redirect-message');
-
-        const readRedirectMap = () => {
-            try {
-                const raw = window.localStorage.getItem(BIO_LINK_REDIRECT_STORAGE_KEY);
-                if (!raw) return {};
-                const parsed = JSON.parse(raw);
-                return parsed && typeof parsed === 'object' ? parsed : {};
-            } catch (error) {
+        if (!redirectTarget && messageEl) {
+            messageEl.innerHTML = 'This profile link could not be resolved from this browser session. Return to <a href="/talents.html">the talent directory</a> and open the profile again.';
+        }
+    </script>
+</body>
+</html>

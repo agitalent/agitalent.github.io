@@ -3673,7 +3673,8 @@
             const href = normalizeLink(value);
             const generatedHref = generatedBioLinkHref(profile, href);
             const label = escapeHtml(String(value).trim());
-            return `<a class="bio-link-icon" href="${escapeHtml(generatedHref)}" target="_blank" rel="noopener noreferrer" data-generated-bio-link="true" data-real-href="${escapeHtml(href)}" aria-label="Open bio link: ${label}" title="${label}">${bioLinkIconSvg(value)}</a>`;
+            const redirectPayload = escapeHtml(encodeURIComponent(href));
+            return `<a class="bio-link-icon" href="${escapeHtml(generatedHref)}" target="_blank" rel="noopener noreferrer" data-generated-bio-link="true" data-redirect-payload="${redirectPayload}" aria-label="Open bio link: ${label}" title="${label}">${bioLinkIconSvg(value)}</a>`;
         };
 
         const renderValueHtml = (key, value, profile = null) => {
@@ -5915,7 +5916,7 @@
             const generatedBioLink = event.target.closest('a[data-generated-bio-link="true"]');
             if (generatedBioLink) {
                 const generatedHref = generatedBioLink.getAttribute('href') || '';
-                const realHref = generatedBioLink.getAttribute('data-real-href') || '';
+                const realHref = decodeURIComponent(generatedBioLink.getAttribute('data-redirect-payload') || '');
                 if (generatedHref && realHref) {
                     writeBioLinkRedirect(generatedHref, realHref);
                 }
