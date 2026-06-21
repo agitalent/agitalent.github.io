@@ -347,6 +347,8 @@
             grid-template-columns: repeat(3, minmax(0, 1fr));
         }
         .dashboard-card {
+            display: flex;
+            flex-direction: column;
             border: 1px solid var(--soft-border);
             border-radius: 18px;
             background: var(--soft-bg);
@@ -454,6 +456,7 @@
             filter: saturate(1.15);
         }
         .bar-chart {
+            margin-top: auto;
             display: grid;
             grid-template-columns: repeat(7, minmax(0, 1fr));
             align-items: end;
