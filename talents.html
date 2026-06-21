@@ -1481,27 +1481,30 @@
                                 </div>
                                 <div class="field wide">
                                     <label data-icon="▣">Access Types</label>
-                                    <div class="user-actions" id="admin-user-access-types">
-                                        <label class="checkbox-inline" for="admin-user-access-type-candidate">
-                                            <input id="admin-user-access-type-candidate" type="checkbox" value="candidate" data-access-type>
-                                            <span>Candidate</span>
-                                        </label>
-                                        <label class="checkbox-inline" for="admin-user-access-type-investor">
-                                            <input id="admin-user-access-type-investor" type="checkbox" value="investor" data-access-type>
-                                            <span>Investor</span>
-                                        </label>
-                                        <label class="checkbox-inline" for="admin-user-access-type-manufacturer">
-                                            <input id="admin-user-access-type-manufacturer" type="checkbox" value="manufacturer" data-access-type>
-                                            <span>Manufacturer</span>
-                                        </label>
-                                        <label class="checkbox-inline" for="admin-user-access-type-buyer">
-                                            <input id="admin-user-access-type-buyer" type="checkbox" value="buyer" data-access-type>
-                                            <span>Buyer</span>
-                                        </label>
-                                        <label class="checkbox-inline" for="admin-user-access-type-billionaire">
-                                            <input id="admin-user-access-type-billionaire" type="checkbox" value="billionaire" data-access-type>
-                                            <span>Billionaire</span>
-                                        </label>
+                                    <div class="access-picker">
+                                        <button class="access-picker-summary" id="admin-user-access-types-toggle" type="button" aria-expanded="false" aria-controls="admin-user-access-types-menu">Candidate</button>
+                                        <div class="access-picker-menu" id="admin-user-access-types-menu">
+                                            <label class="checkbox-inline" for="admin-user-access-type-candidate">
+                                                <input id="admin-user-access-type-candidate" type="checkbox" value="candidate" data-access-type>
+                                                <span>Candidate</span>
+                                            </label>
+                                            <label class="checkbox-inline" for="admin-user-access-type-investor">
+                                                <input id="admin-user-access-type-investor" type="checkbox" value="investor" data-access-type>
+                                                <span>Investor</span>
+                                            </label>
+                                            <label class="checkbox-inline" for="admin-user-access-type-manufacturer">
+                                                <input id="admin-user-access-type-manufacturer" type="checkbox" value="manufacturer" data-access-type>
+                                                <span>Manufacturer</span>
+                                            </label>
+                                            <label class="checkbox-inline" for="admin-user-access-type-buyer">
+                                                <input id="admin-user-access-type-buyer" type="checkbox" value="buyer" data-access-type>
+                                                <span>Buyer</span>
+                                            </label>
+                                            <label class="checkbox-inline" for="admin-user-access-type-billionaire">
+                                                <input id="admin-user-access-type-billionaire" type="checkbox" value="billionaire" data-access-type>
+                                                <span>Billionaire</span>
+                                            </label>
+                                        </div>
                                     </div>
                                     <small>Used for user access and single trial invitation codes. Multiple selections are allowed.</small>
                                 </div>
@@ -2559,6 +2562,23 @@
             adminUserAccessTypeInputs.forEach((input) => {
                 input.checked = normalizedValues.has(String(input.value || '').trim());
             });
+        };
+        const updateAppUserAccessRpc = async ({ username, password, targetUsername, accessAgentTypes }) => {
+            let { data, error } = await supabaseClient.rpc('admin_update_app_user_access', {
+                p_admin_username: username,
+                p_admin_password: password,
+                p_target_username: targetUsername,
+                p_access_agent_types: accessAgentTypes
+            });
+            if (error && String(error.message || '').includes('Could not find the function public.admin_update_app_user_access')) {
+                ({ data, error } = await supabaseClient.rpc('admin_update_app_user_access', {
+                    p_admin_username: username,
+                    p_admin_password: password,
+                    p_target_username: targetUsername
+                }));
+            }
+            if (error) throw error;
+            return data;
         };
         const buildDefaultToggleState = () => {
             const defaults = normalizedOutreachDefaults();
@@ -5709,13 +5729,12 @@
                     };
                     const selectedAccessTypes = selectedAdminAccessTypes();
                     if (JSON.stringify(selectedAccessTypes) !== JSON.stringify([DEFAULT_NON_ADMIN_ACCESS_TYPE])) {
-                        const { data: accessData, error: accessError } = await supabaseClient.rpc('admin_update_app_user_access', {
-                            p_admin_username: adminUser.username,
-                            p_admin_password: adminPassword,
-                            p_target_username: newUsername,
-                            p_access_agent_types: selectedAccessTypes
+                        const accessData = await updateAppUserAccessRpc({
+                            username: adminUser.username,
+                            password: adminPassword,
+                            targetUsername: newUsername,
+                            accessAgentTypes: selectedAccessTypes
                         });
-                        if (accessError) throw accessError;
                         adminTargetUser = accessData && accessData.username
                             ? {
                                 ...adminTargetUser,
@@ -5964,13 +5983,12 @@
             }
             adminSaveUserAccessButton.disabled = true;
             try {
-                const { data, error } = await supabaseClient.rpc('admin_update_app_user_access', {
-                    p_admin_username: adminUser.username,
-                    p_admin_password: adminPassword,
-                    p_target_username: username,
-                    p_access_agent_types: selectedAdminAccessTypes()
+                const data = await updateAppUserAccessRpc({
+                    username: adminUser.username,
+                    password: adminPassword,
+                    targetUsername: username,
+                    accessAgentTypes: selectedAdminAccessTypes()
                 });
-                if (error) throw error;
                 adminTargetUser = data && data.username ? data : adminTargetUser;
                 setSelectedAdminAccessTypes(adminTargetUser?.access_agent_types || adminTargetUser?.access_agent_type);
                 setAddUserStatus(`Access updated for ${username}: ${accessTypeLabels(adminTargetUser?.access_agent_types || adminTargetUser?.access_agent_type).join(', ')}.`);
