@@ -347,35 +347,15 @@
             grid-template-columns: repeat(3, minmax(0, 1fr));
         }
         .dashboard-card {
-            display: flex;
-            flex-direction: column;
             border: 1px solid var(--soft-border);
             border-radius: 18px;
             background: var(--soft-bg);
             padding: 16px;
         }
-        .dashboard-card-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
         .dashboard-card h3 {
-            margin: 0;
+            margin: 0 0 12px;
             font-size: 15px;
             color: var(--dashboard-title);
-        }
-        .dashboard-inline-toggle {
-            min-height: 34px;
-            padding: 0 12px;
-            border-radius: 999px;
-            border: 1px solid var(--button-secondary-border);
-            background: var(--button-secondary-bg);
-            color: var(--text);
-            font: inherit;
-            cursor: pointer;
-            white-space: nowrap;
         }
         .dashboard-switcher {
             display: none;
@@ -456,7 +436,6 @@
             filter: saturate(1.15);
         }
         .bar-chart {
-            margin-top: auto;
             display: grid;
             grid-template-columns: repeat(7, minmax(0, 1fr));
             align-items: end;
@@ -705,42 +684,6 @@
             height: 16px;
             margin: 0;
             accent-color: var(--accent);
-        }
-        .access-picker {
-            display: grid;
-            gap: 10px;
-        }
-        .access-picker-summary {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            min-height: 44px;
-            padding: 0 16px;
-            border-radius: 14px;
-            border: 1px solid var(--button-secondary-border);
-            background: var(--button-secondary-bg);
-            color: var(--text);
-            cursor: pointer;
-            font-weight: 600;
-        }
-        .access-picker-summary::after {
-            content: '▾';
-            margin-left: auto;
-            color: var(--accent-2);
-        }
-        .access-picker-summary.open::after {
-            content: '▴';
-        }
-        .access-picker-menu {
-            display: none;
-            gap: 10px;
-            padding: 12px;
-            border-radius: 16px;
-            border: 1px solid var(--soft-border);
-            background: var(--soft-bg);
-        }
-        .access-picker-menu.open {
-            display: grid;
         }
         :root[data-theme="light"] .checkbox-inline {
             color: #000000;
@@ -1310,10 +1253,7 @@
                 <div class="dashboard-page active" id="dashboard-page-metrics">
                     <div class="dashboard-grid" id="dashboard-grid">
                         <div class="dashboard-card" id="dashboard-primary-card">
-                            <div class="dashboard-card-head">
-                                <h3 data-icon="▣" id="dashboard-primary-title">New records, last 7 days</h3>
-                                <button class="dashboard-inline-toggle" id="dashboard-primary-range-toggle" type="button">Show filters</button>
-                            </div>
+                            <h3 data-icon="▣" id="dashboard-primary-title">New records, last 7 days</h3>
                             <div class="schedule-grid" id="dashboard-primary-range" style="display:none; margin-bottom:12px;">
                                 <div class="field">
                                     <label for="dashboard-records-start-date">Start date</label>
@@ -1477,30 +1417,27 @@
                                 </div>
                                 <div class="field wide">
                                     <label data-icon="▣">Access Types</label>
-                                    <div class="access-picker">
-                                        <button class="access-picker-summary" id="admin-user-access-types-toggle" type="button" aria-expanded="false" aria-controls="admin-user-access-types-menu">Candidate</button>
-                                        <div class="access-picker-menu" id="admin-user-access-types-menu">
-                                            <label class="checkbox-inline" for="admin-user-access-type-candidate">
-                                                <input id="admin-user-access-type-candidate" type="checkbox" value="candidate" data-access-type>
-                                                <span>Candidate</span>
-                                            </label>
-                                            <label class="checkbox-inline" for="admin-user-access-type-investor">
-                                                <input id="admin-user-access-type-investor" type="checkbox" value="investor" data-access-type>
-                                                <span>Investor</span>
-                                            </label>
-                                            <label class="checkbox-inline" for="admin-user-access-type-manufacturer">
-                                                <input id="admin-user-access-type-manufacturer" type="checkbox" value="manufacturer" data-access-type>
-                                                <span>Manufacturer</span>
-                                            </label>
-                                            <label class="checkbox-inline" for="admin-user-access-type-buyer">
-                                                <input id="admin-user-access-type-buyer" type="checkbox" value="buyer" data-access-type>
-                                                <span>Buyer</span>
-                                            </label>
-                                            <label class="checkbox-inline" for="admin-user-access-type-billionaire">
-                                                <input id="admin-user-access-type-billionaire" type="checkbox" value="billionaire" data-access-type>
-                                                <span>Billionaire</span>
-                                            </label>
-                                        </div>
+                                    <div class="user-actions" id="admin-user-access-types">
+                                        <label class="checkbox-inline" for="admin-user-access-type-candidate">
+                                            <input id="admin-user-access-type-candidate" type="checkbox" value="candidate" data-access-type>
+                                            <span>Candidate</span>
+                                        </label>
+                                        <label class="checkbox-inline" for="admin-user-access-type-investor">
+                                            <input id="admin-user-access-type-investor" type="checkbox" value="investor" data-access-type>
+                                            <span>Investor</span>
+                                        </label>
+                                        <label class="checkbox-inline" for="admin-user-access-type-manufacturer">
+                                            <input id="admin-user-access-type-manufacturer" type="checkbox" value="manufacturer" data-access-type>
+                                            <span>Manufacturer</span>
+                                        </label>
+                                        <label class="checkbox-inline" for="admin-user-access-type-buyer">
+                                            <input id="admin-user-access-type-buyer" type="checkbox" value="buyer" data-access-type>
+                                            <span>Buyer</span>
+                                        </label>
+                                        <label class="checkbox-inline" for="admin-user-access-type-billionaire">
+                                            <input id="admin-user-access-type-billionaire" type="checkbox" value="billionaire" data-access-type>
+                                            <span>Billionaire</span>
+                                        </label>
                                     </div>
                                     <small>Used for user access and single trial invitation codes. Multiple selections are allowed.</small>
                                 </div>
@@ -1808,8 +1745,6 @@
         const adminBatchInviteToggle = document.getElementById('admin-batch-invite-toggle');
         const adminTrialInviteToggle = document.getElementById('admin-trial-invite-toggle');
         const adminGenerateInviteButton = document.getElementById('admin-generate-invite-button');
-        const adminUserAccessTypesToggleButton = document.getElementById('admin-user-access-types-toggle');
-        const adminUserAccessTypesMenuEl = document.getElementById('admin-user-access-types-menu');
         const adminRevealEmailButton = document.getElementById('admin-reveal-email-button');
         const adminAddUserStatusEl = document.getElementById('admin-add-user-status');
         const adminLogoutButton = document.getElementById('admin-logout-button');
@@ -1825,7 +1760,6 @@
         const dashboardSecondaryTitleEl = document.getElementById('dashboard-secondary-title');
         const dashboardTertiaryTitleEl = document.getElementById('dashboard-tertiary-title');
         const salesCtaEl = document.getElementById('sales-cta');
-        const dashboardPrimaryRangeToggleButton = document.getElementById('dashboard-primary-range-toggle');
         const dashboardPrimaryRangeEl = document.getElementById('dashboard-primary-range');
         const dashboardRecordsStartDateInput = document.getElementById('dashboard-records-start-date');
         const dashboardRecordsEndDateInput = document.getElementById('dashboard-records-end-date');
@@ -1912,9 +1846,12 @@
             agent_type: AGENT_TYPE_OPTIONS,
             status: ['active', 'paused', 'archived']
         };
-        const LONG_TEXT_FIELDS = new Set(['seniority', 'contact_content']);
+        const LONG_TEXT_FIELDS = new Set(['seniority', 'Contact_Content']);
         const FIELD_LABELS = {
-            seniority: 'brief_background'
+            seniority: 'brief_background',
+            Contact_Time: 'contact_time',
+            Contact_Content: 'contact_content',
+            Contact_Type: 'contact_type'
         };
         const REQUIRED_FIELDS = new Set(['agent_type', 'name_or_handle', 'status']);
         const PUBLIC_PROFILE_SELECT = 'id, agent_type, name_or_handle, email, bio_link, location, domain_focus, seniority, skills, needs, recent_evidence, status, created_at, updated_at';
@@ -1940,7 +1877,6 @@
         let searchMode = 'latest';
         let currentRows = [];
         let dashboardRecordsRange = { start: '', end: '' };
-        let dashboardPrimaryRangeExpanded = false;
         let dashboardViewMode = 'metrics';
         let adminUser = null;
         let adminPassword = '';
@@ -1954,13 +1890,11 @@
         let selectedScheduleProfileIds = [];
         let resetPasswordOpen = false;
         let adminTargetUser = null;
-        let adminUserAccessTypesExpanded = false;
         let paypalButtonsRendered = false;
         let renewPaypalButtonsRendered = false;
         let accessWindowTimer = null;
         let latestTrialInvitationCode = '';
         let currentTheme = 'dark';
-        let trendInsightsPromise = null;
         let outreachDefaults = {
             company: '',
             role: '',
@@ -2020,16 +1954,6 @@
         const setStatus = (message, isError = false) => {
             statusEl.textContent = message;
             statusEl.classList.toggle('error', isError);
-        };
-        const updateDashboardPrimaryRangeUi = () => {
-            const visible = isAdminLoggedIn() && dashboardPrimaryRangeExpanded;
-            if (dashboardPrimaryRangeEl) {
-                dashboardPrimaryRangeEl.style.display = visible ? '' : 'none';
-            }
-            if (dashboardPrimaryRangeToggleButton) {
-                dashboardPrimaryRangeToggleButton.style.display = isAdminLoggedIn() ? '' : 'none';
-                dashboardPrimaryRangeToggleButton.textContent = visible ? 'Hide filters' : 'Show filters';
-            }
         };
 
         const setAdminStatus = (message, isError = false) => {
@@ -2466,18 +2390,6 @@
         };
         const accessTypeLabels = (values) => normalizeAccessAgentTypes(values).map((value) => displayAgentType(value));
         const currentUserAccessLabel = () => accessTypeLabels(adminUser?.access_agent_types || adminUser?.access_agent_type).join(', ');
-        const updateAdminAccessTypesUi = () => {
-            const labels = accessTypeLabels(selectedAdminAccessTypes());
-            const summary = labels.length ? labels.join(', ') : 'Choose access types';
-            if (adminUserAccessTypesToggleButton) {
-                adminUserAccessTypesToggleButton.textContent = summary;
-                adminUserAccessTypesToggleButton.classList.toggle('open', adminUserAccessTypesExpanded);
-                adminUserAccessTypesToggleButton.setAttribute('aria-expanded', adminUserAccessTypesExpanded ? 'true' : 'false');
-            }
-            if (adminUserAccessTypesMenuEl) {
-                adminUserAccessTypesMenuEl.classList.toggle('open', adminUserAccessTypesExpanded);
-            }
-        };
         const selectedAdminAccessTypes = () => {
             const values = adminUserAccessTypeInputs
                 .filter((input) => input.checked)
@@ -2489,29 +2401,6 @@
             adminUserAccessTypeInputs.forEach((input) => {
                 input.checked = normalizedValues.has(String(input.value || '').trim());
             });
-            updateAdminAccessTypesUi();
-        };
-        const generateInvitationCodeRpc = async ({ username, password, validFrom, isTrial, accessAgentTypes }) => {
-            const payload = {
-                p_admin_username: username,
-                p_admin_password: password,
-                p_valid_from: validFrom,
-                p_is_trial: isTrial
-            };
-            if (typeof accessAgentTypes !== 'undefined') {
-                payload.p_access_agent_types = accessAgentTypes;
-            }
-            let { data, error } = await supabaseClient.rpc('admin_generate_app_user_invitation_code', payload);
-            if (error && accessAgentTypes && String(error.message || '').includes('Could not find the function public.admin_generate_app_user_invitation_code')) {
-                ({ data, error } = await supabaseClient.rpc('admin_generate_app_user_invitation_code', {
-                    p_admin_username: username,
-                    p_admin_password: password,
-                    p_valid_from: validFrom,
-                    p_is_trial: isTrial
-                }));
-            }
-            if (error) throw error;
-            return data;
         };
         const buildDefaultToggleState = () => {
             const defaults = normalizedOutreachDefaults();
@@ -2930,7 +2819,9 @@
             dashboardSectionEl.style.display = isLoggedIn() ? '' : 'none';
             signupPromoEl.style.display = isLoggedIn() ? 'none' : 'grid';
             adminAddUserPanel.style.display = isAdminLoggedIn() ? '' : 'none';
-            updateDashboardPrimaryRangeUi();
+            if (dashboardPrimaryRangeEl) {
+                dashboardPrimaryRangeEl.style.display = isAdminLoggedIn() ? '' : 'none';
+            }
             if (dashboardSwitcherEl) {
                 dashboardSwitcherEl.classList.toggle('visible', isLoggedIn() && !isAdminLoggedIn());
             }
@@ -3630,19 +3521,6 @@
             renderTrendChart(trendActiveInstitutionsEl, topKeywordCounts(institutionMatches, 10));
             renderTrendChart(trendActiveCompaniesEl, topKeywordCounts(companyMatches, 10));
         };
-        const ensureTrendInsightsLoaded = () => {
-            if (isAdminLoggedIn() || !isLoggedIn()) return Promise.resolve();
-            if (!trendInsightsPromise) {
-                trendInsightsPromise = computeTrendInsights()
-                    .catch((error) => {
-                        throw error;
-                    })
-                    .finally(() => {
-                        trendInsightsPromise = null;
-                    });
-            }
-            return trendInsightsPromise;
-        };
 
         const loadDashboardMetrics = async () => {
             if (!supabaseClient || !isLoggedIn() || !adminPassword) {
@@ -3665,9 +3543,7 @@
             renderDashboardChart(dashboardNewRecordsChartEl, data?.new_records_last_7d || []);
             renderDashboardChart(dashboardNewUsersChartEl, data?.email_outreach_last_7d || []);
             renderDashboardChart(dashboardSentSchedulesChartEl, data?.sent_schedules_last_7d || []);
-            ensureTrendInsightsLoaded().catch((error) => {
-                setStatus(error.message || 'Trend insights failed.', true);
-            });
+            await computeTrendInsights();
         };
 
         const applyRecentContactFlags = async (rows) => {
@@ -3770,81 +3646,13 @@
                 </svg>
             `;
         };
-        const BIO_LINK_REDIRECT_STORAGE_KEY = 'agiTalentBioLinkRedirects';
-        const slugifyBioLinkName = (value) => {
-            const lettersOnly = String(value || '')
-                .toLowerCase()
-                .replace(/[^a-z]+/g, '');
-            return lettersOnly || 'profile';
-        };
-        const hashBioLinkValue = (value) => {
-            const input = String(value || '');
-            let hash = 0;
-            for (let index = 0; index < input.length; index += 1) {
-                hash = ((hash << 5) - hash + input.charCodeAt(index)) | 0;
-            }
-            return Math.abs(hash).toString(36).padStart(6, '0');
-        };
-        const generatedBioLinkPath = (profile, value) => {
-            const nameSource = profile?.name_or_handle || profile?.name || profile?.id || 'profile';
-            const slug = slugifyBioLinkName(nameSource);
-            const uniqueHash = hashBioLinkValue(`${nameSource}|${value}`);
-            return `/${slug}${uniqueHash}`;
-        };
-        const generatedBioLinkHref = (profile, value) => {
-            const path = generatedBioLinkPath(profile, value);
-            return `${window.location.origin}${path}`;
-        };
-        const readBioLinkRedirectMap = () => {
-            try {
-                const raw = window.localStorage.getItem(BIO_LINK_REDIRECT_STORAGE_KEY);
-                if (!raw) return {};
-                const parsed = JSON.parse(raw);
-                return parsed && typeof parsed === 'object' ? parsed : {};
-            } catch (error) {
-                return {};
-            }
-        };
-        const writeBioLinkRedirect = (generatedHref, realHref) => {
-            try {
-                const redirects = readBioLinkRedirectMap();
-                redirects[generatedHref] = realHref;
-                window.localStorage.setItem(BIO_LINK_REDIRECT_STORAGE_KEY, JSON.stringify(redirects));
-            } catch (error) {
-                // Ignore storage failures so profile links still render.
-            }
-        };
-        const syncBioLinkRedirects = (profiles) => {
-            if (!Array.isArray(profiles) || !profiles.length) return;
-            try {
-                const redirects = readBioLinkRedirectMap();
-                let changed = false;
-                for (const profile of profiles) {
-                    const rawValue = String(profile?.bio_link || '').trim();
-                    if (!rawValue) continue;
-                    const realHref = normalizeLink(rawValue);
-                    if (!realHref) continue;
-                    const generatedHref = generatedBioLinkHref(profile, realHref);
-                    if (redirects[generatedHref] === realHref) continue;
-                    redirects[generatedHref] = realHref;
-                    changed = true;
-                }
-                if (changed) {
-                    window.localStorage.setItem(BIO_LINK_REDIRECT_STORAGE_KEY, JSON.stringify(redirects));
-                }
-            } catch (error) {
-                // Ignore storage failures so profile links still render.
-            }
-        };
-        const renderBioLinkIcon = (profile, value) => {
+        const renderBioLinkIcon = (value) => {
             const href = normalizeLink(value);
-            const generatedHref = generatedBioLinkHref(profile, href);
             const label = escapeHtml(String(value).trim());
-            const redirectPayload = escapeHtml(encodeURIComponent(href));
-            return `<a class="bio-link-icon" href="${escapeHtml(generatedHref)}" target="_blank" rel="noopener noreferrer" data-generated-bio-link="true" data-redirect-payload="${redirectPayload}" aria-label="Open bio link: ${label}" title="${label}">${bioLinkIconSvg(value)}</a>`;
+            return `<a class="bio-link-icon" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" aria-label="Open bio link: ${label}" title="${label}">${bioLinkIconSvg(value)}</a>`;
         };
 
-        const renderValueHtml = (key, value, profile = null) => {
+        const renderValueHtml = (key, value) => {
             if (isEmptyValue(value)) return '';
 
             if (key === 'Recently_Contacted') {
@@ -3858,7 +3666,7 @@
             }
 
             if (key === 'bio_link') {
-                return renderBioLinkIcon(profile, value);
+                return renderBioLinkIcon(value);
             }
 
             if (key === 'skills' || key === 'needs' || key === 'recent_evidence') {
@@ -3879,15 +3687,11 @@
             return profile.name_or_handle || profile.name || profile.id || 'Profile';
         };
         const buildXShareText = (profile) => {
-            const rawBioLink = String(profile?.bio_link || '').trim();
-            const generatedHref = rawBioLink
-                ? generatedBioLinkHref(profile, normalizeLink(rawBioLink))
-                : 'https://agitalent.tech/';
             return [
                 String(profile?.name_or_handle || '').trim(),
                 String(profile?.seniority || '').trim(),
                 String(profile?.domain_focus || '').trim(),
-                generatedHref
+                'https://agitalent.tech/'
             ].filter(Boolean).join(', ');
         };
         const openXShare = (profile) => {
@@ -4205,7 +4009,6 @@
 
         const renderRows = (rows) => {
             currentRows = rows;
-            syncBioLinkRedirects(rows);
             if (!rows.length) {
                 resultsEl.innerHTML = '<div class="empty">No profiles matched this query.</div>';
                 return;
@@ -4227,7 +4030,7 @@
                         .filter((key) => isLoggedIn() || SIGNED_OUT_VISIBLE_PROFILE_FIELDS.has(key))
                         .filter((key) => !HIDDEN_PROFILE_FIELDS.has(key))
                         .map((key) => {
-                            const renderedValue = renderValueHtml(key, profile[key], profile);
+                            const renderedValue = renderValueHtml(key, profile[key]);
                             if (!renderedValue) return '';
                             return `
                                 <div class="meta" data-field="${escapeHtml(key)}">
@@ -4255,7 +4058,7 @@
                     <article class="card">
                         <div class="card-head">
                             <div style="display:flex; align-items:center; gap:10px;">
-                                ${canUseScheduleTools() && !isEditing ? `<input type="checkbox" data-action="toggle-schedule-select" data-id="${escapeHtml(profile.id)}" ${isProfileSelectedForSchedule(profile.id) ? 'checked' : ''}>` : ''}
+                                ${isAdminLoggedIn() && !isEditing ? `<input type="checkbox" data-action="toggle-schedule-select" data-id="${escapeHtml(profile.id)}" ${isProfileSelectedForSchedule(profile.id) ? 'checked' : ''}>` : ''}
                                 <h3 class="card-title">${escapeHtml(titleForProfile(profile))}</h3>
                                 ${profile.Recently_Contacted ? '<div class="pill">Alert: Recently_Contacted</div>' : ''}
                             </div>
@@ -4626,6 +4429,9 @@
             contactedBrowseRows = contactedRows.map((row) => ({
                 ...row,
                 Recently_Contacted: true,
+                Contact_Time: row.contact_time,
+                Contact_Content: row.contact_content,
+                Contact_Type: row.contact_type,
                 _candidate_email: String(row.email || '').trim()
             }));
 
@@ -5426,12 +5232,6 @@
                 }
             });
         }
-        if (dashboardPrimaryRangeToggleButton) {
-            dashboardPrimaryRangeToggleButton.addEventListener('click', () => {
-                dashboardPrimaryRangeExpanded = !dashboardPrimaryRangeExpanded;
-                updateDashboardPrimaryRangeUi();
-            });
-        }
         if (dashboardShowMetricsButton) {
             dashboardShowMetricsButton.addEventListener('click', () => {
                 dashboardViewMode = 'metrics';
@@ -5443,7 +5243,7 @@
                 dashboardViewMode = 'trends';
                 updateAdminUi();
                 try {
-                    await ensureTrendInsightsLoaded();
+                    await computeTrendInsights();
                 } catch (error) {
                     setStatus(error.message || 'Trend insights failed.', true);
                 }
@@ -5773,12 +5573,13 @@
                     const validFrom = todayIsoDate();
                     let generatedCount = 0;
                     for (let index = 0; index < batchSize; index += 1) {
-                        await generateInvitationCodeRpc({
-                            username: adminUser.username,
-                            password: adminPassword,
-                            validFrom,
-                            isTrial: false
+                        const { error } = await supabaseClient.rpc('admin_generate_app_user_invitation_code', {
+                            p_admin_username: adminUser.username,
+                            p_admin_password: adminPassword,
+                            p_valid_from: validFrom,
+                            p_is_trial: false
                         });
+                        if (error) throw error;
                         generatedCount += 1;
                     }
                     adminInviteCodeOutput.value = '';
@@ -5788,13 +5589,14 @@
                     if (useTrialInvite && !selectedAccessTypes.length) {
                         throw new Error('Choose at least one access type for the trial invitation.');
                     }
-                    const data = await generateInvitationCodeRpc({
-                        username: adminUser.username,
-                        password: adminPassword,
-                        validFrom: todayIsoDate(),
-                        isTrial: useTrialInvite,
-                        accessAgentTypes: useTrialInvite ? selectedAccessTypes : [DEFAULT_NON_ADMIN_ACCESS_TYPE]
+                    const { data, error } = await supabaseClient.rpc('admin_generate_app_user_invitation_code', {
+                        p_admin_username: adminUser.username,
+                        p_admin_password: adminPassword,
+                        p_valid_from: todayIsoDate(),
+                        p_is_trial: useTrialInvite,
+                        p_access_agent_types: useTrialInvite ? selectedAccessTypes : [DEFAULT_NON_ADMIN_ACCESS_TYPE]
                     });
+                    if (error) throw error;
                     adminInviteCodeOutput.value = String(data?.code || '').trim();
                     latestTrialInvitationCode = useTrialInvite ? String(data?.code || '').trim() : '';
                     setAddUserStatus(useTrialInvite
@@ -5826,16 +5628,9 @@
                 if (!selectedAdminAccessTypes().length) {
                     input.checked = true;
                 }
-                updateAdminAccessTypesUi();
                 updateUserOperationUi();
             });
         });
-        if (adminUserAccessTypesToggleButton) {
-            adminUserAccessTypesToggleButton.addEventListener('click', () => {
-                adminUserAccessTypesExpanded = !adminUserAccessTypesExpanded;
-                updateAdminAccessTypesUi();
-            });
-        }
 
         adminInviteCodeOutput.addEventListener('input', updateInviteEmailAction);
 
@@ -6093,16 +5888,6 @@
         });
 
         resultsEl.addEventListener('click', async (event) => {
-            const generatedBioLink = event.target.closest('a[data-generated-bio-link="true"]');
-            if (generatedBioLink) {
-                const generatedHref = generatedBioLink.getAttribute('href') || '';
-                const realHref = decodeURIComponent(generatedBioLink.getAttribute('data-redirect-payload') || '');
-                if (generatedHref && realHref) {
-                    writeBioLinkRedirect(generatedHref, realHref);
-                }
-                return;
-            }
-
             const button = event.target.closest('button[data-action]');
             if (!button) return;
             const action = button.dataset.action;
@@ -6148,7 +5933,7 @@
                     setAdminStatus('Log in to use scheduling.', true);
                     return;
                 }
-                if (!isProfileSelectedForSchedule(profileId)) {
+                if (isAdminLoggedIn() && !isProfileSelectedForSchedule(profileId)) {
                     selectedScheduleProfileIds = [profileId];
                 }
                 schedulingProfileId = profileId;
@@ -6277,98 +6062,63 @@
                             setStatus(lastScheduledFor ? `Invitation queued. The online worker should send it within about 5-10 minutes; the selected time remains the meeting time (${lastScheduledFor}).` : 'Invitation queued for Google Calendar delivery.');
                         }
                     } else {
-                        const targets = selectedScheduleProfilesInOrder();
-                        const profiles = targets.length ? targets : currentRows.filter((row) => row.id === profileId);
-                        if (!profiles.length) throw new Error('Profile not found.');
-                        const invalidProfile = profiles.find((profile) => !String(profile._candidate_email || '').trim());
-                        if (invalidProfile) {
+                        const profile = currentRows.find((row) => row.id === profileId);
+                        if (!profile) throw new Error('Profile not found.');
+                        if (!String(profile._candidate_email || '').trim()) {
                             throw new Error('Candidate email is required to prefill the calendar invitation.');
                         }
                         applyOutreachDefaultsLocally(payload);
+                        const draft = await generateScheduleDraft(profile, payload);
+                        const { error } = await supabaseClient.rpc('log_schedule_outreach', {
+                            ...authRpcCredentials(),
+                            p_profile_id: profileId,
+                            p_schedule: payload,
+                            p_invite_title: draft.subject,
+                            p_invite_content: draft.body
+                        });
+                        if (error) throw error;
+                        currentRows = currentRows.map((row) => row.id === profileId ? { ...row, Recently_Contacted: true } : row);
+                        await loadDashboardMetrics();
                         if (googleCalendarIntegration.connected) {
-                            setStatus(profiles.length > 1 ? `Creating ${profiles.length} Google Calendar events from your connected account...` : 'Creating Google Calendar event from your connected account...');
-                            let lastScheduledFor = '';
-                            for (const [index, profile] of profiles.entries()) {
-                                const scheduledPayload = schedulePayloadWithOffset(payload, index);
-                                const draft = await generateScheduleDraft(profile, scheduledPayload);
-                                const { error } = await supabaseClient.rpc('log_schedule_outreach', {
-                                    ...authRpcCredentials(),
-                                    p_profile_id: profile.id,
-                                    p_schedule: scheduledPayload,
-                                    p_invite_title: draft.subject,
-                                    p_invite_content: draft.body
-                                });
-                                if (error) throw error;
-                                const startAt = `${scheduledPayload.date}T${scheduledPayload.time}:00`;
-                                const endParts = addMinutesToScheduleTime(scheduledPayload.date, scheduledPayload.time, 15);
-                                const endAt = `${endParts.date}T${endParts.hour}:${endParts.minute}:00`;
-                                await edgeFunctionJson('create-calendar-event', {
-                                    method: 'POST',
-                                    body: {
-                                        event: {
-                                            summary: draft.subject,
-                                            description: draft.body,
-                                            start: {
-                                                dateTime: startAt,
-                                                timeZone: scheduledPayload.timezone,
-                                            },
-                                            end: {
-                                                dateTime: endAt,
-                                                timeZone: scheduledPayload.timezone,
-                                            },
-                                            attendees: [{ email: String(profile._candidate_email || '').trim() }],
-                                            conferenceData: {
-                                                createRequest: {
-                                                    requestId: `${profile.id}-${index}`,
-                                                    conferenceSolutionKey: { type: 'hangoutsMeet' }
-                                                }
+                            setStatus('Creating Google Calendar event from your connected account...');
+                            const startAt = `${payload.date}T${payload.time}:00`;
+                            const endParts = addMinutesToScheduleTime(payload.date, payload.time, 15);
+                            const endAt = `${endParts.date}T${endParts.hour}:${endParts.minute}:00`;
+                            await edgeFunctionJson('create-calendar-event', {
+                                method: 'POST',
+                                body: {
+                                    event: {
+                                        summary: draft.subject,
+                                        description: draft.body,
+                                        start: {
+                                            dateTime: startAt,
+                                            timeZone: payload.timezone,
+                                        },
+                                        end: {
+                                            dateTime: endAt,
+                                            timeZone: payload.timezone,
+                                        },
+                                        attendees: [{ email: String(profile._candidate_email || '').trim() }],
+                                        conferenceData: {
+                                            createRequest: {
+                                                requestId: String(profileId),
+                                                conferenceSolutionKey: { type: 'hangoutsMeet' }
                                             }
                                         }
                                     }
-                                });
-                                lastScheduledFor = `${scheduledPayload.date} ${scheduledPayload.time} ${scheduledPayload.timezone}`;
-                            }
-                            currentRows = currentRows.map((row) => (
-                                profiles.some((profile) => profile.id === row.id)
-                                    ? { ...row, Recently_Contacted: true }
-                                    : row
-                            ));
-                            await loadDashboardMetrics();
-                            schedulingProfileId = null;
-                            selectedScheduleProfileIds = [];
-                            setStatus(profiles.length > 1
-                                ? (lastScheduledFor ? `${profiles.length} invitations created in your connected Google Calendar and sent from your Google account. The selected time remains the meeting time (${lastScheduledFor}).` : `${profiles.length} invitations created in your connected Google Calendar and sent from your Google account.`)
-                                : 'Invitation created in your connected Google Calendar and sent from your Google account.');
-                        } else {
-                            setStatus(profiles.length > 1 ? `Generating ${profiles.length} schedule drafts...` : 'Generating schedule draft...');
-                            for (const [index, profile] of profiles.entries()) {
-                                const scheduledPayload = schedulePayloadWithOffset(payload, index);
-                                const draft = await generateScheduleDraft(profile, scheduledPayload);
-                                const { error } = await supabaseClient.rpc('log_schedule_outreach', {
-                                    ...authRpcCredentials(),
-                                    p_profile_id: profile.id,
-                                    p_schedule: scheduledPayload,
-                                    p_invite_title: draft.subject,
-                                    p_invite_content: draft.body
-                                });
-                                if (error) throw error;
-                                const calendarUrl = buildManualScheduleUrl(profile, scheduledPayload, draft);
-                                const draftWindow = window.open(calendarUrl, '_blank', 'noopener');
-                                if (!draftWindow) {
-                                    window.location.href = calendarUrl;
                                 }
-                            }
-                            currentRows = currentRows.map((row) => (
-                                profiles.some((profile) => profile.id === row.id)
-                                    ? { ...row, Recently_Contacted: true }
-                                    : row
-                            ));
-                            await loadDashboardMetrics();
+                            });
                             schedulingProfileId = null;
-                            selectedScheduleProfileIds = [];
-                            setStatus(profiles.length > 1
-                                ? `${profiles.length} schedule drafts opened in Google Calendar with the subject, attendee, and description prefilled. Review them there and confirm sending manually.`
-                                : 'Schedule draft opened in Google Calendar with the subject, attendee, and description prefilled. Review it there and confirm sending manually.');
+                            setStatus('Invitation created in your connected Google Calendar and sent from your Google account.');
+                        } else {
+                            setStatus('Generating schedule draft...');
+                            const calendarUrl = buildManualScheduleUrl(profile, payload, draft);
+                            const draftWindow = window.open(calendarUrl, '_blank', 'noopener');
+                            if (!draftWindow) {
+                                window.location.href = calendarUrl;
+                            }
+                            schedulingProfileId = null;
+                            setStatus('Schedule draft opened in Google Calendar with the subject, attendee, and description prefilled. Review it there and confirm sending manually.');
                         }
                     }
                     renderRows(currentRows);
