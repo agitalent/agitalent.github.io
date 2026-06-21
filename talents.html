@@ -2580,6 +2580,25 @@
             if (error) throw error;
             return data;
         };
+        const generateInvitationCodeRpc = async ({ username, password, validFrom, isTrial, accessAgentTypes }) => {
+            let { data, error } = await supabaseClient.rpc('admin_generate_app_user_invitation_code', {
+                p_admin_username: username,
+                p_admin_password: password,
+                p_valid_from: validFrom,
+                p_is_trial: isTrial,
+                ...(typeof accessAgentTypes !== 'undefined' ? { p_access_agent_types: accessAgentTypes } : {})
+            });
+            if (error && String(error.message || '').includes('Could not find the function public.admin_generate_app_user_invitation_code')) {
+                ({ data, error } = await supabaseClient.rpc('admin_generate_app_user_invitation_code', {
+                    p_admin_username: username,
+                    p_admin_password: password,
+                    p_valid_from: validFrom,
+                    p_is_trial: isTrial
+                }));
+            }
+            if (error) throw error;
+            return data;
+        };
         const buildDefaultToggleState = () => {
             const defaults = normalizedOutreachDefaults();
             return {
@@ -5771,13 +5790,12 @@
                     const validFrom = todayIsoDate();
                     let generatedCount = 0;
                     for (let index = 0; index < batchSize; index += 1) {
-                        const { error } = await supabaseClient.rpc('admin_generate_app_user_invitation_code', {
-                            p_admin_username: adminUser.username,
-                            p_admin_password: adminPassword,
-                            p_valid_from: validFrom,
-                            p_is_trial: false
+                        await generateInvitationCodeRpc({
+                            username: adminUser.username,
+                            password: adminPassword,
+                            validFrom,
+                            isTrial: false
                         });
-                        if (error) throw error;
                         generatedCount += 1;
                     }
                     adminInviteCodeOutput.value = '';
@@ -5787,14 +5805,13 @@
                     if (useTrialInvite && !selectedAccessTypes.length) {
                         throw new Error('Choose at least one access type for the trial invitation.');
                     }
-                    const { data, error } = await supabaseClient.rpc('admin_generate_app_user_invitation_code', {
-                        p_admin_username: adminUser.username,
-                        p_admin_password: adminPassword,
-                        p_valid_from: todayIsoDate(),
-                        p_is_trial: useTrialInvite,
-                        p_access_agent_types: useTrialInvite ? selectedAccessTypes : [DEFAULT_NON_ADMIN_ACCESS_TYPE]
+                    const data = await generateInvitationCodeRpc({
+                        username: adminUser.username,
+                        password: adminPassword,
+                        validFrom: todayIsoDate(),
+                        isTrial: useTrialInvite,
+                        accessAgentTypes: useTrialInvite ? selectedAccessTypes : [DEFAULT_NON_ADMIN_ACCESS_TYPE]
                     });
-                    if (error) throw error;
                     adminInviteCodeOutput.value = String(data?.code || '').trim();
                     latestTrialInvitationCode = useTrialInvite ? String(data?.code || '').trim() : '';
                     setAddUserStatus(useTrialInvite
