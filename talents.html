@@ -2595,6 +2595,17 @@
             if (error) throw error;
             return data;
         };
+        const updateAppUserAccountRpc = async ({ username, password, targetUsername, accessAgentTypes, accountType }) => {
+            const { data, error } = await supabaseClient.rpc('admin_update_app_user_access_v2', {
+                p_admin_username: username,
+                p_admin_password: password,
+                p_target_username: targetUsername,
+                p_access_agent_types: accessAgentTypes,
+                p_account_type: normalizeAccountType(accountType)
+            });
+            if (error) throw error;
+            return data;
+        };
         const generateInvitationCodeRpc = async ({ username, password, validFrom, isTrial, accessAgentTypes }) => {
             let { data, error } = await supabaseClient.rpc('admin_generate_app_user_invitation_code', {
                 p_admin_username: username,
@@ -6059,14 +6070,15 @@
             }
             adminSaveAccountButton.disabled = true;
             try {
-                const data = await updateAppUserAccessRpc({
+                const data = await updateAppUserAccountRpc({
                     username: adminUser.username,
                     password: adminPassword,
                     targetUsername: username,
-                    accessAgentTypes: adminTargetUser?.access_agent_types || adminTargetUser?.access_agent_type || [DEFAULT_NON_ADMIN_ACCESS_TYPE]
+                    accessAgentTypes: adminTargetUser?.access_agent_types || adminTargetUser?.access_agent_type || [DEFAULT_NON_ADMIN_ACCESS_TYPE],
+                    accountType: selectedAdminAccountType
                 });
                 adminTargetUser = data && data.username
-                    ? { ...adminTargetUser, ...data, account_type: normalizeAccountType(selectedAdminAccountType) }
+                    ? { ...adminTargetUser, ...data }
                     : { ...adminTargetUser, account_type: normalizeAccountType(selectedAdminAccountType) };
                 setSelectedAdminAccountType(adminTargetUser?.account_type);
                 setAddUserStatus(`Account type updated for ${username}: ${String(adminTargetUser?.account_type || '').trim() || 'trial'}.`);
