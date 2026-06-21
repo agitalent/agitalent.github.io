@@ -2574,8 +2574,16 @@
                 ({ data, error } = await supabaseClient.rpc('admin_update_app_user_access', {
                     p_admin_username: username,
                     p_admin_password: password,
-                    p_target_username: targetUsername
+                    p_target_username: targetUsername,
+                    p_access_agent_types: accessAgentTypes
                 }));
+                if (error && String(error.message || '').includes('Could not find the function public.admin_update_app_user_access')) {
+                    ({ data, error } = await supabaseClient.rpc('admin_update_app_user_access', {
+                        p_admin_username: username,
+                        p_admin_password: password,
+                        p_target_username: targetUsername
+                    }));
+                }
             }
             if (error) throw error;
             return data;
