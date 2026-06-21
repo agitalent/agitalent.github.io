@@ -1846,12 +1846,9 @@
             agent_type: AGENT_TYPE_OPTIONS,
             status: ['active', 'paused', 'archived']
         };
-        const LONG_TEXT_FIELDS = new Set(['seniority', 'Contact_Content']);
+        const LONG_TEXT_FIELDS = new Set(['seniority', 'contact_content']);
         const FIELD_LABELS = {
-            seniority: 'brief_background',
-            Contact_Time: 'contact_time',
-            Contact_Content: 'contact_content',
-            Contact_Type: 'contact_type'
+            seniority: 'brief_background'
         };
         const REQUIRED_FIELDS = new Set(['agent_type', 'name_or_handle', 'status']);
         const PUBLIC_PROFILE_SELECT = 'id, agent_type, name_or_handle, email, bio_link, location, domain_focus, seniority, skills, needs, recent_evidence, status, created_at, updated_at';
@@ -4481,9 +4478,6 @@
             contactedBrowseRows = contactedRows.map((row) => ({
                 ...row,
                 Recently_Contacted: true,
-                Contact_Time: row.contact_time,
-                Contact_Content: row.contact_content,
-                Contact_Type: row.contact_type,
                 _candidate_email: String(row.email || '').trim()
             }));
 
