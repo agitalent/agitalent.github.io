@@ -1859,7 +1859,6 @@
         const renewPlanValidDateInput = document.getElementById('renew-plan-valid-date');
         const renewPlanExpireDateInput = document.getElementById('renew-plan-expire-date');
         const renewPlanStatusEl = document.getElementById('renew-plan-status');
-        const signupIssuedCodeEl = document.getElementById('signup-issued-code');
         const resultsMetaEl = document.getElementById('results-meta');
         const resultsEl = document.getElementById('results');
         const HIDDEN_PROFILE_FIELDS = new Set([
@@ -2803,61 +2802,6 @@
             topbarRenewButton.style.display = canRenewCurrentPlan() ? '' : 'none';
         };
 
-        const renderIssuedInvitationCode = (payload) => {
-            const code = String(payload?.code || '').trim();
-            if (!code) return;
-            const isTrial = Boolean(payload?.is_trial);
-            signupModalCodeInput.value = code;
-            signupIssuedCodeEl.style.display = '';
-            signupIssuedCodeEl.innerHTML = `
-                <strong>Your invitation code</strong>
-                <div>${escapeHtml(code)}</div>
-                <div>${isTrial ? '3-day trial starts after sign up' : 'No expiration'}</div>
-            `;
-        };
-
-        const ensurePayPalButtonsRendered = () => {
-            if (paypalButtonsRendered || !window.paypal) return;
-            const container = document.getElementById('paypal-button-container');
-            if (!container) return;
-            window.paypal.Buttons({
-                style: {
-                    layout: 'vertical',
-                    shape: 'pill',
-                    color: 'gold',
-                    label: 'paypal'
-                },
-                createOrder(_data, actions) {
-                    return actions.order.create({
-                        purchase_units: [{
-                            amount: {
-                                currency_code: 'USD',
-                                value: '50.00'
-                            },
-                            description: 'AGI Talent invitation code'
-                        }]
-                    });
-                },
-                async onApprove(_data, actions) {
-                    setModalStatus(signupModalStatusEl, 'Payment approved. Issuing invitation code...');
-                    const order = await actions.order.capture();
-                    const orderId = String(order?.id || '').trim();
-                    if (!orderId) {
-                        throw new Error('PayPal order id was missing.');
-                    }
-                    const { data, error } = await supabaseClient.rpc('issue_paid_app_user_invitation_code', {
-                        p_paypal_order_id: orderId
-                    });
-                    if (error) throw error;
-                    renderIssuedInvitationCode(data);
-                    setModalStatus(signupModalStatusEl, 'Payment complete. Your invitation code is ready.');
-                },
-                onError(error) {
-                    setModalStatus(signupModalStatusEl, error?.message || 'PayPal payment failed.', true);
-                }
-            }).render(container);
-            paypalButtonsRendered = true;
-        };
         const ensureRenewPayPalButtonsRendered = () => {
             if (renewPaypalButtonsRendered || !window.paypal) return;
             const container = document.getElementById('renew-paypal-button-container');
@@ -5517,10 +5461,7 @@
             signupModalUsernameInput.value = '';
             signupModalPasswordInput.value = '';
             signupModalCodeInput.value = '';
-            signupIssuedCodeEl.style.display = 'none';
-            signupIssuedCodeEl.innerHTML = '';
             openModal(signupModalEl);
-            ensurePayPalButtonsRendered();
             window.setTimeout(() => signupModalUsernameInput.focus(), 0);
         });
         if (signupPromoButton) {
