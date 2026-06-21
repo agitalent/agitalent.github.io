@@ -3717,13 +3717,59 @@
                 </svg>
             `;
         };
-        const renderBioLinkIcon = (value) => {
+        const BIO_LINK_REDIRECT_STORAGE_KEY = 'agiTalentBioLinkRedirects';
+        const slugifyBioLinkName = (value) => {
+            const lettersOnly = String(value || '')
+                .toLowerCase()
+                .replace(/[^a-z]+/g, '');
+            return lettersOnly || 'profile';
+        };
+        const hashBioLinkValue = (value) => {
+            const input = String(value || '');
+            let hash = 0;
+            for (let index = 0; index < input.length; index += 1) {
+                hash = ((hash << 5) - hash + input.charCodeAt(index)) | 0;
+            }
+            return Math.abs(hash).toString(36).padStart(6, '0');
+        };
+        const generatedBioLinkPath = (profile, value) => {
+            const nameSource = profile?.name_or_handle || profile?.name || profile?.id || 'profile';
+            const slug = slugifyBioLinkName(nameSource);
+            const uniqueHash = hashBioLinkValue(`${nameSource}|${value}`);
+            return `/${slug}${uniqueHash}`;
+        };
+        const generatedBioLinkHref = (profile, value) => {
+            const path = generatedBioLinkPath(profile, value);
+            return `${window.location.origin}${path}`;
+        };
+        const readBioLinkRedirectMap = () => {
+            try {
+                const raw = window.localStorage.getItem(BIO_LINK_REDIRECT_STORAGE_KEY);
+                if (!raw) return {};
+                const parsed = JSON.parse(raw);
+                return parsed && typeof parsed === 'object' ? parsed : {};
+            } catch (error) {
+                return {};
+            }
+        };
+        const writeBioLinkRedirect = (generatedHref, realHref) => {
+            try {
+                const redirects = readBioLinkRedirectMap();
+                redirects[generatedHref] = realHref;
+                window.localStorage.setItem(BIO_LINK_REDIRECT_STORAGE_KEY, JSON.stringify(redirects));
+            } catch (error) {
+                // Ignore storage failures so profile links still render.
+            }
+        };
+        const renderBioLinkIcon = (profile, value) => {
             const href = normalizeLink(value);
+            const generatedHref = generatedBioLinkHref(profile, href);
             const label = escapeHtml(String(value).trim());
-            return `<a class="bio-link-icon" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" aria-label="Open bio link: ${label}" title="${label}">${bioLinkIconSvg(value)}</a>`;
+            const redirectPayload = escapeHtml(encodeURIComponent(href));
+            return `<a class="bio-link-icon" href="${escapeHtml(generatedHref)}" target="_blank" rel="noopener noreferrer" data-generated-bio-link="true" data-redirect-payload="${redirectPayload}" aria-label="Open bio link: ${label}" title="${label}">${bioLinkIconSvg(value)}</a>`;
         };
 
-        const renderValueHtml = (key, value) => {
+        const renderValueHtml = (key, value, profile = null) => {
             if (isEmptyValue(value)) return '';
 
             if (key === 'Recently_Contacted') {
@@ -3737,7 +3783,7 @@
             }
 
             if (key === 'bio_link') {
-                return renderBioLinkIcon(value);
+                return renderBioLinkIcon(profile, value);
             }
 
             if (key === 'skills' || key === 'needs' || key === 'recent_evidence') {
@@ -4103,7 +4149,7 @@
                         .filter((key) => isLoggedIn() || SIGNED_OUT_VISIBLE_PROFILE_FIELDS.has(key))
                         .filter((key) => !HIDDEN_PROFILE_FIELDS.has(key))
                         .map((key) => {
-                            const renderedValue = renderValueHtml(key, profile[key]);
+                            const renderedValue = renderValueHtml(key, profile[key], profile);
                             if (!renderedValue) return '';
                             return `
                                 <div class="meta" data-field="${escapeHtml(key)}">
@@ -5983,6 +6029,16 @@
         });
 
         resultsEl.addEventListener('click', async (event) => {
+            const generatedBioLink = event.target.closest('a[data-generated-bio-link="true"]');
+            if (generatedBioLink) {
+                const generatedHref = generatedBioLink.getAttribute('href') || '';
+                const realHref = decodeURIComponent(generatedBioLink.getAttribute('data-redirect-payload') || '');
+                if (generatedHref && realHref) {
+                    writeBioLinkRedirect(generatedHref, realHref);
+                }
+                return;
+            }
+
             const button = event.target.closest('button[data-action]');
             if (!button) return;
             const action = button.dataset.action;
