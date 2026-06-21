@@ -3804,11 +3804,15 @@
             return profile.name_or_handle || profile.name || profile.id || 'Profile';
         };
         const buildXShareText = (profile) => {
+            const rawBioLink = String(profile?.bio_link || '').trim();
+            const generatedHref = rawBioLink
+                ? generatedBioLinkHref(profile, normalizeLink(rawBioLink))
+                : 'https://agitalent.tech/';
             return [
                 String(profile?.name_or_handle || '').trim(),
                 String(profile?.seniority || '').trim(),
                 String(profile?.domain_focus || '').trim(),
-                'https://agitalent.tech/'
+                generatedHref
             ].filter(Boolean).join(', ');
         };
         const openXShare = (profile) => {
