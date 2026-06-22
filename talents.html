@@ -1950,7 +1950,7 @@
         };
         const REQUIRED_FIELDS = new Set(['agent_type', 'name_or_handle', 'status']);
         const PUBLIC_PROFILE_SELECT = 'id, agent_type, name_or_handle, email, bio_link, location, domain_focus, seniority, skills, needs, recent_evidence, status, created_at, updated_at';
-        const SIGNED_OUT_PROFILE_SELECT = 'id, name_or_handle, location, seniority, "Recently_Contacted", created_at, updated_at, bio_link, domain_focus';
+        const SIGNED_OUT_PROFILE_SELECT = 'id, name_or_handle, location, seniority, created_at, updated_at, bio_link, domain_focus';
         const SIGNED_OUT_VISIBLE_PROFILE_FIELDS = new Set(['bio_link', 'domain_focus', 'seniority', 'location', 'Recently_Contacted']);
 
         let activePrompt = '';
@@ -2448,7 +2448,8 @@
                 ? '*'
                 : (isLoggedIn() ? PUBLIC_PROFILE_SELECT : SIGNED_OUT_PROFILE_SELECT)
         );
-        const profileSourceName = () => (isLoggedIn() ? 'profiles' : 'public_profile_directory');
+        const profileSourceName = () => 'profiles';
+        const profileSelectOptions = () => ({ count: isLoggedIn() ? 'exact' : 'planned' });
         const searchableProfileFields = () => (
             isLoggedIn()
                 ? ['name_or_handle', 'email', 'bio_link', 'location', 'domain_focus', 'seniority']
@@ -4600,7 +4601,7 @@
             const fetchCap = isLoggedIn() ? 1000 : maxVisibleResults();
             let query = supabaseClient
                 .from(profileSourceName())
-                .select(profileSelectColumns(), { count: 'exact' })
+                .select(profileSelectColumns(), profileSelectOptions())
                 .order('created_at', { ascending: false, nullsFirst: false })
                 .order('updated_at', { ascending: false, nullsFirst: false });
 
@@ -4809,12 +4810,14 @@
             const safeOffset = clampVisibleOffset(offset);
             let query = supabaseClient
                 .from(profileSourceName())
-                .select(profileSelectColumns(), { count: 'exact' })
+                .select(profileSelectColumns(), profileSelectOptions())
                 .order('created_at', { ascending: false, nullsFirst: false })
                 .order('updated_at', { ascending: false, nullsFirst: false })
                 .range(safeOffset, safeOffset + PAGE_SIZE - 1);
 
-            if (isLoggedIn() && !isAdminLoggedIn()) {
+            if (!isLoggedIn()) {
+                query = query.eq('status', 'active').in('agent_type', ['candidate', 'job_seeker']);
+            } else if (!isAdminLoggedIn()) {
                 query = query.in('agent_type', profileAgentTypeFilterValues(adminUser?.access_agent_types || adminUser?.access_agent_type));
             }
 
@@ -4836,7 +4839,9 @@
             const fields = searchableProfileFields();
             const searchPhrases = promptPhrases(promptOverride);
             let nextQuery = query;
-            if (isLoggedIn() && !isAdminLoggedIn()) {
+            if (!isLoggedIn()) {
+                nextQuery = nextQuery.eq('status', 'active').in('agent_type', ['candidate', 'job_seeker']);
+            } else if (!isAdminLoggedIn()) {
                 nextQuery = nextQuery.in('agent_type', profileAgentTypeFilterValues(adminUser?.access_agent_types || adminUser?.access_agent_type));
             }
             if (!searchPhrases.length) {
@@ -4853,7 +4858,7 @@
             const safeOffset = clampVisibleOffset(offset);
             let query = supabaseClient
                 .from(profileSourceName())
-                .select(profileSelectColumns(), { count: 'exact' })
+                .select(profileSelectColumns(), profileSelectOptions())
                 .order('created_at', { ascending: false, nullsFirst: false })
                 .order('updated_at', { ascending: false, nullsFirst: false });
 
