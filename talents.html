@@ -5608,9 +5608,18 @@
 
         adminLogoutButton.addEventListener('click', logoutCurrentUser);
         topbarLogoutButton.addEventListener('click', logoutCurrentUser);
-        topbarUsernameEl.addEventListener('click', () => {
+        topbarUsernameEl.addEventListener('click', async () => {
             if (!isLoggedIn()) return;
-            setAccountCardOpen(!topbarAccountCardEl.classList.contains('open'));
+            const nextOpen = !topbarAccountCardEl.classList.contains('open');
+            if (nextOpen && !isAdminLoggedIn()) {
+                try {
+                    await loadAccountSummary();
+                    refreshAccountCard();
+                } catch (_error) {
+                    // Fall back to the current cached session values if refresh fails.
+                }
+            }
+            setAccountCardOpen(nextOpen);
         });
         topbarChangePasswordButton.addEventListener('click', () => {
             if (!isLoggedIn()) return;
