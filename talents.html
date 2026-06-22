@@ -5228,9 +5228,25 @@
             if (!data || !data.username) {
                 throw new Error('Account summary could not be loaded.');
             }
-            adminUser = data;
+            if (data?.rights !== 'admin') {
+                const { data: accountRow, error: accountError } = await supabaseClient
+                    .from('app_users')
+                    .select('account_type')
+                    .eq('username', data.username)
+                    .single();
+                if (!accountError && accountRow) {
+                    adminUser = {
+                        ...data,
+                        account_type: accountRow.account_type
+                    };
+                } else {
+                    adminUser = data;
+                }
+            } else {
+                adminUser = data;
+            }
             persistAdminSession();
-            return data;
+            return adminUser;
         };
 
         const completeAuthenticatedSession = async (data, password, { closeElement = null } = {}) => {
