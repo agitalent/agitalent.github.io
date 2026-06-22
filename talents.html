@@ -2887,8 +2887,14 @@
                 accessWindowTimer = null;
             }
             if (!isLoggedIn() || adminUser?.rights === 'admin') return;
-            accessWindowTimer = window.setInterval(() => {
-                validateActiveAccessWindow();
+            accessWindowTimer = window.setInterval(async () => {
+                if (!validateActiveAccessWindow()) return;
+                try {
+                    await loadAccountSummary();
+                    refreshAccountCard();
+                } catch (_error) {
+                    // Keep the current session if summary refresh fails transiently.
+                }
             }, 15 * 1000);
         };
         const setAccountCardOpen = (open) => {
