@@ -2555,7 +2555,13 @@
                 p_profile_id: profileId,
                 p_context: context
             });
-            if (error) throw error;
+            if (error) {
+                const message = String(error.message || '');
+                if (message.includes('Could not find the function public.reserve_platinum_invitation_code')) {
+                    return '';
+                }
+                throw error;
+            }
             return String(data?.code || '').trim();
         };
         const selectedAdminAccessTypes = () => {
