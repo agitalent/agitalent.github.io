@@ -1644,8 +1644,9 @@
                     <input id="login-modal-password" type="password" autocomplete="current-password" placeholder="Password">
                 </div>
             </div>
-            <div class="actions">
+            <div class="actions signup-actions">
                 <button class="button" data-icon="◌" id="login-modal-submit" type="button">Log in</button>
+                <button class="button-secondary google-signup-button" data-icon="G" id="login-modal-google" type="button">Sign in with Google</button>
             </div>
             <div class="modal-status" id="login-modal-status"></div>
         </div>
@@ -1888,6 +1889,7 @@
         const loginModalUsernameInput = document.getElementById('login-modal-username');
         const loginModalPasswordInput = document.getElementById('login-modal-password');
         const loginModalSubmitButton = document.getElementById('login-modal-submit');
+        const loginModalGoogleButton = document.getElementById('login-modal-google');
         const loginModalStatusEl = document.getElementById('login-modal-status');
         const signupModalEl = document.getElementById('signup-modal');
         const signupModalUsernameInput = document.getElementById('signup-modal-username');
@@ -2026,6 +2028,8 @@
         const OUTREACH_MODE_HIRING = 'hiring_talents';
         const SUPABASE_AUTH_EMAIL_DOMAIN = 'users.agitalent.tech';
         const GOOGLE_SIGNUP_MESSAGE_TYPE = 'agitalent-google-signup-result';
+        const GOOGLE_AUTH_ACTION_SIGNUP = 'signup';
+        const GOOGLE_AUTH_ACTION_LOGIN = 'login';
         const DEBUG_AUTH = ['localhost', '127.0.0.1', ''].includes(window.location.hostname);
         const authDebugState = {
             latestEdgeFunction: null,
@@ -2754,10 +2758,11 @@
             throw new Error('Google authentication session did not finish in time.');
         };
 
-        const buildGoogleSignupRedirectUrl = (popupMode = true) => {
+        const buildGoogleAuthRedirectUrl = (action = GOOGLE_AUTH_ACTION_SIGNUP, popupMode = true) => {
             const url = new URL(window.location.href);
             url.hash = '';
             url.searchParams.set('google_signup_callback', '1');
+            url.searchParams.set('google_auth_action', action === GOOGLE_AUTH_ACTION_LOGIN ? GOOGLE_AUTH_ACTION_LOGIN : GOOGLE_AUTH_ACTION_SIGNUP);
             if (popupMode) {
                 url.searchParams.set('google_signup_popup', '1');
             } else {
@@ -2770,6 +2775,7 @@
             const url = new URL(window.location.href);
             [
                 'google_signup_callback',
+                'google_auth_action',
                 'google_signup_popup',
                 'code',
                 'state',
@@ -2802,6 +2808,15 @@
                 username: data?.username || '',
                 authProvider: data?.auth_provider || ''
             };
+            return data;
+        };
+
+        const checkGoogleAppUserFromSession = async () => {
+            await waitForSupabaseSession(15000);
+            const data = await edgeFunctionJson('check-google-app-user', { method: 'POST' });
+            if (!data?.registered || !data?.username) {
+                throw new Error('Please sign up first!');
+            }
             return data;
         };
 
@@ -5425,6 +5440,9 @@
         const handleGoogleSignupCallback = async () => {
             const url = new URL(window.location.href);
             if (url.searchParams.get('google_signup_callback') !== '1') return false;
+            const authAction = url.searchParams.get('google_auth_action') === GOOGLE_AUTH_ACTION_LOGIN
+                ? GOOGLE_AUTH_ACTION_LOGIN
+                : GOOGLE_AUTH_ACTION_SIGNUP;
             try {
                 if (!supabaseClient) {
                     throw new Error('Supabase client failed to initialize.');
@@ -5439,38 +5457,43 @@
                     const { error } = await supabaseClient.auth.exchangeCodeForSession(window.location.href);
                     if (error) throw error;
                 }
-                const data = await provisionGoogleAppUserFromSession();
+                const data = authAction === GOOGLE_AUTH_ACTION_LOGIN
+                    ? await checkGoogleAppUserFromSession()
+                    : await provisionGoogleAppUserFromSession();
                 cleanGoogleSignupCallbackUrl();
                 if (window.opener && !window.opener.closed) {
-                    postGoogleSignupMessage({ ok: true, data });
+                    postGoogleSignupMessage({ ok: true, data, action: authAction });
                     window.close();
                     return true;
                 }
                 await completeGoogleAuthenticatedSession(data);
-                setAdminStatus('Signed up with Google.', false);
+                setAdminStatus(authAction === GOOGLE_AUTH_ACTION_LOGIN ? 'Signed in with Google.' : 'Signed up with Google.', false);
                 return true;
             } catch (error) {
+                if (authAction === GOOGLE_AUTH_ACTION_LOGIN && supabaseClient) {
+                    await supabaseClient.auth.signOut().catch(() => null);
+                }
                 cleanGoogleSignupCallbackUrl();
                 const message = error instanceof Error ? error.message : String(error || 'Google sign-up failed.');
                 if (window.opener && !window.opener.closed) {
-                    postGoogleSignupMessage({ ok: false, error: message });
+                    postGoogleSignupMessage({ ok: false, error: message, action: authAction });
                     window.close();
                     return true;
                 }
-                setModalStatus(signupModalStatusEl, message, true);
+                setModalStatus(authAction === GOOGLE_AUTH_ACTION_LOGIN ? loginModalStatusEl : signupModalStatusEl, message, true);
                 setStatus(message, true);
                 return true;
             }
         };
 
-        const performGoogleSignup = async () => {
+        const performGoogleAuth = async (action = GOOGLE_AUTH_ACTION_SIGNUP) => {
             if (!supabaseClient) {
                 throw new Error('Supabase client failed to initialize.');
             }
             const { data, error } = await supabaseClient.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    redirectTo: buildGoogleSignupRedirectUrl(true),
+                    redirectTo: buildGoogleAuthRedirectUrl(action, true),
                     skipBrowserRedirect: true,
                     queryParams: {
                         prompt: 'select_account'
@@ -5484,7 +5507,7 @@
             }
             const popup = window.open(
                 authUrl,
-                'agitalentGoogleSignup',
+                action === GOOGLE_AUTH_ACTION_LOGIN ? 'agitalentGoogleLogin' : 'agitalentGoogleSignup',
                 'popup=yes,width=520,height=760,left=120,top=80'
             );
             if (!popup) {
@@ -5505,13 +5528,16 @@
                 const onMessage = async (event) => {
                     if (event.origin !== window.location.origin) return;
                     if (event.data?.type !== GOOGLE_SIGNUP_MESSAGE_TYPE) return;
+                    if (event.data?.action && event.data.action !== action) return;
                     cleanup();
                     if (!event.data?.ok) {
                         reject(new Error(event.data?.error || 'Google sign-up failed.'));
                         return;
                     }
                     try {
-                        await completeGoogleAuthenticatedSession(event.data.data, { closeElement: signupModalEl });
+                        await completeGoogleAuthenticatedSession(event.data.data, {
+                            closeElement: action === GOOGLE_AUTH_ACTION_LOGIN ? loginModalEl : signupModalEl
+                        });
                         resolve(null);
                     } catch (messageError) {
                         reject(messageError);
@@ -5525,6 +5551,9 @@
                 window.addEventListener('message', onMessage);
             });
         };
+
+        const performGoogleSignup = async () => performGoogleAuth(GOOGLE_AUTH_ACTION_SIGNUP);
+        const performGoogleLogin = async () => performGoogleAuth(GOOGLE_AUTH_ACTION_LOGIN);
 
         const logoutCurrentUser = (statusMessage = 'Login is required to browse candidate records.') => {
             if (supabaseClient) {
@@ -5904,6 +5933,24 @@
                 loginModalSubmitButton.disabled = false;
             }
         });
+
+        if (loginModalGoogleButton) {
+            loginModalGoogleButton.addEventListener('click', async () => {
+                loginModalGoogleButton.disabled = true;
+                setModalStatus(loginModalStatusEl, 'Redirecting to Google...');
+                try {
+                    await performGoogleLogin();
+                    setModalStatus(loginModalStatusEl, '', false);
+                } catch (error) {
+                    const message = error.message || 'Google sign-in failed.';
+                    setModalStatus(loginModalStatusEl, message === 'Please sign up first!'
+                        ? 'Please sign up first! Use Sign Up to create your account.'
+                        : message, true);
+                } finally {
+                    loginModalGoogleButton.disabled = false;
+                }
+            });
+        }
 
         [loginModalUsernameInput, loginModalPasswordInput].forEach((input) => {
             input.addEventListener('keydown', (event) => {
