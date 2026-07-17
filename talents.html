@@ -539,6 +539,14 @@
             gap: 12px;
             margin-top: 6px;
         }
+        .signup-actions {
+            width: 100%;
+        }
+        .signup-actions .button,
+        .signup-actions .button-secondary {
+            flex: 1 1 220px;
+            justify-content: center;
+        }
         .button,
         .button-secondary {
             border-radius: 16px;
@@ -593,6 +601,15 @@
             border: 1px solid var(--button-secondary-border);
             color: var(--text);
             background: var(--button-secondary-bg);
+        }
+        .google-signup-button {
+            border-color: rgba(66, 133, 244, 0.28);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(66, 133, 244, 0.08));
+        }
+        .google-signup-button[data-icon]::before {
+            color: #4285f4;
+            border-color: rgba(66, 133, 244, 0.24);
+            background: rgba(66, 133, 244, 0.12);
         }
         .button:hover,
         .button-secondary:hover {
@@ -1657,8 +1674,9 @@
                     <input id="signup-modal-code" type="text" autocomplete="off" placeholder="ABCD-EFGH-IJKL">
                 </div>
             </div>
-            <div class="actions">
+            <div class="actions signup-actions">
                 <button class="button" data-icon="✦" id="signup-modal-submit" type="button">Create Account</button>
+                <button class="button-secondary google-signup-button" data-icon="G" id="signup-modal-google" type="button">Sign up with Google</button>
             </div>
             <div class="modal-status" id="signup-modal-status"></div>
         </div>
@@ -1876,6 +1894,7 @@
         const signupModalPasswordInput = document.getElementById('signup-modal-password');
         const signupModalCodeInput = document.getElementById('signup-modal-code');
         const signupModalSubmitButton = document.getElementById('signup-modal-submit');
+        const signupModalGoogleButton = document.getElementById('signup-modal-google');
         const signupModalStatusEl = document.getElementById('signup-modal-status');
         const changePasswordModalEl = document.getElementById('change-password-modal');
         const changePasswordCurrentInput = document.getElementById('change-password-current');
@@ -1976,6 +1995,7 @@
         let dashboardViewMode = 'metrics';
         let adminUser = null;
         let adminPassword = '';
+        let adminAuthMode = 'password';
         let editingProfileId = null;
         let schedulingProfileId = null;
         let emailingProfileId = null;
@@ -2005,6 +2025,7 @@
         const TALENTS_THEME_KEY = 'talentsTheme';
         const OUTREACH_MODE_HIRING = 'hiring_talents';
         const SUPABASE_AUTH_EMAIL_DOMAIN = 'users.agitalent.tech';
+        const GOOGLE_SIGNUP_MESSAGE_TYPE = 'agitalent-google-signup-result';
         const DEBUG_AUTH = ['localhost', '127.0.0.1', ''].includes(window.location.hostname);
         const authDebugState = {
             latestEdgeFunction: null,
@@ -2695,18 +2716,93 @@
         };
 
         const persistAdminSession = () => {
-            if (!isLoggedIn() || !adminPassword) {
+            if (!isLoggedIn()) {
                 window.localStorage.removeItem(ADMIN_SESSION_KEY);
                 return;
             }
-            window.localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify({
+            const payload = {
                 username: adminUser.username,
-                password: adminPassword
-            }));
+                authMode: adminAuthMode
+            };
+            if (adminAuthMode !== 'google') {
+                if (!adminPassword) {
+                    window.localStorage.removeItem(ADMIN_SESSION_KEY);
+                    return;
+                }
+                payload.password = adminPassword;
+            }
+            window.localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(payload));
         };
 
         const clearAdminSession = () => {
             window.localStorage.removeItem(ADMIN_SESSION_KEY);
+        };
+
+        const waitForSupabaseSession = async (timeoutMs = 12000) => {
+            if (!supabaseClient) {
+                throw new Error('Supabase client failed to initialize.');
+            }
+            const startedAt = Date.now();
+            while (Date.now() - startedAt < timeoutMs) {
+                const { data, error } = await supabaseClient.auth.getSession();
+                if (error) throw error;
+                if (data?.session?.access_token) {
+                    return data.session;
+                }
+                await new Promise((resolve) => window.setTimeout(resolve, 200));
+            }
+            throw new Error('Google authentication session did not finish in time.');
+        };
+
+        const buildGoogleSignupRedirectUrl = (popupMode = true) => {
+            const url = new URL(window.location.href);
+            url.hash = '';
+            url.searchParams.set('google_signup_callback', '1');
+            if (popupMode) {
+                url.searchParams.set('google_signup_popup', '1');
+            } else {
+                url.searchParams.delete('google_signup_popup');
+            }
+            return url.toString();
+        };
+
+        const cleanGoogleSignupCallbackUrl = () => {
+            const url = new URL(window.location.href);
+            [
+                'google_signup_callback',
+                'google_signup_popup',
+                'code',
+                'state',
+                'error',
+                'error_code',
+                'error_description',
+                'access_token',
+                'refresh_token',
+                'token_type',
+                'expires_at',
+                'expires_in'
+            ].forEach((key) => url.searchParams.delete(key));
+            window.history.replaceState({}, document.title, url.toString());
+        };
+
+        const postGoogleSignupMessage = (payload) => {
+            if (!window.opener || window.opener.closed) return;
+            window.opener.postMessage({
+                type: GOOGLE_SIGNUP_MESSAGE_TYPE,
+                ...payload
+            }, window.location.origin);
+        };
+
+        const provisionGoogleAppUserFromSession = async () => {
+            authDebugState.latestProvision = { stage: 'starting' };
+            await waitForSupabaseSession(15000);
+            const data = await edgeFunctionJson('provision-google-app-user', { method: 'POST' });
+            authDebugState.latestProvision = {
+                stage: 'complete',
+                username: data?.username || '',
+                authProvider: data?.auth_provider || ''
+            };
+            return data;
         };
 
         const setAddUserStatus = (message, isError = false) => {
@@ -5018,8 +5114,26 @@
             try {
                 const session = JSON.parse(raw);
                 const username = String(session?.username || '').trim();
+                const authMode = String(session?.authMode || 'password').trim().toLowerCase() === 'google' ? 'google' : 'password';
                 const password = String(session?.password || '');
-                if (!username || !password) {
+                if (!username) {
+                    clearAdminSession();
+                    return;
+                }
+                if (authMode === 'google') {
+                    const data = await provisionGoogleAppUserFromSession();
+                    if (!data || !data.username) {
+                        throw new Error('Stored Google session is no longer valid.');
+                    }
+                    adminUser = data;
+                    adminPassword = '';
+                    adminAuthMode = 'google';
+                    adminUsernameInput.value = data.username || username;
+                    adminPasswordInput.value = '';
+                    persistAdminSession();
+                    return;
+                }
+                if (!password) {
                     clearAdminSession();
                     return;
                 }
@@ -5033,6 +5147,7 @@
                 }
                 adminUser = data;
                 adminPassword = password;
+                adminAuthMode = 'password';
                 adminUsernameInput.value = username;
                 adminPasswordInput.value = '';
                 if (data?.rights !== 'admin') {
@@ -5041,6 +5156,7 @@
             } catch (_error) {
                 adminUser = null;
                 adminPassword = '';
+                adminAuthMode = 'password';
                 clearAdminSession();
             }
         };
@@ -5233,13 +5349,14 @@
             return data;
         };
 
-        const completeAuthenticatedSession = async (data, password, { closeElement = null } = {}) => {
+        const completeAuthenticatedSession = async (data, password, { closeElement = null, authMode = 'password' } = {}) => {
             adminUser = data;
             adminPassword = password;
+            adminAuthMode = authMode === 'google' ? 'google' : 'password';
             adminUsernameInput.value = data?.username || '';
             adminPasswordInput.value = '';
             persistAdminSession();
-            if (data?.rights !== 'admin') {
+            if (adminAuthMode !== 'google' && data?.rights !== 'admin') {
                 await ensureSupabaseAuthSessionSafely(data?.username || '', password);
             }
             updateAdminUi();
@@ -5298,12 +5415,124 @@
             }
         };
 
+        const completeGoogleAuthenticatedSession = async (data, options = {}) => {
+            await completeAuthenticatedSession(data, '', {
+                ...options,
+                authMode: 'google'
+            });
+        };
+
+        const handleGoogleSignupCallback = async () => {
+            const url = new URL(window.location.href);
+            if (url.searchParams.get('google_signup_callback') !== '1') return false;
+            try {
+                if (!supabaseClient) {
+                    throw new Error('Supabase client failed to initialize.');
+                }
+                const authError = url.searchParams.get('error_description')
+                    || url.searchParams.get('error')
+                    || '';
+                if (authError) {
+                    throw new Error(decodeURIComponent(authError.replace(/\+/g, ' ')));
+                }
+                if (url.searchParams.get('code') && typeof supabaseClient.auth.exchangeCodeForSession === 'function') {
+                    const { error } = await supabaseClient.auth.exchangeCodeForSession(window.location.href);
+                    if (error) throw error;
+                }
+                const data = await provisionGoogleAppUserFromSession();
+                cleanGoogleSignupCallbackUrl();
+                if (window.opener && !window.opener.closed) {
+                    postGoogleSignupMessage({ ok: true, data });
+                    window.close();
+                    return true;
+                }
+                await completeGoogleAuthenticatedSession(data);
+                setAdminStatus('Signed up with Google.', false);
+                return true;
+            } catch (error) {
+                cleanGoogleSignupCallbackUrl();
+                const message = error instanceof Error ? error.message : String(error || 'Google sign-up failed.');
+                if (window.opener && !window.opener.closed) {
+                    postGoogleSignupMessage({ ok: false, error: message });
+                    window.close();
+                    return true;
+                }
+                setModalStatus(signupModalStatusEl, message, true);
+                setStatus(message, true);
+                return true;
+            }
+        };
+
+        const performGoogleSignup = async () => {
+            if (!supabaseClient) {
+                throw new Error('Supabase client failed to initialize.');
+            }
+            const { data, error } = await supabaseClient.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: buildGoogleSignupRedirectUrl(true),
+                    skipBrowserRedirect: true,
+                    queryParams: {
+                        prompt: 'select_account'
+                    }
+                }
+            });
+            if (error) throw error;
+            const authUrl = String(data?.url || '').trim();
+            if (!authUrl) {
+                throw new Error('Google sign-up is not configured yet.');
+            }
+            const popup = window.open(
+                authUrl,
+                'agitalentGoogleSignup',
+                'popup=yes,width=520,height=760,left=120,top=80'
+            );
+            if (!popup) {
+                window.location.href = authUrl;
+                return;
+            }
+            await new Promise((resolve, reject) => {
+                const timeoutId = window.setTimeout(() => {
+                    cleanup();
+                    reject(new Error('Google sign-up timed out. Please try again.'));
+                }, 180000);
+                const closeWatcher = window.setInterval(() => {
+                    if (popup.closed) {
+                        cleanup();
+                        reject(new Error('Google sign-up was closed before completion.'));
+                    }
+                }, 400);
+                const onMessage = async (event) => {
+                    if (event.origin !== window.location.origin) return;
+                    if (event.data?.type !== GOOGLE_SIGNUP_MESSAGE_TYPE) return;
+                    cleanup();
+                    if (!event.data?.ok) {
+                        reject(new Error(event.data?.error || 'Google sign-up failed.'));
+                        return;
+                    }
+                    try {
+                        await completeGoogleAuthenticatedSession(event.data.data, { closeElement: signupModalEl });
+                        resolve(null);
+                    } catch (messageError) {
+                        reject(messageError);
+                    }
+                };
+                const cleanup = () => {
+                    window.clearTimeout(timeoutId);
+                    window.clearInterval(closeWatcher);
+                    window.removeEventListener('message', onMessage);
+                };
+                window.addEventListener('message', onMessage);
+            });
+        };
+
         const logoutCurrentUser = (statusMessage = 'Login is required to browse candidate records.') => {
             if (supabaseClient) {
                 supabaseClient.auth.signOut().catch(() => null);
             }
             adminUser = null;
             adminPassword = '';
+            adminAuthMode = 'password';
             adminTargetUser = null;
             outreachDefaults = { company: '', role: '', contact: '', mode: OUTREACH_MODE_HIRING };
             googleCalendarIntegration = {
@@ -5708,6 +5937,21 @@
                 signupModalSubmitButton.disabled = false;
             }
         });
+
+        if (signupModalGoogleButton) {
+            signupModalGoogleButton.addEventListener('click', async () => {
+                signupModalGoogleButton.disabled = true;
+                setModalStatus(signupModalStatusEl, 'Redirecting to Google...');
+                try {
+                    await performGoogleSignup();
+                    setModalStatus(signupModalStatusEl, '', false);
+                } catch (error) {
+                    setModalStatus(signupModalStatusEl, error.message || 'Google sign-up failed.', true);
+                } finally {
+                    signupModalGoogleButton.disabled = false;
+                }
+            });
+        }
 
         [signupModalUsernameInput, signupModalPasswordInput, signupModalCodeInput].forEach((input) => {
             input.addEventListener('keydown', (event) => {
@@ -6608,6 +6852,17 @@
             try {
                 loadTheme();
                 syncDeepSearchUi();
+                const handledGoogleCallback = await handleGoogleSignupCallback();
+                if (handledGoogleCallback) {
+                    updateAdminUi();
+                    if (isLoggedIn()) {
+                        await loadOutreachDefaults();
+                        await loadGoogleCalendarIntegration();
+                        await loadDashboardMetrics();
+                        await runSearch(false);
+                    }
+                    return;
+                }
                 await restoreAdminSession();
                 updateAdminUi();
                 if (isLoggedIn()) {
