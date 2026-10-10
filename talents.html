@@ -347,35 +347,15 @@
             grid-template-columns: repeat(3, minmax(0, 1fr));
         }
         .dashboard-card {
-            display: flex;
-            flex-direction: column;
             border: 1px solid var(--soft-border);
             border-radius: 18px;
             background: var(--soft-bg);
             padding: 16px;
         }
-        .dashboard-card-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
         .dashboard-card h3 {
-            margin: 0;
+            margin: 0 0 12px;
             font-size: 15px;
             color: var(--dashboard-title);
-        }
-        .dashboard-inline-toggle {
-            min-height: 34px;
-            padding: 0 12px;
-            border-radius: 999px;
-            border: 1px solid var(--button-secondary-border);
-            background: var(--button-secondary-bg);
-            color: var(--text);
-            font: inherit;
-            cursor: pointer;
-            white-space: nowrap;
         }
         .dashboard-switcher {
             display: none;
@@ -456,7 +436,6 @@
             filter: saturate(1.15);
         }
         .bar-chart {
-            margin-top: auto;
             display: grid;
             grid-template-columns: repeat(7, minmax(0, 1fr));
             align-items: end;
@@ -539,14 +518,6 @@
             gap: 12px;
             margin-top: 6px;
         }
-        .signup-actions {
-            width: 100%;
-        }
-        .signup-actions .button,
-        .signup-actions .button-secondary {
-            flex: 1 1 220px;
-            justify-content: center;
-        }
         .button,
         .button-secondary {
             border-radius: 16px;
@@ -601,15 +572,6 @@
             border: 1px solid var(--button-secondary-border);
             color: var(--text);
             background: var(--button-secondary-bg);
-        }
-        .google-signup-button {
-            border-color: rgba(66, 133, 244, 0.28);
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(66, 133, 244, 0.08));
-        }
-        .google-signup-button[data-icon]::before {
-            color: #4285f4;
-            border-color: rgba(66, 133, 244, 0.24);
-            background: rgba(66, 133, 244, 0.12);
         }
         .button:hover,
         .button-secondary:hover {
@@ -722,46 +684,6 @@
             height: 16px;
             margin: 0;
             accent-color: var(--accent);
-        }
-        .access-picker {
-            display: grid;
-            gap: 10px;
-        }
-        .access-picker-summary {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            min-height: 44px;
-            padding: 0 16px;
-            border-radius: 14px;
-            border: 1px solid var(--button-secondary-border);
-            background: var(--button-secondary-bg);
-            color: var(--text);
-            cursor: pointer;
-            font-weight: 600;
-        }
-        .access-picker-summary::after {
-            content: '▾';
-            margin-left: auto;
-            color: var(--accent-2);
-        }
-        .access-picker-summary.open::after {
-            content: '▴';
-        }
-        .access-picker-menu {
-            display: none;
-            gap: 10px;
-            padding: 12px;
-            border-radius: 16px;
-            border: 1px solid var(--soft-border);
-            background: var(--soft-bg);
-        }
-        .access-picker-menu.open {
-            display: grid;
-        }
-        .access-type-note {
-            color: var(--muted);
-            font-size: 0.9rem;
         }
         :root[data-theme="light"] .checkbox-inline {
             color: #000000;
@@ -1312,10 +1234,6 @@
                         <div class="account-card-label">Account expire date</div>
                         <div class="account-card-value" id="account-expire-date">-</div>
                     </div>
-                    <div class="account-card-row">
-                        <div class="account-card-label">Account type</div>
-                        <div class="account-card-value" id="account-type">-</div>
-                    </div>
                     <div class="account-card-actions">
                         <button class="button-secondary" data-icon="↻" id="topbar-renew-button" type="button" style="display:none;">Renew Plan</button>
                         <button class="button-secondary" data-icon="◌" id="topbar-change-password-button" type="button">Password Reset</button>
@@ -1335,10 +1253,7 @@
                 <div class="dashboard-page active" id="dashboard-page-metrics">
                     <div class="dashboard-grid" id="dashboard-grid">
                         <div class="dashboard-card" id="dashboard-primary-card">
-                            <div class="dashboard-card-head">
-                                <h3 data-icon="▣" id="dashboard-primary-title">New records, last 7 days</h3>
-                                <button class="dashboard-inline-toggle" id="dashboard-primary-range-toggle" type="button">Show filters</button>
-                            </div>
+                            <h3 data-icon="▣" id="dashboard-primary-title">New records, last 7 days</h3>
                             <div class="schedule-grid" id="dashboard-primary-range" style="display:none; margin-bottom:12px;">
                                 <div class="field">
                                     <label for="dashboard-records-start-date">Start date</label>
@@ -1502,66 +1417,40 @@
                                 </div>
                                 <div class="field wide">
                                     <label data-icon="▣">Access Types</label>
-                                    <div class="access-picker">
-                                        <button class="access-picker-summary" id="admin-user-access-types-toggle" type="button" aria-expanded="false" aria-controls="admin-user-access-types-menu">Candidate</button>
-                                        <div class="access-picker-menu" id="admin-user-access-types-menu">
-                                            <label class="checkbox-inline" for="admin-user-access-type-candidate">
-                                                <input id="admin-user-access-type-candidate" type="checkbox" value="candidate" data-access-type>
-                                                <span>Candidate</span>
-                                            </label>
-                                            <label class="checkbox-inline" for="admin-user-access-type-investor">
-                                                <input id="admin-user-access-type-investor" type="checkbox" value="investor" data-access-type>
-                                                <span>Investor</span>
-                                            </label>
-                                            <label class="checkbox-inline" for="admin-user-access-type-manufacturer">
-                                                <input id="admin-user-access-type-manufacturer" type="checkbox" value="manufacturer" data-access-type>
-                                                <span>Manufacturer</span>
-                                            </label>
-                                            <label class="checkbox-inline" for="admin-user-access-type-buyer">
-                                                <input id="admin-user-access-type-buyer" type="checkbox" value="buyer" data-access-type>
-                                                <span>Buyer</span>
-                                            </label>
-                                            <label class="checkbox-inline" for="admin-user-access-type-billionaire">
-                                                <input id="admin-user-access-type-billionaire" type="checkbox" value="billionaire" data-access-type>
-                                                <span>Billionaire</span>
-                                            </label>
-                                        </div>
+                                    <div class="user-actions" id="admin-user-access-types">
+                                        <label class="checkbox-inline" for="admin-user-access-type-candidate">
+                                            <input id="admin-user-access-type-candidate" type="checkbox" value="candidate" data-access-type>
+                                            <span>Candidate</span>
+                                        </label>
+                                        <label class="checkbox-inline" for="admin-user-access-type-investor">
+                                            <input id="admin-user-access-type-investor" type="checkbox" value="investor" data-access-type>
+                                            <span>Investor</span>
+                                        </label>
+                                        <label class="checkbox-inline" for="admin-user-access-type-manufacturer">
+                                            <input id="admin-user-access-type-manufacturer" type="checkbox" value="manufacturer" data-access-type>
+                                            <span>Manufacturer</span>
+                                        </label>
+                                        <label class="checkbox-inline" for="admin-user-access-type-buyer">
+                                            <input id="admin-user-access-type-buyer" type="checkbox" value="buyer" data-access-type>
+                                            <span>Buyer</span>
+                                        </label>
+                                        <label class="checkbox-inline" for="admin-user-access-type-billionaire">
+                                            <input id="admin-user-access-type-billionaire" type="checkbox" value="billionaire" data-access-type>
+                                            <span>Billionaire</span>
+                                        </label>
                                     </div>
                                     <small>Used for user access and single trial invitation codes. Multiple selections are allowed.</small>
-                                </div>
-                                <div class="field wide">
-                                    <label data-icon="◎">Account Type</label>
-                                    <div class="access-picker">
-                                        <button class="access-picker-summary" id="admin-account-type-toggle" type="button" aria-expanded="false" aria-controls="admin-account-type-menu">Trial</button>
-                                        <div class="access-picker-menu" id="admin-account-type-menu">
-                                            <label class="checkbox-inline" for="admin-account-type-trial">
-                                                <input id="admin-account-type-trial" type="checkbox" value="trial" data-account-type>
-                                                <span>Trial</span>
-                                            </label>
-                                            <label class="checkbox-inline" for="admin-account-type-premium">
-                                                <input id="admin-account-type-premium" type="checkbox" value="premium" data-account-type>
-                                                <span>Premium</span>
-                                            </label>
-                                            <label class="checkbox-inline" for="admin-account-type-platinum">
-                                                <input id="admin-account-type-platinum" type="checkbox" value="platinum" data-account-type>
-                                                <span>Platinum</span>
-                                            </label>
-                                        </div>
-                                    </div>
-                                    <small class="access-type-note">Premium can use Automate. Platinum also appends one-time invitation codes to email and schedule drafts.</small>
                                 </div>
                             </div>
                             <div class="user-actions">
                                 <button class="button-secondary" data-icon="＋" id="admin-add-user-button" type="button">Create User</button>
                                 <button class="button-secondary" data-icon="✓" id="admin-save-user-access-button" type="button">Save Access</button>
-                                <button class="button-secondary" data-icon="◎" id="admin-save-account-button" type="button">Save Account</button>
                                 <button class="button-secondary button-danger" data-icon="−" id="admin-delete-user-button" type="button">Delete User</button>
                             </div>
                             <div class="field" style="margin-top:14px;">
                                 <label data-icon="◇" for="admin-invite-code-output">Invitation Code</label>
                                 <input id="admin-invite-code-output" type="text" readonly placeholder="Generate a code for self-service sign up">
-                                <small>Share this code with a user so they can register from the Sign Up dialog. Invitation codes are valid for 7 days.</small>
-                                <div class="access-type-note" id="admin-valid-invite-count">Valid invitation codes available: -</div>
+                                <small>Share this code with a user so they can register from the Sign Up dialog.</small>
                             </div>
                             <div class="user-actions">
                                 <label class="checkbox-inline" for="admin-batch-invite-toggle">
@@ -1644,9 +1533,8 @@
                     <input id="login-modal-password" type="password" autocomplete="current-password" placeholder="Password">
                 </div>
             </div>
-            <div class="actions signup-actions">
+            <div class="actions">
                 <button class="button" data-icon="◌" id="login-modal-submit" type="button">Log in</button>
-                <button class="button-secondary google-signup-button" data-icon="G" id="login-modal-google" type="button">Sign in with Google</button>
             </div>
             <div class="modal-status" id="login-modal-status"></div>
         </div>
@@ -1657,9 +1545,16 @@
             <div class="modal-head">
                 <div>
                     <h3 data-icon="✦" id="signup-modal-title">Sign Up</h3>
-                    <p class="modal-copy">Create a trial user account with a valid invitation code.</p>
+                    <p class="modal-copy">Create a user account with a valid invitation code from <a class="modal-link" href="#signup-paypal-section">here</a>.</p>
                 </div>
                 <button class="modal-close" type="button" data-close-modal="signup-modal" aria-label="Close sign up window">✕</button>
+            </div>
+            <div class="purchase-box" id="signup-paypal-section">
+                <strong data-icon="◇">Buy an invitation code</strong>
+                <div class="purchase-price">USD 50</div>
+                <p class="modal-copy" style="margin-top:8px;">Complete the PayPal payment below. After payment, you will get a invitation code.</p>
+                <div id="paypal-button-container" style="margin-top:14px;"></div>
+                <div class="purchase-code" id="signup-issued-code" style="display:none;"></div>
             </div>
             <div class="stack" style="margin-top:0;">
                 <div class="field">
@@ -1675,9 +1570,8 @@
                     <input id="signup-modal-code" type="text" autocomplete="off" placeholder="ABCD-EFGH-IJKL">
                 </div>
             </div>
-            <div class="actions signup-actions">
+            <div class="actions">
                 <button class="button" data-icon="✦" id="signup-modal-submit" type="button">Create Account</button>
-                <button class="button-secondary google-signup-button" data-icon="G" id="signup-modal-google" type="button">Sign up with Google</button>
             </div>
             <div class="modal-status" id="signup-modal-status"></div>
         </div>
@@ -1821,7 +1715,6 @@
         const topbarAccountCardEl = document.getElementById('topbar-account-card');
         const accountValidDateEl = document.getElementById('account-valid-date');
         const accountExpireDateEl = document.getElementById('account-expire-date');
-        const accountTypeEl = document.getElementById('account-type');
         const themeToggleButton = document.getElementById('theme-toggle-button');
         const topbarLoginButton = document.getElementById('topbar-login-button');
         const topbarSignupButton = document.getElementById('topbar-signup-button');
@@ -1847,18 +1740,11 @@
         const adminUserAccessTypeInputs = Array.from(document.querySelectorAll('#admin-user-access-types input[data-access-type]'));
         const adminAddUserButton = document.getElementById('admin-add-user-button');
         const adminSaveUserAccessButton = document.getElementById('admin-save-user-access-button');
-        const adminSaveAccountButton = document.getElementById('admin-save-account-button');
         const adminDeleteUserButton = document.getElementById('admin-delete-user-button');
         const adminInviteCodeOutput = document.getElementById('admin-invite-code-output');
         const adminBatchInviteToggle = document.getElementById('admin-batch-invite-toggle');
         const adminTrialInviteToggle = document.getElementById('admin-trial-invite-toggle');
         const adminGenerateInviteButton = document.getElementById('admin-generate-invite-button');
-        const adminUserAccessTypesToggleButton = document.getElementById('admin-user-access-types-toggle');
-        const adminUserAccessTypesMenuEl = document.getElementById('admin-user-access-types-menu');
-        const adminAccountTypeToggleButton = document.getElementById('admin-account-type-toggle');
-        const adminAccountTypeMenuEl = document.getElementById('admin-account-type-menu');
-        const adminAccountTypeInputs = Array.from(document.querySelectorAll('[data-account-type]'));
-        const adminValidInviteCountEl = document.getElementById('admin-valid-invite-count');
         const adminRevealEmailButton = document.getElementById('admin-reveal-email-button');
         const adminAddUserStatusEl = document.getElementById('admin-add-user-status');
         const adminLogoutButton = document.getElementById('admin-logout-button');
@@ -1874,7 +1760,6 @@
         const dashboardSecondaryTitleEl = document.getElementById('dashboard-secondary-title');
         const dashboardTertiaryTitleEl = document.getElementById('dashboard-tertiary-title');
         const salesCtaEl = document.getElementById('sales-cta');
-        const dashboardPrimaryRangeToggleButton = document.getElementById('dashboard-primary-range-toggle');
         const dashboardPrimaryRangeEl = document.getElementById('dashboard-primary-range');
         const dashboardRecordsStartDateInput = document.getElementById('dashboard-records-start-date');
         const dashboardRecordsEndDateInput = document.getElementById('dashboard-records-end-date');
@@ -1889,14 +1774,12 @@
         const loginModalUsernameInput = document.getElementById('login-modal-username');
         const loginModalPasswordInput = document.getElementById('login-modal-password');
         const loginModalSubmitButton = document.getElementById('login-modal-submit');
-        const loginModalGoogleButton = document.getElementById('login-modal-google');
         const loginModalStatusEl = document.getElementById('login-modal-status');
         const signupModalEl = document.getElementById('signup-modal');
         const signupModalUsernameInput = document.getElementById('signup-modal-username');
         const signupModalPasswordInput = document.getElementById('signup-modal-password');
         const signupModalCodeInput = document.getElementById('signup-modal-code');
         const signupModalSubmitButton = document.getElementById('signup-modal-submit');
-        const signupModalGoogleButton = document.getElementById('signup-modal-google');
         const signupModalStatusEl = document.getElementById('signup-modal-status');
         const changePasswordModalEl = document.getElementById('change-password-modal');
         const changePasswordCurrentInput = document.getElementById('change-password-current');
@@ -1915,6 +1798,7 @@
         const renewPlanValidDateInput = document.getElementById('renew-plan-valid-date');
         const renewPlanExpireDateInput = document.getElementById('renew-plan-expire-date');
         const renewPlanStatusEl = document.getElementById('renew-plan-status');
+        const signupIssuedCodeEl = document.getElementById('signup-issued-code');
         const resultsMetaEl = document.getElementById('results-meta');
         const resultsEl = document.getElementById('results');
         const HIDDEN_PROFILE_FIELDS = new Set([
@@ -1927,7 +1811,11 @@
             'status',
             'created_at',
             'updated_at',
-            '_candidate_email'
+            'Recently_Contacted',
+            '_candidate_email',
+            'contact_time',
+            'contact_type',
+            'contact_content'
         ]);
         const EDITABLE_PROFILE_FIELDS = [
             'agent_type',
@@ -1972,7 +1860,7 @@
         const REQUIRED_FIELDS = new Set(['agent_type', 'name_or_handle', 'status']);
         const PUBLIC_PROFILE_SELECT = 'id, agent_type, name_or_handle, email, bio_link, location, domain_focus, seniority, skills, needs, recent_evidence, status, created_at, updated_at';
         const SIGNED_OUT_PROFILE_SELECT = 'id, name_or_handle, location, seniority, "Recently_Contacted", created_at, updated_at, bio_link, domain_focus';
-        const SIGNED_OUT_VISIBLE_PROFILE_FIELDS = new Set(['bio_link', 'domain_focus', 'seniority', 'location', 'Recently_Contacted']);
+        const SIGNED_OUT_VISIBLE_PROFILE_FIELDS = new Set(['bio_link', 'domain_focus', 'seniority', 'location']);
 
         let activePrompt = '';
         let activeScreenFilter = '';
@@ -1993,11 +1881,9 @@
         let searchMode = 'latest';
         let currentRows = [];
         let dashboardRecordsRange = { start: '', end: '' };
-        let dashboardPrimaryRangeExpanded = false;
         let dashboardViewMode = 'metrics';
         let adminUser = null;
         let adminPassword = '';
-        let adminAuthMode = 'password';
         let editingProfileId = null;
         let schedulingProfileId = null;
         let emailingProfileId = null;
@@ -2008,15 +1894,11 @@
         let selectedScheduleProfileIds = [];
         let resetPasswordOpen = false;
         let adminTargetUser = null;
-        let adminUserAccessTypesExpanded = false;
-        let adminAccountTypeExpanded = false;
-        let selectedAdminAccountType = 'trial';
         let paypalButtonsRendered = false;
         let renewPaypalButtonsRendered = false;
         let accessWindowTimer = null;
         let latestTrialInvitationCode = '';
         let currentTheme = 'dark';
-        let trendInsightsPromise = null;
         let outreachDefaults = {
             company: '',
             role: '',
@@ -2027,9 +1909,6 @@
         const TALENTS_THEME_KEY = 'talentsTheme';
         const OUTREACH_MODE_HIRING = 'hiring_talents';
         const SUPABASE_AUTH_EMAIL_DOMAIN = 'users.agitalent.tech';
-        const GOOGLE_SIGNUP_MESSAGE_TYPE = 'agitalent-google-signup-result';
-        const GOOGLE_AUTH_ACTION_SIGNUP = 'signup';
-        const GOOGLE_AUTH_ACTION_LOGIN = 'login';
         const DEBUG_AUTH = ['localhost', '127.0.0.1', ''].includes(window.location.hostname);
         const authDebugState = {
             latestEdgeFunction: null,
@@ -2079,16 +1958,6 @@
         const setStatus = (message, isError = false) => {
             statusEl.textContent = message;
             statusEl.classList.toggle('error', isError);
-        };
-        const updateDashboardPrimaryRangeUi = () => {
-            const visible = isAdminLoggedIn() && dashboardPrimaryRangeExpanded;
-            if (dashboardPrimaryRangeEl) {
-                dashboardPrimaryRangeEl.style.display = visible ? '' : 'none';
-            }
-            if (dashboardPrimaryRangeToggleButton) {
-                dashboardPrimaryRangeToggleButton.style.display = isAdminLoggedIn() ? '' : 'none';
-                dashboardPrimaryRangeToggleButton.textContent = visible ? 'Hide filters' : 'Show filters';
-            }
         };
 
         const setAdminStatus = (message, isError = false) => {
@@ -2436,6 +2305,19 @@
             }
             return refreshedSessionData.session;
         };
+        const normalizeAccountType = (value) => String(value || '').trim().toLowerCase();
+        const isPlatinumAccount = (user = adminUser) => normalizeAccountType(user?.account_type) === 'platinum';
+        const reservePlatinumInvitationCode = async (profileId, context) => {
+            if (!supabaseClient || !isLoggedIn() || !adminPassword || !isPlatinumAccount()) return '';
+            const { data, error } = await supabaseClient.rpc('reserve_platinum_invitation_code', {
+                p_username: adminUser.username,
+                p_password: adminPassword,
+                p_profile_id: profileId,
+                p_context: context
+            });
+            if (error) throw error;
+            return String(data?.code || '').trim();
+        };
         const canUseEmailTools = () => isLoggedIn();
         const canUseScheduleTools = () => isLoggedIn();
         const isProfileSelectedForSchedule = (profileId) => selectedScheduleProfileIds.includes(profileId);
@@ -2512,77 +2394,6 @@
         };
         const accessTypeLabels = (values) => normalizeAccessAgentTypes(values).map((value) => displayAgentType(value));
         const currentUserAccessLabel = () => accessTypeLabels(adminUser?.access_agent_types || adminUser?.access_agent_type).join(', ');
-        const normalizeAccountType = (value) => {
-            const normalized = String(value || '').trim().toLowerCase();
-            return ['trial', 'premium', 'platinum'].includes(normalized) ? normalized : 'trial';
-        };
-        const updateAdminAccessTypesUi = () => {
-            const labels = accessTypeLabels(selectedAdminAccessTypes());
-            const summary = labels.length ? labels.join(', ') : 'Choose access types';
-            if (adminUserAccessTypesToggleButton) {
-                adminUserAccessTypesToggleButton.textContent = summary;
-                adminUserAccessTypesToggleButton.classList.toggle('open', adminUserAccessTypesExpanded);
-                adminUserAccessTypesToggleButton.setAttribute('aria-expanded', adminUserAccessTypesExpanded ? 'true' : 'false');
-            }
-            if (adminUserAccessTypesMenuEl) {
-                adminUserAccessTypesMenuEl.classList.toggle('open', adminUserAccessTypesExpanded);
-            }
-        };
-        const setSelectedAdminAccountType = (value) => {
-            selectedAdminAccountType = normalizeAccountType(value);
-            adminAccountTypeInputs.forEach((input) => {
-                input.checked = input.value === selectedAdminAccountType;
-            });
-            if (adminAccountTypeToggleButton) {
-                adminAccountTypeToggleButton.textContent = selectedAdminAccountType.charAt(0).toUpperCase() + selectedAdminAccountType.slice(1);
-                adminAccountTypeToggleButton.classList.toggle('open', adminAccountTypeExpanded);
-                adminAccountTypeToggleButton.setAttribute('aria-expanded', adminAccountTypeExpanded ? 'true' : 'false');
-            }
-            if (adminAccountTypeMenuEl) {
-                adminAccountTypeMenuEl.classList.toggle('open', adminAccountTypeExpanded);
-            }
-        };
-        const isPremiumAccount = (user = adminUser) => {
-            if (!user) return false;
-            if (user.rights === 'admin') return true;
-            const accountType = normalizeAccountType(user.account_type);
-            return accountType === 'premium' || accountType === 'platinum';
-        };
-        const isPlatinumAccount = (user = adminUser) => normalizeAccountType(user?.account_type) === 'platinum';
-        const refreshValidInvitationCodeCount = async () => {
-            if (!supabaseClient || !isAdminLoggedIn() || !adminValidInviteCountEl) return;
-            try {
-                const { data, error } = await supabaseClient.rpc('admin_count_valid_invitation_codes', {
-                    p_admin_username: adminUser.username,
-                    p_admin_password: adminPassword
-                });
-                if (error) throw error;
-                adminValidInviteCountEl.textContent = `Valid invitation codes available: ${Number(data?.valid_invitation_codes || 0)}`;
-            } catch (_error) {
-                adminValidInviteCountEl.textContent = 'Valid invitation codes available: unavailable';
-            }
-        };
-        const requirePremiumAutomate = () => {
-            if (!isLoggedIn() || isAdminLoggedIn() || isPremiumAccount()) return true;
-            if (searchAutomateToggle) searchAutomateToggle.checked = false;
-            updateAutomateScheduleUi();
-            setRenewPlanStatus('Automate is a premium feature. Pay USD 50 to activate premium access for one year from the payment date.');
-            refreshAccountCard();
-            openModal(renewPlanModalEl);
-            ensureRenewPayPalButtonsRendered();
-            return false;
-        };
-        const reservePlatinumInvitationCode = async (profileId, context) => {
-            if (!supabaseClient || !isLoggedIn() || !adminPassword || !isPlatinumAccount()) return '';
-            const { data, error } = await supabaseClient.rpc('reserve_platinum_invitation_code', {
-                p_username: adminUser.username,
-                p_password: adminPassword,
-                p_profile_id: profileId,
-                p_context: context
-            });
-            if (error) throw error;
-            return String(data?.code || '').trim();
-        };
         const selectedAdminAccessTypes = () => {
             const values = adminUserAccessTypeInputs
                 .filter((input) => input.checked)
@@ -2594,61 +2405,6 @@
             adminUserAccessTypeInputs.forEach((input) => {
                 input.checked = normalizedValues.has(String(input.value || '').trim());
             });
-        };
-        const updateAppUserAccessRpc = async ({ username, password, targetUsername, accessAgentTypes }) => {
-            let { data, error } = await supabaseClient.rpc('admin_update_app_user_access', {
-                p_admin_username: username,
-                p_admin_password: password,
-                p_target_username: targetUsername,
-                p_access_agent_types: accessAgentTypes
-            });
-            if (error && String(error.message || '').includes('Could not find the function public.admin_update_app_user_access')) {
-                ({ data, error } = await supabaseClient.rpc('admin_update_app_user_access', {
-                    p_admin_username: username,
-                    p_admin_password: password,
-                    p_target_username: targetUsername,
-                    p_access_agent_types: accessAgentTypes
-                }));
-                if (error && String(error.message || '').includes('Could not find the function public.admin_update_app_user_access')) {
-                    ({ data, error } = await supabaseClient.rpc('admin_update_app_user_access', {
-                        p_admin_username: username,
-                        p_admin_password: password,
-                        p_target_username: targetUsername
-                    }));
-                }
-            }
-            if (error) throw error;
-            return data;
-        };
-        const updateAppUserAccountRpc = async ({ username, password, targetUsername, accessAgentTypes, accountType }) => {
-            const { data, error } = await supabaseClient.rpc('admin_update_app_user_access_v2', {
-                p_admin_username: username,
-                p_admin_password: password,
-                p_target_username: targetUsername,
-                p_access_agent_types: accessAgentTypes,
-                p_account_type: normalizeAccountType(accountType)
-            });
-            if (error) throw error;
-            return data;
-        };
-        const generateInvitationCodeRpc = async ({ username, password, validFrom, isTrial, accessAgentTypes }) => {
-            let { data, error } = await supabaseClient.rpc('admin_generate_app_user_invitation_code', {
-                p_admin_username: username,
-                p_admin_password: password,
-                p_valid_from: validFrom,
-                p_is_trial: isTrial,
-                ...(typeof accessAgentTypes !== 'undefined' ? { p_access_agent_types: accessAgentTypes } : {})
-            });
-            if (error && String(error.message || '').includes('Could not find the function public.admin_generate_app_user_invitation_code')) {
-                ({ data, error } = await supabaseClient.rpc('admin_generate_app_user_invitation_code', {
-                    p_admin_username: username,
-                    p_admin_password: password,
-                    p_valid_from: validFrom,
-                    p_is_trial: isTrial
-                }));
-            }
-            if (error) throw error;
-            return data;
         };
         const buildDefaultToggleState = () => {
             const defaults = normalizedOutreachDefaults();
@@ -2720,104 +2476,18 @@
         };
 
         const persistAdminSession = () => {
-            if (!isLoggedIn()) {
+            if (!isLoggedIn() || !adminPassword) {
                 window.localStorage.removeItem(ADMIN_SESSION_KEY);
                 return;
             }
-            const payload = {
+            window.localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify({
                 username: adminUser.username,
-                authMode: adminAuthMode
-            };
-            if (adminAuthMode !== 'google') {
-                if (!adminPassword) {
-                    window.localStorage.removeItem(ADMIN_SESSION_KEY);
-                    return;
-                }
-                payload.password = adminPassword;
-            }
-            window.localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(payload));
+                password: adminPassword
+            }));
         };
 
         const clearAdminSession = () => {
             window.localStorage.removeItem(ADMIN_SESSION_KEY);
-        };
-
-        const waitForSupabaseSession = async (timeoutMs = 12000) => {
-            if (!supabaseClient) {
-                throw new Error('Supabase client failed to initialize.');
-            }
-            const startedAt = Date.now();
-            while (Date.now() - startedAt < timeoutMs) {
-                const { data, error } = await supabaseClient.auth.getSession();
-                if (error) throw error;
-                if (data?.session?.access_token) {
-                    return data.session;
-                }
-                await new Promise((resolve) => window.setTimeout(resolve, 200));
-            }
-            throw new Error('Google authentication session did not finish in time.');
-        };
-
-        const buildGoogleAuthRedirectUrl = (action = GOOGLE_AUTH_ACTION_SIGNUP, popupMode = true) => {
-            const url = new URL(window.location.href);
-            url.hash = '';
-            url.searchParams.set('google_signup_callback', '1');
-            url.searchParams.set('google_auth_action', action === GOOGLE_AUTH_ACTION_LOGIN ? GOOGLE_AUTH_ACTION_LOGIN : GOOGLE_AUTH_ACTION_SIGNUP);
-            if (popupMode) {
-                url.searchParams.set('google_signup_popup', '1');
-            } else {
-                url.searchParams.delete('google_signup_popup');
-            }
-            return url.toString();
-        };
-
-        const cleanGoogleSignupCallbackUrl = () => {
-            const url = new URL(window.location.href);
-            [
-                'google_signup_callback',
-                'google_auth_action',
-                'google_signup_popup',
-                'code',
-                'state',
-                'error',
-                'error_code',
-                'error_description',
-                'access_token',
-                'refresh_token',
-                'token_type',
-                'expires_at',
-                'expires_in'
-            ].forEach((key) => url.searchParams.delete(key));
-            window.history.replaceState({}, document.title, url.toString());
-        };
-
-        const postGoogleSignupMessage = (payload) => {
-            if (!window.opener || window.opener.closed) return;
-            window.opener.postMessage({
-                type: GOOGLE_SIGNUP_MESSAGE_TYPE,
-                ...payload
-            }, window.location.origin);
-        };
-
-        const provisionGoogleAppUserFromSession = async () => {
-            authDebugState.latestProvision = { stage: 'starting' };
-            await waitForSupabaseSession(15000);
-            const data = await edgeFunctionJson('provision-google-app-user', { method: 'POST' });
-            authDebugState.latestProvision = {
-                stage: 'complete',
-                username: data?.username || '',
-                authProvider: data?.auth_provider || ''
-            };
-            return data;
-        };
-
-        const checkGoogleAppUserFromSession = async () => {
-            await waitForSupabaseSession(15000);
-            const data = await edgeFunctionJson('check-google-app-user', { method: 'POST' });
-            if (!data?.registered || !data?.username) {
-                throw new Error('Please sign up first!');
-            }
-            return data;
         };
 
         const setAddUserStatus = (message, isError = false) => {
@@ -2998,14 +2668,8 @@
                 accessWindowTimer = null;
             }
             if (!isLoggedIn() || adminUser?.rights === 'admin') return;
-            accessWindowTimer = window.setInterval(async () => {
-                if (!validateActiveAccessWindow()) return;
-                try {
-                    await loadAccountSummary();
-                    refreshAccountCard();
-                } catch (_error) {
-                    // Keep the current session if summary refresh fails transiently.
-                }
+            accessWindowTimer = window.setInterval(() => {
+                validateActiveAccessWindow();
             }, 15 * 1000);
         };
         const setAccountCardOpen = (open) => {
@@ -3016,15 +2680,66 @@
         const refreshAccountCard = () => {
             accountValidDateEl.textContent = formatAccountDate(adminUser?.valid_from);
             accountExpireDateEl.textContent = formatAccountDate(adminUser?.expires_on);
-            if (accountTypeEl) {
-                const label = normalizeAccountType(adminUser?.account_type);
-                accountTypeEl.textContent = label ? label.charAt(0).toUpperCase() + label.slice(1) : '-';
-            }
             renewPlanValidDateInput.value = formatAccountDate(adminUser?.valid_from);
             renewPlanExpireDateInput.value = formatAccountDate(adminUser?.expires_on);
             topbarRenewButton.style.display = canRenewCurrentPlan() ? '' : 'none';
         };
 
+        const renderIssuedInvitationCode = (payload) => {
+            const code = String(payload?.code || '').trim();
+            if (!code) return;
+            const isTrial = Boolean(payload?.is_trial);
+            signupModalCodeInput.value = code;
+            signupIssuedCodeEl.style.display = '';
+            signupIssuedCodeEl.innerHTML = `
+                <strong>Your invitation code</strong>
+                <div>${escapeHtml(code)}</div>
+                <div>${isTrial ? '3-day trial starts after sign up' : 'No expiration'}</div>
+            `;
+        };
+
+        const ensurePayPalButtonsRendered = () => {
+            if (paypalButtonsRendered || !window.paypal) return;
+            const container = document.getElementById('paypal-button-container');
+            if (!container) return;
+            window.paypal.Buttons({
+                style: {
+                    layout: 'vertical',
+                    shape: 'pill',
+                    color: 'gold',
+                    label: 'paypal'
+                },
+                createOrder(_data, actions) {
+                    return actions.order.create({
+                        purchase_units: [{
+                            amount: {
+                                currency_code: 'USD',
+                                value: '50.00'
+                            },
+                            description: 'AGI Talent invitation code'
+                        }]
+                    });
+                },
+                async onApprove(_data, actions) {
+                    setModalStatus(signupModalStatusEl, 'Payment approved. Issuing invitation code...');
+                    const order = await actions.order.capture();
+                    const orderId = String(order?.id || '').trim();
+                    if (!orderId) {
+                        throw new Error('PayPal order id was missing.');
+                    }
+                    const { data, error } = await supabaseClient.rpc('issue_paid_app_user_invitation_code', {
+                        p_paypal_order_id: orderId
+                    });
+                    if (error) throw error;
+                    renderIssuedInvitationCode(data);
+                    setModalStatus(signupModalStatusEl, 'Payment complete. Your invitation code is ready.');
+                },
+                onError(error) {
+                    setModalStatus(signupModalStatusEl, error?.message || 'PayPal payment failed.', true);
+                }
+            }).render(container);
+            paypalButtonsRendered = true;
+        };
         const ensureRenewPayPalButtonsRendered = () => {
             if (renewPaypalButtonsRendered || !window.paypal) return;
             const container = document.getElementById('renew-paypal-button-container');
@@ -3090,10 +2805,8 @@
         const updateUserOperationUi = () => {
             const username = adminTargetUser?.username || adminAddUserUsernameInput.value.trim();
             setSelectedAdminAccessTypes(adminTargetUser?.access_agent_types || adminTargetUser?.access_agent_type || selectedAdminAccessTypes());
-            setSelectedAdminAccountType(adminTargetUser?.account_type || selectedAdminAccountType);
             adminAddUserButton.textContent = adminTargetUser ? 'Renew User' : 'Create User';
             adminSaveUserAccessButton.disabled = !isAdminLoggedIn() || !username || !adminTargetUser;
-            adminSaveAccountButton.disabled = !isAdminLoggedIn() || !username || !adminTargetUser;
             adminDeleteUserButton.disabled = !isAdminLoggedIn() || !username || !adminTargetUser;
             adminGenerateInviteButton.disabled = !isAdminLoggedIn();
             updateInviteEmailAction();
@@ -3110,7 +2823,9 @@
             dashboardSectionEl.style.display = isLoggedIn() ? '' : 'none';
             signupPromoEl.style.display = isLoggedIn() ? 'none' : 'grid';
             adminAddUserPanel.style.display = isAdminLoggedIn() ? '' : 'none';
-            updateDashboardPrimaryRangeUi();
+            if (dashboardPrimaryRangeEl) {
+                dashboardPrimaryRangeEl.style.display = isAdminLoggedIn() ? '' : 'none';
+            }
             if (dashboardSwitcherEl) {
                 dashboardSwitcherEl.classList.toggle('visible', isLoggedIn() && !isAdminLoggedIn());
             }
@@ -3138,9 +2853,6 @@
                     deepContainer.style.display = 'none';
                 }
             }
-            if (isLoggedIn() && !isAdminLoggedIn() && searchAutomateToggle && !isPremiumAccount()) {
-                searchAutomateToggle.checked = false;
-            }
             if (!isLoggedIn() && searchAutomateToggle) {
                 searchAutomateToggle.checked = false;
                 searchAutomateToggle.disabled = false;
@@ -3158,7 +2870,6 @@
             topbarUserEl.style.display = isLoggedIn() ? 'inline-flex' : 'none';
             topbarUsernameEl.textContent = username || 'username';
             refreshAccountCard();
-            refreshValidInvitationCodeCount();
             if (!isLoggedIn()) {
                 setAccountCardOpen(false);
             }
@@ -3474,7 +3185,7 @@
             const mode = normalizeOutreachMode(values.outreach_mode);
             const context = { candidateName, company, role, contact };
             const invitationCode = await reservePlatinumInvitationCode(profile?.id || null, 'email');
-            const invitationParagraph = invitationCode ? `Invitation Code ${invitationCode}` : '';
+            const invitationParagraph = invitationCode ? `You invitation code is ${invitationCode}` : '';
             try {
                 const payload = await deepseekJson([
                     { role: 'system', content: 'Return JSON only: {"subject_summary":""}.' },
@@ -3521,8 +3232,8 @@
             const role = String(values.role || '').trim();
             const contact = String(values.contact || '').trim();
             const context = { candidateName, company, role, contact };
-            const invitationCode = await reservePlatinumInvitationCode(profile?.id || null, 'schedule');
-            const invitationParagraph = invitationCode ? `Invitation Code ${invitationCode}` : '';
+            const invitationCode = isPlatinumAccount() ? await reservePlatinumInvitationCode(profile?.id || null, 'schedule') : '';
+            const invitationParagraph = invitationCode ? `Sign up https://agitalent.tech/ with invitation code: ${invitationCode}` : '';
             try {
                 const subject = buildCalendarInvitationSubject(profile, values);
                 const paragraph2 = buildCalendarPraiseParagraph(
@@ -3814,19 +3525,6 @@
             renderTrendChart(trendActiveInstitutionsEl, topKeywordCounts(institutionMatches, 10));
             renderTrendChart(trendActiveCompaniesEl, topKeywordCounts(companyMatches, 10));
         };
-        const ensureTrendInsightsLoaded = () => {
-            if (isAdminLoggedIn() || !isLoggedIn()) return Promise.resolve();
-            if (!trendInsightsPromise) {
-                trendInsightsPromise = computeTrendInsights()
-                    .catch((error) => {
-                        throw error;
-                    })
-                    .finally(() => {
-                        trendInsightsPromise = null;
-                    });
-            }
-            return trendInsightsPromise;
-        };
 
         const loadDashboardMetrics = async () => {
             if (!supabaseClient || !isLoggedIn() || !adminPassword) {
@@ -3849,9 +3547,7 @@
             renderDashboardChart(dashboardNewRecordsChartEl, data?.new_records_last_7d || []);
             renderDashboardChart(dashboardNewUsersChartEl, data?.email_outreach_last_7d || []);
             renderDashboardChart(dashboardSentSchedulesChartEl, data?.sent_schedules_last_7d || []);
-            ensureTrendInsightsLoaded().catch((error) => {
-                setStatus(error.message || 'Trend insights failed.', true);
-            });
+            await computeTrendInsights();
         };
 
         const applyRecentContactFlags = async (rows) => {
@@ -3954,59 +3650,13 @@
                 </svg>
             `;
         };
-        const BIO_LINK_REDIRECT_STORAGE_KEY = 'agiTalentBioLinkRedirects';
-        const slugifyBioLinkName = (value) => {
-            const lettersOnly = String(value || '')
-                .toLowerCase()
-                .replace(/[^a-z]+/g, '');
-            return lettersOnly || 'profile';
-        };
-        const hashBioLinkValue = (value) => {
-            const input = String(value || '');
-            let hash = 0;
-            for (let index = 0; index < input.length; index += 1) {
-                hash = ((hash << 5) - hash + input.charCodeAt(index)) | 0;
-            }
-            return Math.abs(hash).toString(36).padStart(6, '0');
-        };
-        const generatedBioLinkPath = (profile, value) => {
-            const nameSource = profile?.name_or_handle || profile?.name || profile?.id || 'profile';
-            const slug = slugifyBioLinkName(nameSource);
-            const uniqueHash = hashBioLinkValue(`${nameSource}|${value}`);
-            return `/${slug}${uniqueHash}`;
-        };
-        const generatedBioLinkHref = (profile, value) => {
-            const path = generatedBioLinkPath(profile, value);
-            return `${window.location.origin}${path}`;
-        };
-        const readBioLinkRedirectMap = () => {
-            try {
-                const raw = window.localStorage.getItem(BIO_LINK_REDIRECT_STORAGE_KEY);
-                if (!raw) return {};
-                const parsed = JSON.parse(raw);
-                return parsed && typeof parsed === 'object' ? parsed : {};
-            } catch (error) {
-                return {};
-            }
-        };
-        const writeBioLinkRedirect = (generatedHref, realHref) => {
-            try {
-                const redirects = readBioLinkRedirectMap();
-                redirects[generatedHref] = realHref;
-                window.localStorage.setItem(BIO_LINK_REDIRECT_STORAGE_KEY, JSON.stringify(redirects));
-            } catch (error) {
-                // Ignore storage failures so profile links still render.
-            }
-        };
-        const renderBioLinkIcon = (profile, value) => {
+        const renderBioLinkIcon = (value) => {
             const href = normalizeLink(value);
-            const generatedHref = generatedBioLinkHref(profile, href);
             const label = escapeHtml(String(value).trim());
-            const redirectPayload = escapeHtml(encodeURIComponent(href));
-            return `<a class="bio-link-icon" href="${escapeHtml(generatedHref)}" target="_blank" rel="noopener noreferrer" data-generated-bio-link="true" data-redirect-payload="${redirectPayload}" aria-label="Open bio link: ${label}" title="${label}">${bioLinkIconSvg(value)}</a>`;
+            return `<a class="bio-link-icon" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" aria-label="Open bio link: ${label}" title="${label}">${bioLinkIconSvg(value)}</a>`;
         };
 
-        const renderValueHtml = (key, value, profile = null) => {
+        const renderValueHtml = (key, value) => {
             if (isEmptyValue(value)) return '';
 
             if (key === 'Recently_Contacted') {
@@ -4020,7 +3670,7 @@
             }
 
             if (key === 'bio_link') {
-                return renderBioLinkIcon(profile, value);
+                return renderBioLinkIcon(value);
             }
 
             if (key === 'skills' || key === 'needs' || key === 'recent_evidence') {
@@ -4041,15 +3691,11 @@
             return profile.name_or_handle || profile.name || profile.id || 'Profile';
         };
         const buildXShareText = (profile) => {
-            const rawBioLink = String(profile?.bio_link || '').trim();
-            const generatedHref = rawBioLink
-                ? generatedBioLinkHref(profile, normalizeLink(rawBioLink))
-                : 'https://agitalent.tech/';
             return [
                 String(profile?.name_or_handle || '').trim(),
                 String(profile?.seniority || '').trim(),
                 String(profile?.domain_focus || '').trim(),
-                generatedHref
+                'https://agitalent.tech/'
             ].filter(Boolean).join(', ');
         };
         const openXShare = (profile) => {
@@ -4230,7 +3876,7 @@
             const visible = Boolean(searchAutomateToggle?.checked);
             automateSchedulePanelEl.style.display = visible ? '' : 'none';
             if (!visible) return;
-            const enabled = isAdminLoggedIn() || (isNonAdminLoggedIn() && isPremiumAccount() && googleCalendarIntegration.connected);
+            const enabled = isAdminLoggedIn() || (isNonAdminLoggedIn() && googleCalendarIntegration.connected);
             automateScheduleFormEl.querySelectorAll('input, select, textarea').forEach((element) => {
                 if (element === automateTopCountInput || element instanceof HTMLElement) {
                     element.disabled = !enabled;
@@ -4240,9 +3886,7 @@
                 ? (isAdminLoggedIn()
                     ? 'Choose how many top automated results to invite. When set above 0, search completion will automatically queue Google Calendar invitations for those top records. LLM will screen each schedule sent.'
                     : 'Choose how many top automated results to invite. When set above 0, search completion will create Google Calendar invitations from your connected Google account. LLM will screen each schedule sent.')
-                : (isNonAdminLoggedIn() && !isPremiumAccount()
-                    ? 'Automate is a premium feature. Pay USD 50 to activate premium access for one year from the payment date.'
-                    : isNonAdminLoggedIn()
+                : (isNonAdminLoggedIn()
                     ? 'Connect Google Calendar to use Automate as a non-admin user.'
                     : 'Log in to use automated invitation sending.');
             automateScheduleStatusEl.classList.toggle('error', visible && !enabled);
@@ -4390,7 +4034,7 @@
                         .filter((key) => isLoggedIn() || SIGNED_OUT_VISIBLE_PROFILE_FIELDS.has(key))
                         .filter((key) => !HIDDEN_PROFILE_FIELDS.has(key))
                         .map((key) => {
-                            const renderedValue = renderValueHtml(key, profile[key], profile);
+                            const renderedValue = renderValueHtml(key, profile[key]);
                             if (!renderedValue) return '';
                             return `
                                 <div class="meta" data-field="${escapeHtml(key)}">
@@ -4418,9 +4062,8 @@
                     <article class="card">
                         <div class="card-head">
                             <div style="display:flex; align-items:center; gap:10px;">
-                                ${canUseScheduleTools() && !isEditing ? `<input type="checkbox" data-action="toggle-schedule-select" data-id="${escapeHtml(profile.id)}" ${isProfileSelectedForSchedule(profile.id) ? 'checked' : ''}>` : ''}
+                                ${isAdminLoggedIn() && !isEditing ? `<input type="checkbox" data-action="toggle-schedule-select" data-id="${escapeHtml(profile.id)}" ${isProfileSelectedForSchedule(profile.id) ? 'checked' : ''}>` : ''}
                                 <h3 class="card-title">${escapeHtml(titleForProfile(profile))}</h3>
-                                ${profile.Recently_Contacted ? '<div class="pill">Alert: Recently_Contacted</div>' : ''}
                             </div>
                             ${badgeForProfile(profile) ? `<div class="pill">${escapeHtml(badgeForProfile(profile))}</div>` : ''}
                         </div>
@@ -5129,26 +4772,8 @@
             try {
                 const session = JSON.parse(raw);
                 const username = String(session?.username || '').trim();
-                const authMode = String(session?.authMode || 'password').trim().toLowerCase() === 'google' ? 'google' : 'password';
                 const password = String(session?.password || '');
-                if (!username) {
-                    clearAdminSession();
-                    return;
-                }
-                if (authMode === 'google') {
-                    const data = await provisionGoogleAppUserFromSession();
-                    if (!data || !data.username) {
-                        throw new Error('Stored Google session is no longer valid.');
-                    }
-                    adminUser = data;
-                    adminPassword = '';
-                    adminAuthMode = 'google';
-                    adminUsernameInput.value = data.username || username;
-                    adminPasswordInput.value = '';
-                    persistAdminSession();
-                    return;
-                }
-                if (!password) {
+                if (!username || !password) {
                     clearAdminSession();
                     return;
                 }
@@ -5162,7 +4787,6 @@
                 }
                 adminUser = data;
                 adminPassword = password;
-                adminAuthMode = 'password';
                 adminUsernameInput.value = username;
                 adminPasswordInput.value = '';
                 if (data?.rights !== 'admin') {
@@ -5171,7 +4795,6 @@
             } catch (_error) {
                 adminUser = null;
                 adminPassword = '';
-                adminAuthMode = 'password';
                 clearAdminSession();
             }
         };
@@ -5364,14 +4987,13 @@
             return data;
         };
 
-        const completeAuthenticatedSession = async (data, password, { closeElement = null, authMode = 'password' } = {}) => {
+        const completeAuthenticatedSession = async (data, password, { closeElement = null } = {}) => {
             adminUser = data;
             adminPassword = password;
-            adminAuthMode = authMode === 'google' ? 'google' : 'password';
             adminUsernameInput.value = data?.username || '';
             adminPasswordInput.value = '';
             persistAdminSession();
-            if (adminAuthMode !== 'google' && data?.rights !== 'admin') {
+            if (data?.rights !== 'admin') {
                 await ensureSupabaseAuthSessionSafely(data?.username || '', password);
             }
             updateAdminUi();
@@ -5430,138 +5052,12 @@
             }
         };
 
-        const completeGoogleAuthenticatedSession = async (data, options = {}) => {
-            await completeAuthenticatedSession(data, '', {
-                ...options,
-                authMode: 'google'
-            });
-        };
-
-        const handleGoogleSignupCallback = async () => {
-            const url = new URL(window.location.href);
-            if (url.searchParams.get('google_signup_callback') !== '1') return false;
-            const authAction = url.searchParams.get('google_auth_action') === GOOGLE_AUTH_ACTION_LOGIN
-                ? GOOGLE_AUTH_ACTION_LOGIN
-                : GOOGLE_AUTH_ACTION_SIGNUP;
-            try {
-                if (!supabaseClient) {
-                    throw new Error('Supabase client failed to initialize.');
-                }
-                const authError = url.searchParams.get('error_description')
-                    || url.searchParams.get('error')
-                    || '';
-                if (authError) {
-                    throw new Error(decodeURIComponent(authError.replace(/\+/g, ' ')));
-                }
-                if (url.searchParams.get('code') && typeof supabaseClient.auth.exchangeCodeForSession === 'function') {
-                    const { error } = await supabaseClient.auth.exchangeCodeForSession(window.location.href);
-                    if (error) throw error;
-                }
-                const data = authAction === GOOGLE_AUTH_ACTION_LOGIN
-                    ? await checkGoogleAppUserFromSession()
-                    : await provisionGoogleAppUserFromSession();
-                cleanGoogleSignupCallbackUrl();
-                if (window.opener && !window.opener.closed) {
-                    postGoogleSignupMessage({ ok: true, data, action: authAction });
-                    window.close();
-                    return true;
-                }
-                await completeGoogleAuthenticatedSession(data);
-                setAdminStatus(authAction === GOOGLE_AUTH_ACTION_LOGIN ? 'Signed in with Google.' : 'Signed up with Google.', false);
-                return true;
-            } catch (error) {
-                if (authAction === GOOGLE_AUTH_ACTION_LOGIN && supabaseClient) {
-                    await supabaseClient.auth.signOut().catch(() => null);
-                }
-                cleanGoogleSignupCallbackUrl();
-                const message = error instanceof Error ? error.message : String(error || 'Google sign-up failed.');
-                if (window.opener && !window.opener.closed) {
-                    postGoogleSignupMessage({ ok: false, error: message, action: authAction });
-                    window.close();
-                    return true;
-                }
-                setModalStatus(authAction === GOOGLE_AUTH_ACTION_LOGIN ? loginModalStatusEl : signupModalStatusEl, message, true);
-                setStatus(message, true);
-                return true;
-            }
-        };
-
-        const performGoogleAuth = async (action = GOOGLE_AUTH_ACTION_SIGNUP) => {
-            if (!supabaseClient) {
-                throw new Error('Supabase client failed to initialize.');
-            }
-            const { data, error } = await supabaseClient.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo: buildGoogleAuthRedirectUrl(action, true),
-                    skipBrowserRedirect: true,
-                    queryParams: {
-                        prompt: 'select_account'
-                    }
-                }
-            });
-            if (error) throw error;
-            const authUrl = String(data?.url || '').trim();
-            if (!authUrl) {
-                throw new Error('Google sign-up is not configured yet.');
-            }
-            const popup = window.open(
-                authUrl,
-                action === GOOGLE_AUTH_ACTION_LOGIN ? 'agitalentGoogleLogin' : 'agitalentGoogleSignup',
-                'popup=yes,width=520,height=760,left=120,top=80'
-            );
-            if (!popup) {
-                window.location.href = authUrl;
-                return;
-            }
-            await new Promise((resolve, reject) => {
-                const timeoutId = window.setTimeout(() => {
-                    cleanup();
-                    reject(new Error('Google sign-up timed out. Please try again.'));
-                }, 180000);
-                const closeWatcher = window.setInterval(() => {
-                    if (popup.closed) {
-                        cleanup();
-                        reject(new Error('Google sign-up was closed before completion.'));
-                    }
-                }, 400);
-                const onMessage = async (event) => {
-                    if (event.origin !== window.location.origin) return;
-                    if (event.data?.type !== GOOGLE_SIGNUP_MESSAGE_TYPE) return;
-                    if (event.data?.action && event.data.action !== action) return;
-                    cleanup();
-                    if (!event.data?.ok) {
-                        reject(new Error(event.data?.error || 'Google sign-up failed.'));
-                        return;
-                    }
-                    try {
-                        await completeGoogleAuthenticatedSession(event.data.data, {
-                            closeElement: action === GOOGLE_AUTH_ACTION_LOGIN ? loginModalEl : signupModalEl
-                        });
-                        resolve(null);
-                    } catch (messageError) {
-                        reject(messageError);
-                    }
-                };
-                const cleanup = () => {
-                    window.clearTimeout(timeoutId);
-                    window.clearInterval(closeWatcher);
-                    window.removeEventListener('message', onMessage);
-                };
-                window.addEventListener('message', onMessage);
-            });
-        };
-
-        const performGoogleSignup = async () => performGoogleAuth(GOOGLE_AUTH_ACTION_SIGNUP);
-        const performGoogleLogin = async () => performGoogleAuth(GOOGLE_AUTH_ACTION_LOGIN);
-
         const logoutCurrentUser = (statusMessage = 'Login is required to browse candidate records.') => {
             if (supabaseClient) {
                 supabaseClient.auth.signOut().catch(() => null);
             }
             adminUser = null;
             adminPassword = '';
-            adminAuthMode = 'password';
             adminTargetUser = null;
             outreachDefaults = { company: '', role: '', contact: '', mode: OUTREACH_MODE_HIRING };
             googleCalendarIntegration = {
@@ -5682,9 +5178,6 @@
         });
         if (searchAutomateToggle) {
             searchAutomateToggle.addEventListener('change', () => {
-                if (searchAutomateToggle.checked && !requirePremiumAutomate()) {
-                    return;
-                }
                 syncDeepSearchUi();
                 updateAutomateScheduleUi();
             });
@@ -5742,12 +5235,6 @@
                 }
             });
         }
-        if (dashboardPrimaryRangeToggleButton) {
-            dashboardPrimaryRangeToggleButton.addEventListener('click', () => {
-                dashboardPrimaryRangeExpanded = !dashboardPrimaryRangeExpanded;
-                updateDashboardPrimaryRangeUi();
-            });
-        }
         if (dashboardShowMetricsButton) {
             dashboardShowMetricsButton.addEventListener('click', () => {
                 dashboardViewMode = 'metrics';
@@ -5759,7 +5246,7 @@
                 dashboardViewMode = 'trends';
                 updateAdminUi();
                 try {
-                    await ensureTrendInsightsLoaded();
+                    await computeTrendInsights();
                 } catch (error) {
                     setStatus(error.message || 'Trend insights failed.', true);
                 }
@@ -5866,18 +5353,9 @@
 
         adminLogoutButton.addEventListener('click', logoutCurrentUser);
         topbarLogoutButton.addEventListener('click', logoutCurrentUser);
-        topbarUsernameEl.addEventListener('click', async () => {
+        topbarUsernameEl.addEventListener('click', () => {
             if (!isLoggedIn()) return;
-            const nextOpen = !topbarAccountCardEl.classList.contains('open');
-            if (nextOpen && !isAdminLoggedIn()) {
-                try {
-                    await loadAccountSummary();
-                    refreshAccountCard();
-                } catch (_error) {
-                    // Fall back to the current cached session values if refresh fails.
-                }
-            }
-            setAccountCardOpen(nextOpen);
+            setAccountCardOpen(!topbarAccountCardEl.classList.contains('open'));
         });
         topbarChangePasswordButton.addEventListener('click', () => {
             if (!isLoggedIn()) return;
@@ -5910,7 +5388,10 @@
             signupModalUsernameInput.value = '';
             signupModalPasswordInput.value = '';
             signupModalCodeInput.value = '';
+            signupIssuedCodeEl.style.display = 'none';
+            signupIssuedCodeEl.innerHTML = '';
             openModal(signupModalEl);
+            ensurePayPalButtonsRendered();
             window.setTimeout(() => signupModalUsernameInput.focus(), 0);
         });
         if (signupPromoButton) {
@@ -5933,24 +5414,6 @@
                 loginModalSubmitButton.disabled = false;
             }
         });
-
-        if (loginModalGoogleButton) {
-            loginModalGoogleButton.addEventListener('click', async () => {
-                loginModalGoogleButton.disabled = true;
-                setModalStatus(loginModalStatusEl, 'Redirecting to Google...');
-                try {
-                    await performGoogleLogin();
-                    setModalStatus(loginModalStatusEl, '', false);
-                } catch (error) {
-                    const message = error.message || 'Google sign-in failed.';
-                    setModalStatus(loginModalStatusEl, message === 'Please sign up first!'
-                        ? 'Please sign up first! Use Sign Up to create your account.'
-                        : message, true);
-                } finally {
-                    loginModalGoogleButton.disabled = false;
-                }
-            });
-        }
 
         [loginModalUsernameInput, loginModalPasswordInput].forEach((input) => {
             input.addEventListener('keydown', (event) => {
@@ -5984,21 +5447,6 @@
                 signupModalSubmitButton.disabled = false;
             }
         });
-
-        if (signupModalGoogleButton) {
-            signupModalGoogleButton.addEventListener('click', async () => {
-                signupModalGoogleButton.disabled = true;
-                setModalStatus(signupModalStatusEl, 'Redirecting to Google...');
-                try {
-                    await performGoogleSignup();
-                    setModalStatus(signupModalStatusEl, '', false);
-                } catch (error) {
-                    setModalStatus(signupModalStatusEl, error.message || 'Google sign-up failed.', true);
-                } finally {
-                    signupModalGoogleButton.disabled = false;
-                }
-            });
-        }
 
         [signupModalUsernameInput, signupModalPasswordInput, signupModalCodeInput].forEach((input) => {
             input.addEventListener('keydown', (event) => {
@@ -6085,12 +5533,13 @@
                     };
                     const selectedAccessTypes = selectedAdminAccessTypes();
                     if (JSON.stringify(selectedAccessTypes) !== JSON.stringify([DEFAULT_NON_ADMIN_ACCESS_TYPE])) {
-                        const accessData = await updateAppUserAccessRpc({
-                            username: adminUser.username,
-                            password: adminPassword,
-                            targetUsername: newUsername,
-                            accessAgentTypes: selectedAccessTypes
+                        const { data: accessData, error: accessError } = await supabaseClient.rpc('admin_update_app_user_access', {
+                            p_admin_username: adminUser.username,
+                            p_admin_password: adminPassword,
+                            p_target_username: newUsername,
+                            p_access_agent_types: selectedAccessTypes
                         });
+                        if (accessError) throw accessError;
                         adminTargetUser = accessData && accessData.username
                             ? {
                                 ...adminTargetUser,
@@ -6127,12 +5576,13 @@
                     const validFrom = todayIsoDate();
                     let generatedCount = 0;
                     for (let index = 0; index < batchSize; index += 1) {
-                        await generateInvitationCodeRpc({
-                            username: adminUser.username,
-                            password: adminPassword,
-                            validFrom,
-                            isTrial: false
+                        const { error } = await supabaseClient.rpc('admin_generate_app_user_invitation_code', {
+                            p_admin_username: adminUser.username,
+                            p_admin_password: adminPassword,
+                            p_valid_from: validFrom,
+                            p_is_trial: false
                         });
+                        if (error) throw error;
                         generatedCount += 1;
                     }
                     adminInviteCodeOutput.value = '';
@@ -6142,13 +5592,14 @@
                     if (useTrialInvite && !selectedAccessTypes.length) {
                         throw new Error('Choose at least one access type for the trial invitation.');
                     }
-                    const data = await generateInvitationCodeRpc({
-                        username: adminUser.username,
-                        password: adminPassword,
-                        validFrom: todayIsoDate(),
-                        isTrial: useTrialInvite,
-                        accessAgentTypes: useTrialInvite ? selectedAccessTypes : [DEFAULT_NON_ADMIN_ACCESS_TYPE]
+                    const { data, error } = await supabaseClient.rpc('admin_generate_app_user_invitation_code', {
+                        p_admin_username: adminUser.username,
+                        p_admin_password: adminPassword,
+                        p_valid_from: todayIsoDate(),
+                        p_is_trial: useTrialInvite,
+                        p_access_agent_types: useTrialInvite ? selectedAccessTypes : [DEFAULT_NON_ADMIN_ACCESS_TYPE]
                     });
+                    if (error) throw error;
                     adminInviteCodeOutput.value = String(data?.code || '').trim();
                     latestTrialInvitationCode = useTrialInvite ? String(data?.code || '').trim() : '';
                     setAddUserStatus(useTrialInvite
@@ -6183,28 +5634,6 @@
                 updateUserOperationUi();
             });
         });
-        if (adminUserAccessTypesToggleButton) {
-            adminUserAccessTypesToggleButton.addEventListener('click', () => {
-                adminUserAccessTypesExpanded = !adminUserAccessTypesExpanded;
-                updateAdminAccessTypesUi();
-            });
-        }
-        adminAccountTypeInputs.forEach((input) => {
-            input.addEventListener('change', () => {
-                if (input.checked) {
-                    setSelectedAdminAccountType(input.value);
-                } else if (!adminAccountTypeInputs.some((item) => item.checked)) {
-                    setSelectedAdminAccountType('trial');
-                }
-                updateUserOperationUi();
-            });
-        });
-        if (adminAccountTypeToggleButton) {
-            adminAccountTypeToggleButton.addEventListener('click', () => {
-                adminAccountTypeExpanded = !adminAccountTypeExpanded;
-                setSelectedAdminAccountType(selectedAdminAccountType);
-            });
-        }
 
         adminInviteCodeOutput.addEventListener('input', updateInviteEmailAction);
 
@@ -6335,20 +5764,15 @@
                 setAddUserStatus('Load an existing user first.', true);
                 return;
             }
-            const currentAccountType = normalizeAccountType(adminTargetUser?.account_type);
-            const requestedAccountType = normalizeAccountType(selectedAdminAccountType);
-            if (currentAccountType !== requestedAccountType) {
-                setAddUserStatus(`Account type change for ${username} cannot be saved from this page until the backend account-type update function is deployed. Current: ${currentAccountType || 'trial'}. Requested: ${requestedAccountType}.`, true);
-                return;
-            }
             adminSaveUserAccessButton.disabled = true;
             try {
-                const data = await updateAppUserAccessRpc({
-                    username: adminUser.username,
-                    password: adminPassword,
-                    targetUsername: username,
-                    accessAgentTypes: selectedAdminAccessTypes()
+                const { data, error } = await supabaseClient.rpc('admin_update_app_user_access', {
+                    p_admin_username: adminUser.username,
+                    p_admin_password: adminPassword,
+                    p_target_username: username,
+                    p_access_agent_types: selectedAdminAccessTypes()
                 });
+                if (error) throw error;
                 adminTargetUser = data && data.username ? data : adminTargetUser;
                 setSelectedAdminAccessTypes(adminTargetUser?.access_agent_types || adminTargetUser?.access_agent_type);
                 setAddUserStatus(`Access updated for ${username}: ${accessTypeLabels(adminTargetUser?.access_agent_types || adminTargetUser?.access_agent_type).join(', ')}.`);
@@ -6356,42 +5780,6 @@
                 setAddUserStatus(error.message || 'Access update failed.', true);
             } finally {
                 adminSaveUserAccessButton.disabled = false;
-                updateUserOperationUi();
-            }
-        });
-
-        adminSaveAccountButton.addEventListener('click', async () => {
-            if (!supabaseClient) {
-                setAddUserStatus('Supabase client failed to initialize.', true);
-                return;
-            }
-            if (!isAdminLoggedIn()) {
-                setAddUserStatus('Admin rights are required.', true);
-                return;
-            }
-            const username = adminTargetUser?.username || adminAddUserUsernameInput.value.trim();
-            if (!username || !adminTargetUser?.username) {
-                setAddUserStatus('Load an existing user first.', true);
-                return;
-            }
-            adminSaveAccountButton.disabled = true;
-            try {
-                const data = await updateAppUserAccountRpc({
-                    username: adminUser.username,
-                    password: adminPassword,
-                    targetUsername: username,
-                    accessAgentTypes: adminTargetUser?.access_agent_types || adminTargetUser?.access_agent_type || [DEFAULT_NON_ADMIN_ACCESS_TYPE],
-                    accountType: selectedAdminAccountType
-                });
-                adminTargetUser = data && data.username
-                    ? { ...adminTargetUser, ...data }
-                    : { ...adminTargetUser, account_type: normalizeAccountType(selectedAdminAccountType) };
-                setSelectedAdminAccountType(adminTargetUser?.account_type);
-                setAddUserStatus(`Account type updated for ${username}: ${String(adminTargetUser?.account_type || '').trim() || 'trial'}.`);
-            } catch (error) {
-                setAddUserStatus(error.message || 'Account type update failed.', true);
-            } finally {
-                adminSaveAccountButton.disabled = false;
                 updateUserOperationUi();
             }
         });
@@ -6503,16 +5891,6 @@
         });
 
         resultsEl.addEventListener('click', async (event) => {
-            const generatedBioLink = event.target.closest('a[data-generated-bio-link="true"]');
-            if (generatedBioLink) {
-                const generatedHref = generatedBioLink.getAttribute('href') || '';
-                const realHref = decodeURIComponent(generatedBioLink.getAttribute('data-redirect-payload') || '');
-                if (generatedHref && realHref) {
-                    writeBioLinkRedirect(generatedHref, realHref);
-                }
-                return;
-            }
-
             const button = event.target.closest('button[data-action]');
             if (!button) return;
             const action = button.dataset.action;
@@ -6558,7 +5936,7 @@
                     setAdminStatus('Log in to use scheduling.', true);
                     return;
                 }
-                if (!isProfileSelectedForSchedule(profileId)) {
+                if (isAdminLoggedIn() && !isProfileSelectedForSchedule(profileId)) {
                     selectedScheduleProfileIds = [profileId];
                 }
                 schedulingProfileId = profileId;
@@ -6687,98 +6065,63 @@
                             setStatus(lastScheduledFor ? `Invitation queued. The online worker should send it within about 5-10 minutes; the selected time remains the meeting time (${lastScheduledFor}).` : 'Invitation queued for Google Calendar delivery.');
                         }
                     } else {
-                        const targets = selectedScheduleProfilesInOrder();
-                        const profiles = targets.length ? targets : currentRows.filter((row) => row.id === profileId);
-                        if (!profiles.length) throw new Error('Profile not found.');
-                        const invalidProfile = profiles.find((profile) => !String(profile._candidate_email || '').trim());
-                        if (invalidProfile) {
+                        const profile = currentRows.find((row) => row.id === profileId);
+                        if (!profile) throw new Error('Profile not found.');
+                        if (!String(profile._candidate_email || '').trim()) {
                             throw new Error('Candidate email is required to prefill the calendar invitation.');
                         }
                         applyOutreachDefaultsLocally(payload);
+                        const draft = await generateScheduleDraft(profile, payload);
+                        const { error } = await supabaseClient.rpc('log_schedule_outreach', {
+                            ...authRpcCredentials(),
+                            p_profile_id: profileId,
+                            p_schedule: payload,
+                            p_invite_title: draft.subject,
+                            p_invite_content: draft.body
+                        });
+                        if (error) throw error;
+                        currentRows = currentRows.map((row) => row.id === profileId ? { ...row, Recently_Contacted: true } : row);
+                        await loadDashboardMetrics();
                         if (googleCalendarIntegration.connected) {
-                            setStatus(profiles.length > 1 ? `Creating ${profiles.length} Google Calendar events from your connected account...` : 'Creating Google Calendar event from your connected account...');
-                            let lastScheduledFor = '';
-                            for (const [index, profile] of profiles.entries()) {
-                                const scheduledPayload = schedulePayloadWithOffset(payload, index);
-                                const draft = await generateScheduleDraft(profile, scheduledPayload);
-                                const { error } = await supabaseClient.rpc('log_schedule_outreach', {
-                                    ...authRpcCredentials(),
-                                    p_profile_id: profile.id,
-                                    p_schedule: scheduledPayload,
-                                    p_invite_title: draft.subject,
-                                    p_invite_content: draft.body
-                                });
-                                if (error) throw error;
-                                const startAt = `${scheduledPayload.date}T${scheduledPayload.time}:00`;
-                                const endParts = addMinutesToScheduleTime(scheduledPayload.date, scheduledPayload.time, 15);
-                                const endAt = `${endParts.date}T${endParts.hour}:${endParts.minute}:00`;
-                                await edgeFunctionJson('create-calendar-event', {
-                                    method: 'POST',
-                                    body: {
-                                        event: {
-                                            summary: draft.subject,
-                                            description: draft.body,
-                                            start: {
-                                                dateTime: startAt,
-                                                timeZone: scheduledPayload.timezone,
-                                            },
-                                            end: {
-                                                dateTime: endAt,
-                                                timeZone: scheduledPayload.timezone,
-                                            },
-                                            attendees: [{ email: String(profile._candidate_email || '').trim() }],
-                                            conferenceData: {
-                                                createRequest: {
-                                                    requestId: `${profile.id}-${index}`,
-                                                    conferenceSolutionKey: { type: 'hangoutsMeet' }
-                                                }
+                            setStatus('Creating Google Calendar event from your connected account...');
+                            const startAt = `${payload.date}T${payload.time}:00`;
+                            const endParts = addMinutesToScheduleTime(payload.date, payload.time, 15);
+                            const endAt = `${endParts.date}T${endParts.hour}:${endParts.minute}:00`;
+                            await edgeFunctionJson('create-calendar-event', {
+                                method: 'POST',
+                                body: {
+                                    event: {
+                                        summary: draft.subject,
+                                        description: draft.body,
+                                        start: {
+                                            dateTime: startAt,
+                                            timeZone: payload.timezone,
+                                        },
+                                        end: {
+                                            dateTime: endAt,
+                                            timeZone: payload.timezone,
+                                        },
+                                        attendees: [{ email: String(profile._candidate_email || '').trim() }],
+                                        conferenceData: {
+                                            createRequest: {
+                                                requestId: String(profileId),
+                                                conferenceSolutionKey: { type: 'hangoutsMeet' }
                                             }
                                         }
                                     }
-                                });
-                                lastScheduledFor = `${scheduledPayload.date} ${scheduledPayload.time} ${scheduledPayload.timezone}`;
-                            }
-                            currentRows = currentRows.map((row) => (
-                                profiles.some((profile) => profile.id === row.id)
-                                    ? { ...row, Recently_Contacted: true }
-                                    : row
-                            ));
-                            await loadDashboardMetrics();
-                            schedulingProfileId = null;
-                            selectedScheduleProfileIds = [];
-                            setStatus(profiles.length > 1
-                                ? (lastScheduledFor ? `${profiles.length} invitations created in your connected Google Calendar and sent from your Google account. The selected time remains the meeting time (${lastScheduledFor}).` : `${profiles.length} invitations created in your connected Google Calendar and sent from your Google account.`)
-                                : 'Invitation created in your connected Google Calendar and sent from your Google account.');
-                        } else {
-                            setStatus(profiles.length > 1 ? `Generating ${profiles.length} schedule drafts...` : 'Generating schedule draft...');
-                            for (const [index, profile] of profiles.entries()) {
-                                const scheduledPayload = schedulePayloadWithOffset(payload, index);
-                                const draft = await generateScheduleDraft(profile, scheduledPayload);
-                                const { error } = await supabaseClient.rpc('log_schedule_outreach', {
-                                    ...authRpcCredentials(),
-                                    p_profile_id: profile.id,
-                                    p_schedule: scheduledPayload,
-                                    p_invite_title: draft.subject,
-                                    p_invite_content: draft.body
-                                });
-                                if (error) throw error;
-                                const calendarUrl = buildManualScheduleUrl(profile, scheduledPayload, draft);
-                                const draftWindow = window.open(calendarUrl, '_blank', 'noopener');
-                                if (!draftWindow) {
-                                    window.location.href = calendarUrl;
                                 }
-                            }
-                            currentRows = currentRows.map((row) => (
-                                profiles.some((profile) => profile.id === row.id)
-                                    ? { ...row, Recently_Contacted: true }
-                                    : row
-                            ));
-                            await loadDashboardMetrics();
+                            });
                             schedulingProfileId = null;
-                            selectedScheduleProfileIds = [];
-                            setStatus(profiles.length > 1
-                                ? `${profiles.length} schedule drafts opened in Google Calendar with the subject, attendee, and description prefilled. Review them there and confirm sending manually.`
-                                : 'Schedule draft opened in Google Calendar with the subject, attendee, and description prefilled. Review it there and confirm sending manually.');
+                            setStatus('Invitation created in your connected Google Calendar and sent from your Google account.');
+                        } else {
+                            setStatus('Generating schedule draft...');
+                            const calendarUrl = buildManualScheduleUrl(profile, payload, draft);
+                            const draftWindow = window.open(calendarUrl, '_blank', 'noopener');
+                            if (!draftWindow) {
+                                window.location.href = calendarUrl;
+                            }
+                            schedulingProfileId = null;
+                            setStatus('Schedule draft opened in Google Calendar with the subject, attendee, and description prefilled. Review it there and confirm sending manually.');
                         }
                     }
                     renderRows(currentRows);
@@ -6899,17 +6242,6 @@
             try {
                 loadTheme();
                 syncDeepSearchUi();
-                const handledGoogleCallback = await handleGoogleSignupCallback();
-                if (handledGoogleCallback) {
-                    updateAdminUi();
-                    if (isLoggedIn()) {
-                        await loadOutreachDefaults();
-                        await loadGoogleCalendarIntegration();
-                        await loadDashboardMetrics();
-                        await runSearch(false);
-                    }
-                    return;
-                }
                 await restoreAdminSession();
                 updateAdminUi();
                 if (isLoggedIn()) {
