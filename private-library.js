@@ -28,20 +28,14 @@
     document.head.append(script);
   });
   const start = async () => {
-    document.body.innerHTML = `<main style="min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at top left,rgba(71,229,165,.13),transparent 32%),#07110f;color:#eff8f4;font-family:system-ui,-apple-system,sans-serif"><section style="width:min(580px,100%);padding:32px;border:1px solid rgba(194,255,231,.16);border-radius:24px;background:rgba(12,28,23,.9);box-shadow:0 28px 70px rgba(0,0,0,.25)"><div style="color:#47e5a5;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">AGI Talent · Private Library</div><h1 id="private-library-title" style="font:400 clamp(2rem,7vw,3.6rem)/1 Georgia,serif;margin:15px 0 12px">Preparing checkout…</h1><p id="private-library-description" style="color:rgba(239,248,244,.68);line-height:1.6"></p><div id="private-library-action" style="margin-top:24px"></div><p id="private-library-status" style="min-height:24px;margin:16px 0 0"></p></section></main>`;
+    document.body.innerHTML = `<main style="min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at top left,rgba(71,229,165,.13),transparent 32%),#07110f;color:#eff8f4;font-family:system-ui,-apple-system,sans-serif"><section style="width:min(980px,100%);border:1px solid rgba(194,255,231,.16);border-radius:24px;background:rgba(12,28,23,.92);box-shadow:0 28px 70px rgba(0,0,0,.25);overflow:hidden"><div style="padding:24px 28px;color:#47e5a5;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">AGI Talent · Private Library</div><div style="display:grid;grid-template-columns:minmax(0,1.08fr) minmax(300px,.92fr);gap:0;border-top:1px solid rgba(194,255,231,.12)"><div style="padding:28px;min-height:430px"><img id="private-library-cover" alt="" style="display:none;width:100%;max-height:300px;object-fit:cover;border-radius:16px;margin-bottom:22px;border:1px solid rgba(194,255,231,.16)"><h1 id="private-library-title" style="font:400 clamp(2rem,6vw,4rem)/1 Georgia,serif;margin:0 0 16px">Preparing checkout…</h1><p id="private-library-description" style="white-space:pre-wrap;color:rgba(239,248,244,.72);line-height:1.7;margin:0"></p></div><div style="padding:28px;border-left:1px solid rgba(194,255,231,.12);display:flex;flex-direction:column;justify-content:center"><div style="color:#47e5a5;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px">Secure checkout</div><div id="private-library-price" style="font:500 2rem Georgia,serif;margin-bottom:18px"></div><div id="private-library-action"></div><p id="private-library-status" style="min-height:24px;margin:16px 0 0;color:rgba(239,248,244,.7)"></p></div></div></section><style>@media(max-width:700px){#private-library-cover{max-height:220px}main section>div:nth-child(2){grid-template-columns:1fr!important}main section>div:nth-child(2)>div:last-child{border-left:0!important;border-top:1px solid rgba(194,255,231,.12)}}</style></main>`;
     try {
       const item = await call(`public-library?file=${encodeURIComponent(fileId)}`);
       document.querySelector('#private-library-title').textContent = item.title || 'Private file';
-      document.querySelector('#private-library-description').textContent = item.price == null ? 'This file is free and ready to download.' : `Purchase for USD ${Number(item.price).toFixed(2)}. Your download is released after payment is verified.`;
+      document.querySelector('#private-library-description').textContent = item.description || '';
+      document.querySelector('#private-library-price').textContent = `USD ${Number(item.price).toFixed(2)}`;
+      if (item.coverData) { const cover = document.querySelector('#private-library-cover'); cover.src = item.coverData; cover.style.display = 'block'; }
       const action = document.querySelector('#private-library-action');
-      if (item.price == null) {
-        const button = document.createElement('button');
-        button.textContent = 'Download file';
-        button.style.cssText = 'border:0;border-radius:999px;padding:13px 19px;background:#47e5a5;color:#062018;font-weight:800;cursor:pointer';
-        button.onclick = async () => { try { button.disabled = true; const result = await call('library-checkout', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'free',fileId}) }); location.assign(result.downloadUrl); } catch (error) { button.disabled=false; setStatus(error.message, true); } };
-        action.append(button);
-        return;
-      }
       await loadPayPal();
       window.paypal.Buttons({
         createOrder: async () => (await call('library-checkout', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'create',fileId}) })).id,
