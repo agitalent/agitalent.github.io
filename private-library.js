@@ -1,0 +1,54 @@
+(() => {
+  const SUPABASE_URL = 'https://zocovvewzpqxspysanyy.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvY292dmV3enBxeHNweXNhbnl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwODYwNTgsImV4cCI6MjA4OTY2MjA1OH0.8ekfJ3bcvG-AbLD39xUINwXrpO7RiH9PVgy-xMzeHbE';
+  const PAYPAL_CLIENT_ID = 'ATyMq6tHaEMTYvKmLXdrh-nesh9usI5XAf16TYeReTAQi2WSQfzBz9VyPEu4DDT1FnuH2-TUoSj6yURJ';
+  const fileId = new URLSearchParams(location.search).get('file');
+  if (!fileId) return;
+
+  const call = async (name, init = {}) => {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
+      ...init,
+      headers: { apikey: SUPABASE_ANON_KEY, ...(init.headers || {}) }
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success) throw new Error(data.error || 'Request failed.');
+    return data;
+  };
+  const setStatus = (message, error = false) => {
+    const el = document.querySelector('#private-library-status');
+    el.textContent = message;
+    el.style.color = error ? '#ff9c9c' : 'rgba(239,248,244,.7)';
+  };
+  const loadPayPal = () => new Promise((resolve, reject) => {
+    if (window.paypal) return resolve();
+    const script = document.createElement('script');
+    script.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(PAYPAL_CLIENT_ID)}&currency=USD&intent=capture`;
+    script.onload = resolve;
+    script.onerror = () => reject(new Error('PayPal could not load.'));
+    document.head.append(script);
+  });
+  const start = async () => {
+    document.body.innerHTML = `<main style="min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at top left,rgba(71,229,165,.13),transparent 32%),#07110f;color:#eff8f4;font-family:system-ui,-apple-system,sans-serif"><section style="width:min(580px,100%);padding:32px;border:1px solid rgba(194,255,231,.16);border-radius:24px;background:rgba(12,28,23,.9);box-shadow:0 28px 70px rgba(0,0,0,.25)"><div style="color:#47e5a5;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">AGI Talent · Private Library</div><h1 id="private-library-title" style="font:400 clamp(2rem,7vw,3.6rem)/1 Georgia,serif;margin:15px 0 12px">Preparing checkout…</h1><p id="private-library-description" style="color:rgba(239,248,244,.68);line-height:1.6"></p><div id="private-library-action" style="margin-top:24px"></div><p id="private-library-status" style="min-height:24px;margin:16px 0 0"></p></section></main>`;
+    try {
+      const item = await call(`public-library?file=${encodeURIComponent(fileId)}`);
+      document.querySelector('#private-library-title').textContent = item.title || 'Private file';
+      document.querySelector('#private-library-description').textContent = item.price == null ? 'This file is free and ready to download.' : `Purchase for USD ${Number(item.price).toFixed(2)}. Your download is released after payment is verified.`;
+      const action = document.querySelector('#private-library-action');
+      if (item.price == null) {
+        const button = document.createElement('button');
+        button.textContent = 'Download file';
+        button.style.cssText = 'border:0;border-radius:999px;padding:13px 19px;background:#47e5a5;color:#062018;font-weight:800;cursor:pointer';
+        button.onclick = async () => { try { button.disabled = true; const result = await call('library-checkout', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'free',fileId}) }); location.assign(result.downloadUrl); } catch (error) { button.disabled=false; setStatus(error.message, true); } };
+        action.append(button);
+        return;
+      }
+      await loadPayPal();
+      window.paypal.Buttons({
+        createOrder: async () => (await call('library-checkout', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'create',fileId}) })).id,
+        onApprove: async (data) => { const result = await call('library-checkout', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'capture',fileId,orderId:data.orderID}) }); location.assign(result.downloadUrl); },
+        onError: () => setStatus('Checkout could not be completed. Please try again later.', true)
+      }).render(action);
+    } catch (error) { setStatus(error.message || 'This file is unavailable.', true); }
+  };
+  document.addEventListener('DOMContentLoaded', start, { once: true });
+})();
