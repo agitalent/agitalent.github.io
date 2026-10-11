@@ -1,6 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script>
+        (function () {
+            if (!new URLSearchParams(window.location.search).get('file')) return;
+            var script = document.createElement('script');
+            script.src = 'private-library.js?v=20261012';
+            script.async = false;
+            document.head.appendChild(script);
+        }());
+    </script>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Talent Search | AGI Talent</title>
