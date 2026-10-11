@@ -4,6 +4,11 @@
     <script>
         (function () {
             if (!new URLSearchParams(window.location.search).get('file')) return;
+            var fileId = new URLSearchParams(window.location.search).get('file');
+            if (fileId) {
+                window.location.replace('checkout.html?file=' + encodeURIComponent(fileId));
+                return;
+            }
             var script = document.createElement('script');
             script.src = 'private-library.js?v=20261012';
             script.async = false;
