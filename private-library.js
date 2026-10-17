@@ -4,6 +4,7 @@
   const PAYPAL_CLIENT_ID = 'ATyMq6tHaEMTYvKmLXdrh-nesh9usI5XAf16TYeReTAQi2WSQfzBz9VyPEu4DDT1FnuH2-TUoSj6yURJ';
   const fileId = new URLSearchParams(location.search).get('file');
   if (!fileId) return;
+  document.title = 'Discover more direct insider info';
 
   const call = async (name, init = {}) => {
     const response = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
