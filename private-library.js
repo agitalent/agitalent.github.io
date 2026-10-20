@@ -102,6 +102,7 @@
       const action = document.querySelector('#private-library-action');
       if (item.hasCover) window.setTimeout(loadCoverAfterText, 0);
       await loadPayPal();
+      action.replaceChildren();
       await window.paypal.Buttons({
         createOrder: async () => (await call('library-checkout', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'create',fileId}) })).id,
         onApprove: async (data) => { const result = await call('library-checkout', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'capture',fileId,orderId:data.orderID}) }); location.assign(result.downloadUrl); },
