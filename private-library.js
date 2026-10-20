@@ -70,10 +70,14 @@
       titleEl.innerHTML = '<span aria-label="Loading" style="display:inline-block;width:28px;height:28px;border:3px solid rgba(71,229,165,.25);border-top-color:#47e5a5;border-radius:50%;animation:private-library-spin .8s linear infinite"></span>';
       const paymentNote = document.querySelector('#private-library-price').previousElementSibling;
       const moreListsLink = document.querySelector('#private-library-action + a');
-      const viewMoreStyle = 'display:inline-block;align-self:flex-start;padding:10px 16px;border:1px solid rgba(71,229,165,.5);border-radius:10px;background:transparent;color:#47e5a5;font-weight:700;text-decoration:none;cursor:pointer';
-      paymentNote.style.cssText = `${viewMoreStyle};margin:0 0 16px`;
-      moreListsLink.textContent = 'More lists';
-      moreListsLink.style.cssText = `${viewMoreStyle};margin-top:16px`;
+      const viewMoreStyle = 'display:inline-block;align-self:flex-start;padding:10px 16px;border:1px solid rgba(71,229,165,.5);border-radius:10px;background:transparent;color:#47e5a5;text-decoration:none;cursor:pointer';
+      const postPayPalControls = document.createElement('div');
+      postPayPalControls.style.cssText = 'display:none;flex-direction:column;align-items:flex-start;gap:12px;margin-top:16px';
+      paymentNote.style.cssText = viewMoreStyle;
+      moreListsLink.textContent = 'More list';
+      moreListsLink.style.cssText = viewMoreStyle;
+      postPayPalControls.append(paymentNote, moreListsLink);
+      document.querySelector('#private-library-action').insertAdjacentElement('afterend', postPayPalControls);
     try {
       const item = await call(`public-library?file=${encodeURIComponent(fileId)}`);
       document.title = item.pageTitle || 'Discover more direct insider info';
@@ -96,11 +100,12 @@
       const action = document.querySelector('#private-library-action');
       if (item.hasCover) window.setTimeout(loadCoverAfterText, 0);
       await loadPayPal();
-      window.paypal.Buttons({
+      await window.paypal.Buttons({
         createOrder: async () => (await call('library-checkout', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'create',fileId}) })).id,
         onApprove: async (data) => { const result = await call('library-checkout', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'capture',fileId,orderId:data.orderID}) }); location.assign(result.downloadUrl); },
         onError: () => setStatus('Checkout could not be completed. Please try again later.', true)
       }).render(action);
+      postPayPalControls.style.display = 'flex';
     } catch (error) { setStatus(error.message || 'This file is unavailable.', true); }
   };
   document.addEventListener('DOMContentLoaded', start, { once: true });
