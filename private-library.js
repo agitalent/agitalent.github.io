@@ -3,7 +3,31 @@
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvY292dmV3enBxeHNweXNhbnl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwODYwNTgsImV4cCI6MjA4OTY2MjA1OH0.8ekfJ3bcvG-AbLD39xUINwXrpO7RiH9PVgy-xMzeHbE';
   const PAYPAL_CLIENT_ID = 'ATyMq6tHaEMTYvKmLXdrh-nesh9usI5XAf16TYeReTAQi2WSQfzBz9VyPEu4DDT1FnuH2-TUoSj6yURJ';
   const fileId = new URLSearchParams(location.search).get('file');
-  if (!fileId) return;
+  if (!fileId) {
+    const loadCatalog = async (page = 1) => {
+      const input = document.querySelector('#private-library-search');
+      const query = input ? input.value.trim() : '';
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/public-library?catalog=1&page=${page}&q=${encodeURIComponent(query)}`, { headers: { apikey: SUPABASE_ANON_KEY } });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) throw new Error(data.error || 'The library could not be loaded.');
+      const results = document.querySelector('#private-library-catalog-results');
+      const pagination = document.querySelector('#private-library-pagination');
+      results.innerHTML = data.listings.map((item) => `<a href="checkout.html?file=${encodeURIComponent(item.id)}" style="display:block;padding:17px 18px;border:1px solid rgba(194,255,231,.16);border-radius:13px;color:#eff8f4;text-decoration:none;overflow-wrap:anywhere">${String(item.title).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</a>`).join('') || '<p style="color:rgba(239,248,244,.7)">No lists match your search.</p>';
+      const totalPages = Math.max(1, Math.ceil(data.total / data.pageSize));
+      pagination.innerHTML = `<button type="button" ${page <= 1 ? 'disabled' : ''}>Previous</button><span>Page ${page} of ${totalPages} · ${data.total} list${data.total === 1 ? '' : 's'}</span><button type="button" ${page >= totalPages ? 'disabled' : ''}>Next</button>`;
+      const buttons = pagination.querySelectorAll('button');
+      buttons[0].addEventListener('click', () => loadCatalog(page - 1));
+      buttons[1].addEventListener('click', () => loadCatalog(page + 1));
+    };
+    const startCatalog = () => {
+      document.title = 'Discover more direct insider info';
+      document.body.innerHTML = `<main style="min-height:100vh;padding:clamp(18px,5vw,60px);background:radial-gradient(circle at top left,rgba(71,229,165,.13),transparent 32%),#07110f;color:#eff8f4;font-family:system-ui,-apple-system,sans-serif"><section style="width:100%;max-width:960px;margin:auto"><div style="color:#47e5a5;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:16px">AGI Talent</div><h1 style="font:400 clamp(2rem,5vw,3.4rem)/1.1 Georgia,serif;margin:0 0 12px">Discover more direct insider info</h1><p style="color:rgba(239,248,244,.72);margin:0 0 26px">Browse available lists and securely purchase a download.</p><form id="private-library-search-form" style="display:flex;gap:10px;margin-bottom:24px"><input id="private-library-search" type="search" placeholder="Search list titles" style="flex:1;min-width:0;padding:13px 15px;border:1px solid rgba(194,255,231,.25);border-radius:10px;background:#10251e;color:#eff8f4;font:inherit"><button type="submit" style="padding:13px 18px;border:0;border-radius:10px;background:#47e5a5;color:#07110f;font-weight:700;cursor:pointer">Search</button></form><div id="private-library-catalog-results" style="display:grid;gap:10px"></div><div id="private-library-pagination" style="display:flex;align-items:center;justify-content:center;gap:14px;margin-top:24px;color:rgba(239,248,244,.72)"></div></section><style>#private-library-pagination button{padding:9px 13px;border:1px solid rgba(71,229,165,.5);border-radius:8px;background:transparent;color:#47e5a5;cursor:pointer}#private-library-pagination button:disabled{opacity:.35;cursor:default}@media(max-width:460px){#private-library-search-form{flex-direction:column}}</style></main>`;
+      document.querySelector('#private-library-search-form').addEventListener('submit', (event) => { event.preventDefault(); loadCatalog(1).catch((error) => { document.querySelector('#private-library-catalog-results').textContent = error.message; }); });
+      loadCatalog().catch((error) => { document.querySelector('#private-library-catalog-results').textContent = error.message; });
+    };
+    document.addEventListener('DOMContentLoaded', startCatalog, { once: true });
+    return;
+  }
   document.title = 'Discover more direct insider info';
 
   const call = async (name, init = {}) => {
