@@ -77,7 +77,9 @@
       moreListsLink.textContent = 'More list';
       moreListsLink.style.cssText = viewMoreStyle;
       postPayPalControls.append(paymentNote, moreListsLink);
-      document.querySelector('#private-library-action').insertAdjacentElement('afterend', postPayPalControls);
+      const paypalAction = document.querySelector('#private-library-action');
+      paypalAction.innerHTML = '<span aria-label="Loading payment options" style="display:inline-block;width:28px;height:28px;border:3px solid rgba(71,229,165,.25);border-top-color:#47e5a5;border-radius:50%;animation:private-library-spin .8s linear infinite"></span>';
+      paypalAction.insertAdjacentElement('afterend', postPayPalControls);
     try {
       const item = await call(`public-library?file=${encodeURIComponent(fileId)}`);
       document.title = item.pageTitle || 'Discover more direct insider info';
