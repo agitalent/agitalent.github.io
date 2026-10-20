@@ -73,7 +73,7 @@
       const viewMoreStyle = 'display:inline-block;align-self:flex-start;padding:10px 16px;border:1px solid rgba(71,229,165,.5);border-radius:10px;background:transparent;color:#47e5a5;text-decoration:none;cursor:pointer';
       const postPayPalControls = document.createElement('div');
       postPayPalControls.style.cssText = 'display:none;flex-direction:column;align-items:flex-start;gap:12px;margin-top:16px';
-      paymentNote.style.cssText = viewMoreStyle;
+      paymentNote.style.cssText = 'white-space:pre-wrap;overflow-wrap:anywhere;color:rgba(239,248,244,.72);line-height:1.7;margin:0';
       moreListsLink.textContent = 'More list';
       moreListsLink.style.cssText = viewMoreStyle;
       postPayPalControls.append(paymentNote, moreListsLink);
