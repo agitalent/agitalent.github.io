@@ -108,7 +108,24 @@
       document.title = item.pageTitle || 'Discover more direct insider info';
       document.querySelector('#private-library-title').textContent = item.title || 'Private file';
       const descriptionEl = document.querySelector('#private-library-description');
-      descriptionEl.textContent = item.description || '';
+      let descriptionText = item.description || '';
+      const renderDescription = () => {
+        descriptionEl.replaceChildren();
+        const lines = String(descriptionText).replace(/\r\n?/g, '\n').split('\n');
+        lines.forEach((line, index) => {
+          if (line.trim() === '') {
+            const separator = document.createElement('div');
+            separator.style.cssText = 'height:0;border-top:1px dotted rgba(239,248,244,.48);margin:12px 0';
+            descriptionEl.appendChild(separator);
+          } else {
+            const textNode = document.createElement('span');
+            textNode.textContent = line;
+            descriptionEl.appendChild(textNode);
+          }
+          if (index < lines.length - 1 && line.trim() !== '') descriptionEl.appendChild(document.createElement('br'));
+        });
+      };
+      renderDescription();
       const keywordTags = document.createElement('div');
       keywordTags.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px;color:rgba(239,248,244,.72);font:inherit';
       const keywordColors = ['rgba(71,229,165,.20)', 'rgba(90,160,255,.22)', 'rgba(191,112,255,.22)', 'rgba(255,170,74,.22)', 'rgba(255,105,135,.22)', 'rgba(43,195,198,.22)'];
@@ -126,7 +143,8 @@
         viewMore.disabled = true;
         try {
           const next = await call(`public-library?file=${encodeURIComponent(fileId)}&offset=${descriptionOffset}`);
-          document.querySelector('#private-library-description').textContent += next.description || '';
+          descriptionText += next.description || '';
+          renderDescription();
           descriptionOffset = Number(next.descriptionNextOffset || descriptionOffset);
           viewMore.style.display = next.descriptionHasMore ? 'inline-block' : 'none';
         } catch (error) { setStatus(error.message || 'More description could not be loaded.', true); }
