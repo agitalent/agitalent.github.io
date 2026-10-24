@@ -98,6 +98,7 @@
       paymentNote.style.cssText = 'white-space:pre-wrap;overflow-wrap:anywhere;color:rgba(239,248,244,.72);line-height:1.7;margin:0';
       moreListsLink.textContent = 'More list';
       moreListsLink.style.cssText = viewMoreStyle;
+      moreListsLink.style.fontSize = getComputedStyle(document.querySelector('#private-library-view-more')).fontSize;
       postPayPalControls.append(paymentNote, moreListsLink);
       const paypalAction = document.querySelector('#private-library-action');
       paypalAction.innerHTML = '<span aria-label="Loading payment options" style="display:inline-block;width:28px;height:28px;border:3px solid rgba(71,229,165,.25);border-top-color:#47e5a5;border-radius:50%;animation:private-library-spin .8s linear infinite"></span>';
@@ -106,7 +107,18 @@
       const item = await call(`public-library?file=${encodeURIComponent(fileId)}`);
       document.title = item.pageTitle || 'Discover more direct insider info';
       document.querySelector('#private-library-title').textContent = item.title || 'Private file';
-      document.querySelector('#private-library-description').textContent = item.description || '';
+      const descriptionEl = document.querySelector('#private-library-description');
+      descriptionEl.textContent = item.description || '';
+      const keywordTags = document.createElement('div');
+      keywordTags.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;color:rgba(239,248,244,.72);font:inherit';
+      const keywordColors = ['rgba(71,229,165,.20)', 'rgba(90,160,255,.22)', 'rgba(191,112,255,.22)', 'rgba(255,170,74,.22)', 'rgba(255,105,135,.22)', 'rgba(43,195,198,.22)'];
+      (Array.isArray(item.keywords) ? item.keywords : []).forEach((keyword, index) => {
+        const tag = document.createElement('span');
+        tag.textContent = keyword;
+        tag.style.cssText = `display:inline-block;padding:5px 10px;border-radius:999px;background:${keywordColors[index % keywordColors.length]};color:rgba(239,248,244,.72);font:inherit`;
+        keywordTags.appendChild(tag);
+      });
+      if (keywordTags.childElementCount) descriptionEl.insertAdjacentElement('afterend', keywordTags);
       const viewMore = document.querySelector('#private-library-view-more');
       let descriptionOffset = Number(item.descriptionNextOffset || item.description.length || 0);
       viewMore.style.display = item.descriptionHasMore ? 'inline-block' : 'none';
