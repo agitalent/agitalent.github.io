@@ -12,7 +12,11 @@
       if (!response.ok || !data.success) throw new Error(data.error || 'The library could not be loaded.');
       const results = document.querySelector('#private-library-catalog-results');
       const pagination = document.querySelector('#private-library-pagination');
-      results.innerHTML = data.listings.map((item) => `<a href="checkout.html?file=${encodeURIComponent(item.id)}" style="display:block;padding:17px 18px;border:1px solid rgba(194,255,231,.16);border-radius:13px;color:#eff8f4;text-decoration:none;white-space:nowrap;overflow-x:auto;overflow-y:hidden">${String(item.title).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</a>`).join('') || '<p style="color:rgba(239,248,244,.7)">No lists match your search.</p>';
+      results.innerHTML = data.listings.map((item) => `<a class="private-library-catalog-link" href="checkout.html?file=${encodeURIComponent(item.id)}" style="display:block;padding:17px 18px;border:1px solid rgba(194,255,231,.16);border-radius:13px;color:#eff8f4;text-decoration:none;white-space:nowrap;overflow-x:auto;overflow-y:hidden;transition:box-shadow .18s ease,border-color .18s ease">${String(item.title).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</a>`).join('') || '<p style="color:rgba(239,248,244,.7)">No lists match your search.</p>';
+      results.querySelectorAll('.private-library-catalog-link').forEach((link) => {
+        link.addEventListener('mouseenter', () => { link.style.borderColor = 'rgba(71,229,165,.7)'; link.style.boxShadow = '0 0 18px rgba(71,229,165,.38)'; });
+        link.addEventListener('mouseleave', () => { link.style.borderColor = 'rgba(194,255,231,.16)'; link.style.boxShadow = 'none'; });
+      });
       const totalPages = Math.max(1, Math.ceil(data.total / data.pageSize));
       pagination.innerHTML = `<button type="button" ${page <= 1 ? 'disabled' : ''}>Previous</button><span>Page ${page} of ${totalPages} · ${data.total} list${data.total === 1 ? '' : 's'}</span><button type="button" ${page >= totalPages ? 'disabled' : ''}>Next</button>`;
       const buttons = pagination.querySelectorAll('button');
