@@ -24,8 +24,8 @@
       buttons[1].addEventListener('click', () => loadCatalog(page + 1));
     };
     const startCatalog = () => {
-      document.title = 'Discover direct insider info';
-      document.body.innerHTML = `<main style="min-height:100vh;padding:clamp(18px,5vw,60px);background:radial-gradient(circle at top left,rgba(71,229,165,.13),transparent 32%),#07110f;color:#eff8f4;font-family:system-ui,-apple-system,sans-serif"><section style="width:100%;max-width:960px;margin:auto"><div style="margin-bottom:16px"><img src="agitalent-logo.png" alt="AGI Talent logo" style="display:block;width:88px;height:auto;object-fit:contain"></div><h1 style="font:400 clamp(2rem,5vw,3.4rem)/1.1 Georgia,serif;margin:0 0 12px">Discover direct insider info</h1><p style="color:rgba(239,248,244,.72);margin:0 0 26px">Browse available lists and securely purchase a download.</p><form id="private-library-search-form" style="display:flex;gap:10px;margin-bottom:24px"><input id="private-library-search" type="search" placeholder="Search list titles" style="flex:1;min-width:0;padding:13px 15px;border:1px solid rgba(194,255,231,.25);border-radius:10px;background:#10251e;color:#eff8f4;font:inherit"><button type="submit" style="padding:13px 18px;border:0;border-radius:10px;background:#47e5a5;color:#07110f;font-weight:700;cursor:pointer">Search</button></form><div id="private-library-catalog-results" style="display:grid;gap:10px"></div><div id="private-library-pagination" style="display:flex;align-items:center;justify-content:center;gap:14px;margin-top:24px;color:rgba(239,248,244,.72)"></div></section><style>#private-library-pagination button{padding:9px 13px;border:1px solid rgba(71,229,165,.5);border-radius:8px;background:transparent;color:#47e5a5;cursor:pointer}#private-library-pagination button:disabled{opacity:.35;cursor:default}@media(max-width:460px){#private-library-search-form{flex-direction:column}}</style></main>`;
+      document.title = 'Checkout';
+      document.body.innerHTML = `<main style="min-height:100vh;padding:clamp(18px,5vw,60px);background:radial-gradient(circle at top left,rgba(71,229,165,.13),transparent 32%),#07110f;color:#eff8f4;font-family:system-ui,-apple-system,sans-serif"><section style="width:100%;max-width:960px;margin:auto"><div style="margin-bottom:16px"><img src="agitalent-logo.png" alt="AGI Talent logo" style="display:block;width:88px;height:auto;object-fit:contain"></div><form id="private-library-search-form" style="display:flex;gap:10px;margin-bottom:24px"><input id="private-library-search" type="search" placeholder="Search list titles to find direct contacts by role or company" style="flex:1;min-width:0;padding:13px 15px;border:1px solid rgba(194,255,231,.25);border-radius:10px;background:#10251e;color:#eff8f4;font:inherit"><button type="submit" style="padding:13px 18px;border:0;border-radius:10px;background:#47e5a5;color:#07110f;font-weight:700;cursor:pointer">Search</button></form><div id="private-library-catalog-results" style="display:grid;gap:10px"></div><div id="private-library-pagination" style="display:flex;align-items:center;justify-content:center;gap:14px;margin-top:24px;color:rgba(239,248,244,.72)"></div></section><style>#private-library-pagination button{padding:9px 13px;border:1px solid rgba(71,229,165,.5);border-radius:8px;background:transparent;color:#47e5a5;cursor:pointer}#private-library-pagination button:disabled{opacity:.35;cursor:default}@media(max-width:460px){#private-library-search-form{flex-direction:column}}</style></main>`;
       document.documentElement.style.overflowX = 'auto';
       document.body.style.cssText += ';min-width:760px;overflow-x:auto';
       const catalogMain = document.querySelector('main');
@@ -40,7 +40,7 @@
     document.addEventListener('DOMContentLoaded', startCatalog, { once: true });
     return;
   }
-  document.title = 'Discover direct insider info';
+  document.title = 'Checkout';
 
   const call = async (name, init = {}) => {
     const response = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
@@ -109,7 +109,7 @@
       paypalAction.insertAdjacentElement('afterend', postPayPalControls);
     try {
       const item = await call(`public-library?file=${encodeURIComponent(fileId)}`);
-      document.title = item.pageTitle || 'Discover direct insider info';
+      document.title = item.pageTitle || 'Checkout';
       document.querySelector('#private-library-title').textContent = item.title || 'Private file';
       const descriptionEl = document.querySelector('#private-library-description');
       let descriptionText = item.description || '';
