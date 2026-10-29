@@ -7,7 +7,7 @@
     const loadCatalog = async (page = 1) => {
       const input = document.querySelector('#private-library-search');
       const query = input ? input.value.trim() : '';
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/public-library?catalog=1&page=${page}&q=${encodeURIComponent(query)}`, { headers: { apikey: SUPABASE_ANON_KEY } });
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/public-library-v2?catalog=1&page=${page}&q=${encodeURIComponent(query)}`, { headers: { apikey: SUPABASE_ANON_KEY } });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.success) throw new Error(data.error || 'The library could not be loaded.');
       const results = document.querySelector('#private-library-catalog-results');
@@ -66,7 +66,7 @@
   });
   const loadCoverAfterText = async () => {
     try {
-      const item = await call(`public-library?file=${encodeURIComponent(fileId)}&cover=1`);
+      const item = await call(`public-library-v2?file=${encodeURIComponent(fileId)}&cover=1`);
       if (!item.coverData) return;
       const cover = document.querySelector('#private-library-cover');
       cover.src = item.coverData;
@@ -108,7 +108,7 @@
       paypalAction.innerHTML = '<span aria-label="Loading payment options" style="display:inline-block;width:28px;height:28px;border:3px solid rgba(71,229,165,.25);border-top-color:#47e5a5;border-radius:50%;animation:private-library-spin .8s linear infinite"></span>';
       paypalAction.insertAdjacentElement('afterend', postPayPalControls);
     try {
-      const item = await call(`public-library?file=${encodeURIComponent(fileId)}`);
+      const item = await call(`public-library-v2?file=${encodeURIComponent(fileId)}`);
       document.title = item.pageTitle || 'Checkout';
       document.querySelector('#private-library-title').textContent = item.title || 'Private file';
       const descriptionEl = document.querySelector('#private-library-description');
@@ -146,7 +146,7 @@
       viewMore.addEventListener('click', async () => {
         viewMore.disabled = true;
         try {
-          const next = await call(`public-library?file=${encodeURIComponent(fileId)}&offset=${descriptionOffset}`);
+          const next = await call(`public-library-v2?file=${encodeURIComponent(fileId)}&offset=${descriptionOffset}`);
           descriptionText += next.description || '';
           renderDescription();
           descriptionOffset = Number(next.descriptionNextOffset || descriptionOffset);
@@ -160,8 +160,8 @@
       await loadPayPal();
       action.replaceChildren();
       await window.paypal.Buttons({
-        createOrder: async () => (await call('library-checkout', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'create',fileId}) })).id,
-        onApprove: async (data) => { const result = await call('library-checkout', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'capture',fileId,orderId:data.orderID}) }); location.assign(result.downloadUrl); },
+        createOrder: async () => (await call('library-checkout-v2', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'create',fileId}) })).id,
+        onApprove: async (data) => { const result = await call('library-checkout-v2', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'capture',fileId,orderId:data.orderID}) }); location.assign(result.downloadUrl); },
         onError: () => setStatus('Checkout could not be completed. Please try again later.', true)
       }).render(action);
       postPayPalControls.style.display = 'flex';
