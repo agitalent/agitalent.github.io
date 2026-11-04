@@ -141,16 +141,46 @@
       });
       if (keywordTags.childElementCount) titleEl.insertAdjacentElement('afterend', keywordTags);
       const viewMore = document.querySelector('#private-library-view-more');
-      let descriptionOffset = Number(item.descriptionNextOffset || item.description.length || 0);
       viewMore.style.display = item.descriptionHasMore ? 'inline-block' : 'none';
       viewMore.addEventListener('click', async () => {
         viewMore.disabled = true;
+        let dialog;
         try {
-          const next = await call(`public-library-v2?file=${encodeURIComponent(fileId)}&offset=${descriptionOffset}`);
-          descriptionText += next.description || '';
-          renderDescription();
-          descriptionOffset = Number(next.descriptionNextOffset || descriptionOffset);
-          viewMore.style.display = next.descriptionHasMore ? 'inline-block' : 'none';
+          await loadPayPal();
+          dialog = document.createElement('dialog');
+          dialog.setAttribute('aria-labelledby', 'preview-unlock-title');
+          dialog.style.cssText = 'width:min(460px,calc(100vw - 32px));box-sizing:border-box;padding:24px;border:1px solid rgba(194,255,231,.2);border-radius:18px;background:#0c1c17;color:#eff8f4;box-shadow:0 24px 80px rgba(0,0,0,.55);font-family:system-ui,-apple-system,sans-serif';
+          dialog.innerHTML = '<h2 id="preview-unlock-title" style="margin:0 0 10px;font-size:1.25rem">Unlock full description</h2><p style="margin:0 0 18px;color:rgba(239,248,244,.72);line-height:1.55">Pay USD 1.00 with PayPal to reveal the rest of this list description.</p><div id="preview-unlock-paypal"></div><button type="button" style="margin-top:14px;padding:9px 14px;border:1px solid rgba(194,255,231,.25);border-radius:9px;background:transparent;color:#eff8f4;cursor:pointer">Cancel</button><p id="preview-unlock-status" role="status" style="min-height:20px;margin:12px 0 0;color:rgba(239,248,244,.72)"></p>';
+          document.body.appendChild(dialog);
+          dialog.querySelector('button').addEventListener('click', () => dialog.close());
+          dialog.addEventListener('close', () => dialog.remove(), { once: true });
+          dialog.showModal();
+          const modalStatus = dialog.querySelector('#preview-unlock-status');
+          await window.paypal.Buttons({
+            createOrder: async () => (await call('library-preview-unlock', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'create', fileId })
+            })).id,
+            onApprove: async (data) => {
+              modalStatus.textContent = 'Verifying payment…';
+              const result = await call('library-preview-unlock', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'capture', fileId, orderId: data.orderID })
+              });
+              descriptionText = String(result.description || '');
+              renderDescription();
+              viewMore.style.display = 'none';
+              setStatus('Payment complete. The full description is now unlocked.');
+              dialog.close();
+            },
+            onError: (error) => {
+              console.error('Preview unlock checkout failed.', error);
+              modalStatus.textContent = 'Payment could not be completed. Please try again.';
+              modalStatus.style.color = '#ff9c9c';
+            }
+          }).render(dialog.querySelector('#preview-unlock-paypal'));
         } catch (error) { setStatus(error.message || 'More description could not be loaded.', true); }
         finally { viewMore.disabled = false; }
       });
