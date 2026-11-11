@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Feeds | AGI Talent</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{color-scheme:dark;--bg:#07110f;--panel:rgba(12,28,23,.92);--line:rgba(194,255,231,.16);--text:#eff8f4;--muted:rgba(239,248,244,.68);--accent:#47e5a5}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at top left,rgba(71,229,165,.13),transparent 32%),var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,sans-serif}main{width:min(100% - 32px,1040px);margin:40px auto}header{display:flex;align-items:center;gap:16px;margin-bottom:24px}header img{width:72px}h1{font:400 clamp(2rem,5vw,3rem)/1.1 Georgia,serif;margin:0}header p{color:var(--muted);margin:7px 0 0}.panel{border:1px solid var(--line);border-radius:20px;background:var(--panel);padding:clamp(18px,4vw,34px);box-shadow:0 28px 70px #0004}.search{display:flex;gap:10px;margin-bottom:22px}.search input{flex:1;min-width:0;padding:13px 15px;border:1px solid var(--line);border-radius:10px;background:#fff1;color:var(--text);font:inherit}.search button,.pagination button{padding:10px 16px;border:1px solid #47e5a580;border-radius:9px;background:#47e5a512;color:var(--accent);font:inherit;cursor:pointer}.search button{font-weight:700}.search button:disabled,.pagination button:disabled{opacity:.4;cursor:default}.status{color:var(--muted);min-height:26px;margin:0 0 10px}.record{padding:19px 0;border-top:1px solid var(--line)}.record h2{font-size:1.05rem;margin:0 0 8px}.record .name{color:var(--accent);font-size:.86rem;font-weight:700;margin-bottom:5px}.record .update{white-space:pre-wrap;overflow-wrap:anywhere}.record time{display:block;color:var(--muted);font-size:.8rem;margin-top:9px}.pagination{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:22px}.pagination span{color:var(--muted)}.empty{color:var(--muted);padding:22px 0;border-top:1px solid var(--line)}@media(max-width:480px){main{margin:18px auto}.search{flex-wrap:wrap}.search input{flex-basis:100%}.search button{width:100%}}
+  </style>
+</head>
+<body>
+  <main>
+    <header><a href="/" aria-label="AGI Talent home"><img src="/agitalent-logo.png" alt="AGI Talent"></a><div><h1>Feeds</h1><p>Search updates and insights from the AGI Talent feed.</p></div></header>
+    <section class="panel">
+      <form class="search" id="feed-search"><input id="query" type="search" placeholder="Search feeds…" aria-label="Search feeds"><button type="submit">Search</button></form>
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+      <div id="results"></div>
+      <nav class="pagination" aria-label="Feed pages"><button id="previous" type="button">← Previous</button><span id="page"></span><button id="next" type="button">Next →</button></nav>
+    </section>
+  </main>
+  <script>
+    (()=>{
+      const SUPABASE_URL='https://zocovvewzpqxspysanyy.supabase.co';
+      const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvY292dmV3enBxeHNweXNhbnl5IiwiaWF0IjoxNzc0MDg2MDU4LCJleHAiOjIwODk2NjIwNTh9.8ekfJ3bcvG-AbLD39xUINwXrpO7RiH9PVgy-xMzeHbE';
+      const supabase=window.supabase?.createClient(SUPABASE_URL,SUPABASE_KEY),PAGE_SIZE=20;
+      let currentPage=1,total=0,searchTerm='';
+      const byId=id=>document.getElementById(id);
+      const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+      async function loadPage(page=1){
+        if(!supabase){byId('status').textContent='Feed service is unavailable.';return;}
+        currentPage=page;byId('status').textContent='Loading…';byId('results').replaceChildren();
+        let query=supabase.from('feeds').select('name,title,update,date',{count:'exact'}).order('date',{ascending:false}).order('id',{ascending:false});
+        if(searchTerm){const safe=searchTerm.replace(/[,%()]/g,' ').trim();if(safe)query=query.or(`name.ilike.%${safe}%,title.ilike.%${safe}%,update.ilike.%${safe}%`);}
+        const{data,error,count}=await query.range((page-1)*PAGE_SIZE,page*PAGE_SIZE-1);
+        if(error){byId('status').textContent=/relation .*feeds.* does not exist|schema cache|PGRST20[25]/i.test(error.message)?'The feeds table is not available in Supabase yet. Please try again later.':`Could not load feeds: ${error.message}`;byId('page').textContent='';return;}
+        total=count||0;byId('status').textContent=total?`${total.toLocaleString()} record${total===1?'':'s'}${searchTerm?' found':''}`:'No matching feeds.';
+        const results=byId('results');
+        if(data?.length)data.forEach(row=>{const item=document.createElement('article');item.className='record';item.innerHTML=`<div class="name">${escapeHtml(row.name)}</div><h2>${escapeHtml(row.title)}</h2><div class="update">${escapeHtml(row.update)}</div><time>${escapeHtml(row.date)}</time>`;results.append(item);});
+        else results.innerHTML='<div class="empty">Try another keyword.</div>';
+        byId('page').textContent=total?`Page ${currentPage} of ${Math.max(1,Math.ceil(total/PAGE_SIZE))}`:'';
+        byId('previous').disabled=currentPage<=1;byId('next').disabled=currentPage*PAGE_SIZE>=total;
+      }
+      byId('feed-search').addEventListener('submit',event=>{event.preventDefault();searchTerm=byId('query').value.trim();loadPage(1);});
+      byId('previous').addEventListener('click',()=>loadPage(currentPage-1));
+      byId('next').addEventListener('click',()=>loadPage(currentPage+1));
+      loadPage();
+    })();
+  </script>
+</body>
+</html>
