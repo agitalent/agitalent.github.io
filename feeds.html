@@ -7,30 +7,433 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root{color-scheme:dark;--bg:#07110f;--panel:rgba(12,28,23,.92);--line:rgba(194,255,231,.16);--text:#eff8f4;--muted:rgba(239,248,244,.68);--accent:#47e5a5}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at top left,rgba(71,229,165,.13),transparent 32%),var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,sans-serif}main{width:min(100% - 32px,1040px);margin:40px auto}.brand{display:inline-flex;padding:24px 28px;margin-bottom:16px}.brand img{display:block;width:88px;height:auto;object-fit:contain}.panel{border:1px solid var(--line);border-radius:20px;background:var(--panel);padding:clamp(18px,4vw,34px);box-shadow:0 28px 70px #0004}.search{display:flex;gap:10px;margin-bottom:22px}.search input{flex:1;min-width:0;padding:13px 15px;border:1px solid var(--line);border-radius:10px;background:#fff1;color:var(--text);font:inherit}.search button,.pagination button,.pagination input{padding:10px 16px;border:1px solid #47e5a580;border-radius:9px;background:#47e5a512;color:var(--accent);font:inherit}.search button,.pagination button{cursor:pointer}.search button{font-weight:700}.search button:disabled,.pagination button:disabled{opacity:.4;cursor:default}.pagination input{width:82px;text-align:center}.status{color:var(--muted);min-height:26px;margin:0 0 10px}.record{padding:19px 0;border-top:1px solid var(--line)}.record h2{font-size:1.05rem;font-weight:400;font-style:italic;margin:0 0 8px}.record .name{color:var(--accent);font-size:.86rem;font-weight:700;margin-bottom:5px}.record .update{white-space:pre-wrap;overflow-wrap:anywhere}.record time{display:block;color:var(--muted);font-size:.8rem;margin-top:9px}.pagination{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:22px;flex-wrap:wrap}.pagination span{color:var(--muted)}.empty{color:var(--muted);padding:22px 0;border-top:1px solid var(--line)}@media(max-width:480px){main{margin:18px auto}.search{flex-wrap:wrap}.search input{flex-basis:100%}.search button{width:100%}}
-    .auth-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:20px}.auth-actions button,.auth-dialog button{padding:10px 16px;border:1px solid #47e5a580;border-radius:9px;background:#47e5a512;color:var(--accent);font:inherit;cursor:pointer}.auth-dialog{color:var(--text);background:#0c1c17;border:1px solid var(--line);border-radius:20px;width:min(440px,calc(100% - 32px));padding:24px}.auth-dialog::backdrop{background:#0009}.auth-dialog label{display:block;margin:12px 0}.auth-dialog input{display:block;width:100%;padding:10px;border:1px solid var(--line);border-radius:9px;background:#fff1;color:var(--text);font:inherit}.auth-dialog h2{margin-top:0}.pagination input:disabled,.auth-dialog button:disabled{opacity:.4}.auth-actions [hidden],.auth-dialog [hidden]{display:none}
+            @font-face {
+            font-family: 'Untitled Sans';
+            src: url('https://cdn.prod.website-files.com/6668a687e71e2722fccb8357/66cca78e3903aa59967c21d1_UntitledSansWeb-Regular.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Untitled Serif';
+            src: url('https://cdn.prod.website-files.com/6668a687e71e2722fccb8357/66cca7a4d1972b21455d9e20_UntitledSerifWeb-Regular.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+
+.talents-auth{
+            --bg: #07110f;
+            --panel: rgba(10, 24, 20, 0.78);
+            --panel-strong: rgba(12, 28, 23, 0.92);
+            --line: rgba(194, 255, 231, 0.14);
+            --text: #eff8f4;
+            --muted: rgba(239, 248, 244, 0.68);
+            --accent: #47e5a5;
+            --accent-2: #7fffd4;
+            --danger: #ff8b8b;
+            --page-bg:
+                radial-gradient(circle at top left, rgba(71, 229, 165, 0.12), transparent 28%),
+                radial-gradient(circle at 80% 10%, rgba(127, 255, 212, 0.08), transparent 24%),
+                linear-gradient(180deg, #07110f 0%, #091612 52%, #06100d 100%);
+            --account-card-bg: linear-gradient(180deg, rgba(12, 28, 23, 0.98), rgba(8, 19, 15, 0.96));
+            --icon-bg: rgba(71, 229, 165, 0.08);
+            --icon-border: rgba(71, 229, 165, 0.18);
+            --button-solid-text: #062018;
+            --button-solid-bg: linear-gradient(180deg, #7fffd4, #47e5a5);
+            --button-solid-icon-border: rgba(6, 32, 24, 0.18);
+            --button-secondary-bg: rgba(71, 229, 165, 0.08);
+            --button-secondary-border: rgba(71, 229, 165, 0.22);
+            --soft-border: rgba(255, 255, 255, 0.08);
+            --soft-border-light: rgba(255, 255, 255, 0.06);
+            --danger-border: rgba(255, 139, 139, 0.25);
+            --soft-bg: rgba(255, 255, 255, 0.03);
+            --soft-bg-2: rgba(255, 255, 255, 0.02);
+            --input-bg: rgba(255, 255, 255, 0.04);
+            --modal-backdrop: rgba(4, 10, 8, 0.72);
+        font-family:'Untitled Sans',system-ui,sans-serif;--chip-text:#eff8f4;--account-label:rgba(239,248,244,.68);--account-value:#eff8f4;}
+.topbar-actions,
+        .topbar-user{
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+.topbar-user{
+            position: relative;
+        }
+.user-chip{
+            display: inline-flex;
+            align-items: center;
+            min-height: 48px;
+            padding: 0 16px;
+            border-radius: 999px;
+            border: 1px solid var(--icon-border);
+            background: var(--icon-bg);
+            color: var(--chip-text);
+            font-weight: 700;
+            max-width: 100%;
+            overflow-wrap: anywhere;
+            cursor: pointer;
+        }
+.user-chip::after{
+            content: '▾';
+            margin-left: 10px;
+            font-size: 0.82rem;
+            color: rgba(127, 255, 212, 0.88);
+        }
+.account-card{
+            position: absolute;
+            top: calc(100% + 12px);
+            right: 0;
+            width: min(320px, 78vw);
+            display: none;
+            padding: 16px;
+            border-radius: 22px;
+            border: 1px solid var(--icon-border);
+            background: var(--account-card-bg);
+            box-shadow: 0 28px 70px rgba(0, 0, 0, 0.34);
+            backdrop-filter: blur(18px);
+            z-index: 20;
+            gap: 12px;
+        }
+.account-card.open{
+            display: grid;
+        }
+.account-card-row{
+            display: grid;
+            gap: 4px;
+            padding: 12px 14px;
+            border-radius: 16px;
+            border: 1px solid var(--soft-border-light);
+            background: var(--soft-bg);
+        }
+.account-card-label{
+            font-size: 11px;
+            letter-spacing: 0.11em;
+            text-transform: uppercase;
+            color: var(--account-label);
+            font-weight: 700;
+        }
+.account-card-value{
+            color: var(--account-value);
+            font-size: 0.98rem;
+            line-height: 1.5;
+        }
+.account-card-actions{
+            display: grid;
+            gap: 10px;
+        }
+[data-icon]::before{
+            content: attr(data-icon);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.45em;
+            height: 1.45em;
+            margin-right: 0.55em;
+            border-radius: 999px;
+            border: 1px solid var(--icon-border);
+            background: var(--icon-bg);
+            color: var(--accent-2);
+            font-size: 0.84em;
+            line-height: 1;
+            vertical-align: middle;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+.button[data-icon]::before,
+        .button-secondary[data-icon]::before,
+        button[data-icon]::before,
+        .link[data-icon]::before{
+            width: 1.35em;
+            height: 1.35em;
+            margin-right: 0.5em;
+        }
+.button[data-icon]::before{
+            color: var(--button-solid-text);
+            border-color: var(--button-solid-icon-border);
+            background: rgba(255, 255, 255, 0.24);
+        }
+.stack{
+            display: grid;
+            gap: 14px;
+            margin-top: 20px;
+        }
+.field label{
+            display: block;
+            margin-bottom: 8px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.86);
+        }
+.field input,
+        .field select,
+        .field textarea{
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+            border: 1px solid var(--soft-border);
+            border-radius: 16px;
+            background: var(--input-bg);
+            color: var(--text);
+            padding: 13px 14px;
+            font: inherit;
+        }
+.field textarea{
+            min-height: 160px;
+            resize: vertical;
+        }
+.field small{
+            display: block;
+            margin-top: 8px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+.actions{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 6px;
+        }
+.signup-actions{
+            width: 100%;
+        }
+.signup-actions .button,
+        .signup-actions .button-secondary{
+            flex: 1 1 220px;
+            justify-content: center;
+        }
+.button,
+        .button-secondary{
+            border-radius: 16px;
+            padding: 12px 16px;
+            font: inherit;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.18s ease, border-color 0.18s ease;
+        }
+.button-secondary{
+            border: 1px solid var(--button-secondary-border);
+            color: var(--text);
+            background: var(--button-secondary-bg);
+        }
+.google-signup-button{
+            border-color: rgba(66, 133, 244, 0.28);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(66, 133, 244, 0.08));
+        }
+.google-signup-button[data-icon]::before{
+            color: #4285f4;
+            border-color: rgba(66, 133, 244, 0.24);
+            background: rgba(66, 133, 244, 0.12);
+        }
+.button:hover,
+        .button-secondary:hover{
+            transform: translateY(-1px);
+        }
+.button:disabled,
+        .button-secondary:disabled{
+            opacity: 0.48;
+            cursor: not-allowed;
+            transform: none;
+        }
+.modal-backdrop{
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: var(--modal-backdrop);
+            backdrop-filter: blur(14px);
+            z-index: 30;
+        }
+.modal-backdrop.open{
+            display: flex;
+        }
+.modal-head{
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+.modal-head h3{
+            margin: 0;
+            font-size: 1.3rem;
+        }
+.modal-copy{
+            margin: 8px 0 0;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+.modal-close{
+            border: 1px solid var(--soft-border);
+            background: var(--soft-bg);
+            color: var(--text);
+            width: 42px;
+            height: 42px;
+            border-radius: 999px;
+            cursor: pointer;
+            font: inherit;
+            font-size: 1.1rem;
+        }
+.modal-status{
+            min-height: 24px;
+            margin-top: 12px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+.modal-status.error{
+            color: var(--danger);
+        }
+.button-danger{
+            border: 1px solid var(--danger-border);
+            color: var(--danger);
+            background: rgba(255, 139, 139, 0.08);
+        }
+.topbar-actions,
+            .topbar-user{
+                width: auto;
+                justify-content: flex-end;
+            }
+.feed-topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px}.feed-topbar .brand{margin-bottom:0}.modal-backdrop{overflow-y:auto}.modal{max-height:calc(100dvh - 48px);overflow-y:auto}.modal-close{flex-shrink:0}.pagination input:disabled{opacity:.4}@media(max-width:480px){.feed-topbar{flex-wrap:wrap}.feed-topbar .talents-auth{margin-left:auto}}
+.button{
+            border: 0;
+            color: var(--button-solid-text);
+            background: var(--button-solid-bg);
+        }
+.modal{
+            width: min(100%, 460px);
+            border-radius: 28px;
+            border: 1px solid var(--soft-border);
+            background: linear-gradient(180deg, var(--panel-strong), var(--panel));
+            box-shadow: 0 28px 90px rgba(0, 0, 0, 0.45);
+            padding: 24px;
+        }
   </style>
 </head>
 <body>
   <main>
+    <header class="feed-topbar">
     <a class="brand" href="/" aria-label="AGI Talent home"><img src="/agitalent-logo.png" alt="AGI Talent"></a>
+      <div class="topbar-actions talents-auth" id="topbar-auth-actions"><button class="button-secondary" data-icon="◌" id="topbar-login-button" type="button">Log in</button><button class="button" data-icon="✦" id="topbar-signup-button" type="button">Sign Up</button></div>
+<div class="topbar-user talents-auth" id="topbar-user" style="display:none;">
+                <button class="user-chip" id="topbar-username" type="button" aria-expanded="false" aria-controls="topbar-account-card">username</button>
+                <div class="account-card" id="topbar-account-card">
+                    <div class="account-card-row">
+                        <div class="account-card-label">Account valid date</div>
+                        <div class="account-card-value" id="account-valid-date">-</div>
+                    </div>
+                    <div class="account-card-row">
+                        <div class="account-card-label">Account expire date</div>
+                        <div class="account-card-value" id="account-expire-date">-</div>
+                    </div>
+                    <div class="account-card-row">
+                        <div class="account-card-label">Account type</div>
+                        <div class="account-card-value" id="account-type">-</div>
+                    </div>
+                    <div class="account-card-actions">
+                        <button class="button-secondary" data-icon="↻" id="topbar-renew-button" type="button" style="display:none;">Renew Plan</button>
+                        <button class="button-secondary" data-icon="◌" id="topbar-change-password-button" type="button">Password Reset</button>
+                        <button class="button-secondary button-danger" data-icon="⇠" id="topbar-logout-button" type="button">Logout</button>
+                    </div>
+                </div>
+            </div>
+    </header>
     <section class="panel">
-      <div class="auth-actions"><span id="account-status" role="status">Log in or sign up to browse more pages.</span><button id="login" type="button">Log in</button><button id="signup" type="button">Sign Up</button><button id="logout" type="button" hidden>Log out</button></div>
       <form class="search" id="feed-search"><input id="query" type="search" placeholder="Search keywords…" aria-label="Search keywords"><button type="submit">Search</button></form>
       <p class="status" id="status" role="status" aria-live="polite"></p>
       <div id="results"></div>
       <nav class="pagination" aria-label="Feed pages"><button id="previous" type="button">← Previous</button><span id="page"></span><label for="page-number">Go to</label><input id="page-number" type="number" min="1" step="1" inputmode="numeric" aria-label="Page number"><button id="go" type="button">Go</button><button id="next" type="button">Next →</button></nav>
     </section>
   </main>
-  <dialog id="auth-dialog" class="auth-dialog" aria-labelledby="auth-title">
-    <form id="auth-form">
-      <h2 id="auth-title">Log in</h2>
-      <label>Username<input id="auth-username" autocomplete="username" required></label>
-      <label>Password<input id="auth-password" type="password" autocomplete="current-password" required></label>
-      <label id="invitation-field" hidden>Invitation code<input id="auth-code" autocomplete="off" placeholder="ABCD-EFGH-IJKL"></label>
-      <p id="auth-error" role="alert"></p>
-      <button id="auth-submit" type="submit">Log in</button> <button id="auth-close" type="button">Cancel</button>
-    </form>
-  </dialog>
+    <div class="modal-backdrop talents-auth" id="login-modal" aria-hidden="true">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
+            <div class="modal-head">
+                <div>
+                    <h3 data-icon="◌" id="login-modal-title">Log in</h3>
+                    <p class="modal-copy">Sign in to browse candidate records and use your current account permissions.</p>
+                </div>
+                <button class="modal-close" type="button" data-close-modal="login-modal" aria-label="Close log in window">✕</button>
+            </div>
+            <div class="stack" style="margin-top:0;">
+                <div class="field">
+                    <label data-icon="◎" for="login-modal-username">Username</label>
+                    <input id="login-modal-username" type="text" autocomplete="username" placeholder="Username">
+                </div>
+                <div class="field">
+                    <label data-icon="◌" for="login-modal-password">Password</label>
+                    <input id="login-modal-password" type="password" autocomplete="current-password" placeholder="Password">
+                </div>
+            </div>
+            <div class="actions signup-actions">
+                <button class="button" data-icon="◌" id="login-modal-submit" type="button">Log in</button>
+                <button class="button-secondary google-signup-button" data-icon="G" id="login-modal-google" type="button">Sign in with Google</button>
+            </div>
+            <div class="modal-status" id="login-modal-status"></div>
+        </div>
+    </div>
+
+    <div class="modal-backdrop talents-auth" id="signup-modal" aria-hidden="true">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="signup-modal-title">
+            <div class="modal-head">
+                <div>
+                    <h3 data-icon="✦" id="signup-modal-title">Sign Up</h3>
+                    <p class="modal-copy">Create a trial user account with a valid invitation code.</p>
+                </div>
+                <button class="modal-close" type="button" data-close-modal="signup-modal" aria-label="Close sign up window">✕</button>
+            </div>
+            <div class="stack" style="margin-top:0;">
+                <div class="field">
+                    <label data-icon="◎" for="signup-modal-username">Username</label>
+                    <input id="signup-modal-username" type="text" autocomplete="username" placeholder="Choose a username">
+                </div>
+                <div class="field">
+                    <label data-icon="◌" for="signup-modal-password">Password</label>
+                    <input id="signup-modal-password" type="password" autocomplete="new-password" placeholder="At least 8 characters">
+                </div>
+                <div class="field">
+                    <label data-icon="◇" for="signup-modal-code">Invitation code</label>
+                    <input id="signup-modal-code" type="text" autocomplete="off" placeholder="ABCD-EFGH-IJKL">
+                </div>
+            </div>
+            <div class="actions signup-actions">
+                <button class="button" data-icon="✦" id="signup-modal-submit" type="button">Create Account</button>
+                <button class="button-secondary google-signup-button" data-icon="G" id="signup-modal-google" type="button">Sign up with Google</button>
+            </div>
+            <div class="modal-status" id="signup-modal-status"></div>
+        </div>
+    </div>
+
+    <div class="modal-backdrop talents-auth" id="change-password-modal" aria-hidden="true">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="change-password-modal-title">
+            <div class="modal-head">
+                <div>
+                    <h3 data-icon="◌" id="change-password-modal-title">Password Reset</h3>
+                    <p class="modal-copy">Update your account password. Your session will continue with the new password after a successful change.</p>
+                </div>
+                <button class="modal-close" type="button" data-close-modal="change-password-modal" aria-label="Close change password window">✕</button>
+            </div>
+            <div class="stack" style="margin-top:0;">
+                <div class="field">
+                    <label data-icon="◌" for="change-password-current">Current Password</label>
+                    <input id="change-password-current" type="password" autocomplete="current-password" placeholder="Current password">
+                </div>
+                <div class="field">
+                    <label data-icon="◌" for="change-password-new">New Password</label>
+                    <input id="change-password-new" type="password" autocomplete="new-password" placeholder="New password">
+                </div>
+            </div>
+            <div class="actions">
+                <button class="button" data-icon="✓" id="change-password-submit" type="button">Password Reset</button>
+            </div>
+            <div class="modal-status" id="change-password-status"></div>
+        </div>
+    </div>
+
+
+  <script src="/feeds-auth.js"></script>
   <script>
     (()=>{
       const SUPABASE_URL='https://zocovvewzpqxspysanyy.supabase.co';
@@ -38,68 +441,17 @@
       const supabase=window.supabase?.createClient(SUPABASE_URL,SUPABASE_KEY),PAGE_SIZE=20;
       let currentPage=1,total=0,searchTerm='';
       const byId=id=>document.getElementById(id);
-      const SESSION_KEY='talentsAdminSession';
-      let user=null,authMode='login',authVersion=0,loading=false,loadVersion=0;
+      const auth=window.createFeedsAuth(supabase,()=>{updateControls();if(!auth.user&&currentPage>1)loadPage(1);});
+      let loading=false,loadVersion=0;
       function updateControls(){
-        byId('previous').disabled=!user||loading||currentPage<=1;
-        byId('next').disabled=!user||loading||currentPage*PAGE_SIZE>=total;
-        byId('go').disabled=!user||loading||!total;
-        byId('page-number').disabled=!user||loading||!total;
-        byId('login').hidden=Boolean(user);byId('signup').hidden=Boolean(user);byId('logout').hidden=!user;
-        byId('account-status').textContent=user?`Signed in as ${user.username}`:'Log in or sign up to browse more pages.';
+        byId('previous').disabled=!auth.user||loading||currentPage<=1;
+        byId('next').disabled=!auth.user||loading||currentPage*PAGE_SIZE>=total;
+        byId('go').disabled=!auth.user||loading||!total;
+        byId('page-number').disabled=!auth.user||loading||!total;
       }
-      async function restoreSession(){
-        const version=++authVersion;
-        user=null;updateControls();
-        try{
-          const saved=JSON.parse(localStorage.getItem(SESSION_KEY)||'null');
-          if(saved?.username&&saved?.password&&supabase){
-            const {data,error}=await supabase.rpc('authenticate_app_user',{p_username:saved.username,p_password:saved.password});
-            if(version!==authVersion)return;
-            if(!error&&data?.username)user=data;
-          }
-        }catch(_error){/* Invalid or unavailable sessions leave browsing on the first page. */}
-        if(version!==authVersion)return;
-        updateControls();
-        if(!user&&currentPage>1)loadPage(1);
-      }
-      function openAuth(mode){
-        authMode=mode;byId('auth-form').reset();byId('auth-error').textContent='';
-        const signup=mode==='signup';
-        byId('auth-title').textContent=byId('auth-submit').textContent=signup?'Sign Up':'Log in';
-        byId('invitation-field').hidden=!signup;byId('auth-code').required=signup;
-        byId('auth-password').autocomplete=signup?'new-password':'current-password';
-        byId('auth-dialog').showModal();
-      }
-      byId('login').addEventListener('click',()=>openAuth('login'));
-      byId('signup').addEventListener('click',()=>openAuth('signup'));
-      byId('auth-close').addEventListener('click',()=>byId('auth-dialog').close());
-      byId('auth-form').addEventListener('submit',async event=>{
-        event.preventDefault();const version=++authVersion;
-        byId('auth-submit').disabled=true;byId('auth-error').textContent='';
-        try{
-          if(!supabase)throw new Error('Account service is unavailable.');
-          const username=byId('auth-username').value.trim(),password=byId('auth-password').value;
-          const args={p_username:username,p_password:password};
-          if(authMode==='signup')args.p_invitation_code=byId('auth-code').value.trim().toUpperCase().replace(/\s+/g,'').replace(/[^A-Z0-9-]/g,'');
-          const {data,error}=await supabase.rpc(authMode==='signup'?'register_app_user_with_invitation':'authenticate_app_user',args);
-          if(version!==authVersion)return;
-          if(error)throw error;
-          if(!data?.username)throw new Error('Unable to sign in. Please check your details.');
-          localStorage.setItem(SESSION_KEY,JSON.stringify({username:data.username,password}));
-          user=data;updateControls();byId('auth-form').reset();byId('auth-dialog').close();
-        }catch(error){byId('auth-error').textContent=error.message||'Unable to sign in.';}
-        finally{byId('auth-submit').disabled=false;}
-      });
-      byId('logout').addEventListener('click',()=>{
-        ++authVersion;user=null;localStorage.removeItem(SESSION_KEY);updateControls();
-        supabase?.auth.signOut().catch(()=>null);loadPage(1);
-      });
-      window.addEventListener('storage',event=>{if(event.key===SESSION_KEY||event.key===null)restoreSession();});
-      window.addEventListener('focus',()=>restoreSession());
       const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
       async function loadPage(page=1){
-        if(!Number.isInteger(page)||page<1||(!user&&page!==1))return;
+        if(!Number.isInteger(page)||page<1||(!auth.user&&page!==1))return;
         if(!supabase){byId('status').textContent='Feed service is unavailable.';return;}
         const version=++loadVersion;loading=true;updateControls();
         currentPage=page;byId('status').textContent='Loading…';byId('results').replaceChildren();
@@ -121,9 +473,9 @@
       byId('feed-search').addEventListener('submit',event=>{event.preventDefault();searchTerm=byId('query').value.trim();loadPage(1);});
       byId('previous').addEventListener('click',()=>loadPage(currentPage-1));
       byId('next').addEventListener('click',()=>loadPage(currentPage+1));
-      byId('go').addEventListener('click',()=>{if(!user)return;const requested=Number.parseInt(byId('page-number').value,10),lastPage=Math.max(1,Math.ceil(total/PAGE_SIZE));if(Number.isInteger(requested)&&requested>=1&&requested<=lastPage)loadPage(requested);});
+      byId('go').addEventListener('click',()=>{if(!auth.user)return;const requested=Number.parseInt(byId('page-number').value,10),lastPage=Math.max(1,Math.ceil(total/PAGE_SIZE));if(Number.isInteger(requested)&&requested>=1&&requested<=lastPage)loadPage(requested);});
       byId('page-number').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();byId('go').click();}});
-      updateControls();restoreSession();loadPage();
+      updateControls();auth.start();loadPage();
     })();
   </script>
 </body>
