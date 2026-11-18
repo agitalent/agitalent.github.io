@@ -229,5 +229,19 @@ window.createFeedsAuth = function (client, onChange) {
   });
   window.addEventListener('storage', event => { if (event.key === sessionKey || event.key === null) restore(); });
   window.addEventListener('focus', () => restore());
-  return { get user() { return user; }, async start() { render(); if (!await callback()) await restore(); } };
+  return {
+    get user() { return user; },
+    get canManageFeeds() { return user?.username === 'owenheisenberg' && user?.rights === 'admin'; },
+    async manageFeed(action, row, record = null) {
+      if (!this.canManageFeeds) throw new Error('Only owenheisenberg can manage feed records.');
+      const { id, name, title, update, date } = row;
+      const { data, error } = await client.rpc('admin_manage_feed', {
+        p_username: user.username, p_password: mode === 'google' ? null : password,
+        p_action: action, p_id: id, p_original: { name, title, update, date }, p_record: record
+      });
+      if (error) throw error;
+      return data;
+    },
+    async start() { render(); if (!await callback()) await restore(); }
+  };
 };

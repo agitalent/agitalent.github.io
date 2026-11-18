@@ -311,6 +311,7 @@
             box-shadow: 0 28px 90px rgba(0, 0, 0, 0.45);
             padding: 24px;
         }
+    .feed-record-actions{display:flex;gap:10px;margin-top:12px}.feed-record-actions button{padding:8px 14px;border:1px solid #47e5a580;border-radius:9px;background:#47e5a512;color:var(--accent);font:inherit;cursor:pointer}.feed-record-actions button:disabled{opacity:.4;cursor:default}.feed-record-actions .feed-delete{color:#ff8b8b;border-color:#ff8b8b60}.feed-editor{display:grid;gap:12px;margin-top:12px}.feed-editor label{display:grid;gap:5px;color:var(--muted)}.feed-editor input,.feed-editor textarea{width:100%;min-width:0;padding:10px;border:1px solid var(--line);border-radius:9px;background:#fff1;color:var(--text);font:inherit}.feed-editor textarea{min-height:160px;resize:vertical}.feed-edit-status{color:#ff8b8b;margin:8px 0 0}
   </style>
 </head>
 <body>
@@ -434,6 +435,7 @@
 
 
   <script src="/feeds-auth.js"></script>
+  <script src="/feeds-admin.js"></script>
   <script>
     (()=>{
       const SUPABASE_URL='https://zocovvewzpqxspysanyy.supabase.co';
@@ -441,7 +443,8 @@
       const supabase=window.supabase?.createClient(SUPABASE_URL,SUPABASE_KEY),PAGE_SIZE=20;
       let currentPage=1,total=0,searchTerm='';
       const byId=id=>document.getElementById(id);
-      const auth=window.createFeedsAuth(supabase,()=>{updateControls();if(!auth.user&&currentPage>1)loadPage(1);});
+      const auth=window.createFeedsAuth(supabase,()=>{updateControls();admin.refresh();if(!auth.user&&currentPage>1)loadPage(1);});
+      const admin=window.createFeedsAdmin(auth,()=>loadPage(currentPage));
       let loading=false,loadVersion=0;
       function updateControls(){
         byId('previous').disabled=!auth.user||loading||currentPage<=1;
@@ -455,15 +458,18 @@
         if(!supabase){byId('status').textContent='Feed service is unavailable.';return;}
         const version=++loadVersion;loading=true;updateControls();
         currentPage=page;byId('status').textContent='Loading…';byId('results').replaceChildren();
-        let query=supabase.from('feeds').select('name,title,update,date',{count:'exact'}).order('date',{ascending:false}).order('id',{ascending:false});
+        let query=supabase.from('feeds').select('id,name,title,update,date',{count:'exact'}).order('date',{ascending:false}).order('id',{ascending:false});
         if(searchTerm){const safe=searchTerm.replace(/[,%()]/g,' ').trim();if(safe)query=query.or(`name.ilike.%${safe}%,title.ilike.%${safe}%,update.ilike.%${safe}%`);}
         const{data,error,count}=await query.range((page-1)*PAGE_SIZE,page*PAGE_SIZE-1);
         if(version!==loadVersion)return;
         loading=false;
         if(error){total=0;updateControls();byId('status').textContent=/relation .*feeds.* does not exist|schema cache|PGRST20[25]/i.test(error.message)?'The feeds table is not available in Supabase yet. Please try again later.':`Could not load feeds: ${error.message}`;byId('page').textContent='';return;}
-        total=count||0;byId('status').textContent=total?`${total.toLocaleString()} record${total===1?'':'s'}${searchTerm?' found':''}`:'No matching feeds.';
+        total=count||0;
+        if(page>Math.max(1,Math.ceil(total/PAGE_SIZE)))return loadPage(Math.max(1,Math.ceil(total/PAGE_SIZE)));
+        byId('status').textContent=total?`${total.toLocaleString()} record${total===1?'':'s'}${searchTerm?' found':''}`:'No matching feeds.';
         const results=byId('results');
-        if(data?.length)data.forEach(row=>{const item=document.createElement('article');item.className='record';item.innerHTML=`<div class="name">${escapeHtml(row.name)}</div><h2>${escapeHtml(row.title)}</h2><div class="update">${escapeHtml(row.update)}</div><time>${escapeHtml(row.date)}</time>`;results.append(item);});
+        admin.clear();
+        if(data?.length)data.forEach(row=>{const item=document.createElement('article');item.className='record';item.innerHTML=`<div class="name">${escapeHtml(row.name)}</div><h2>${escapeHtml(row.title)}</h2><div class="update">${escapeHtml(row.update)}</div><time>${escapeHtml(row.date)}</time>`;results.append(item);admin.attach(item,row);});
         else results.innerHTML='<div class="empty">Try another keyword.</div>';
         byId('page').textContent=total?`Page ${currentPage} of ${Math.max(1,Math.ceil(total/PAGE_SIZE))}`:'';
         byId('page-number').max=Math.max(1,Math.ceil(total/PAGE_SIZE));
