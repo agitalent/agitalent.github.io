@@ -1,8 +1,5 @@
 window.createFeedsCandidates = function (client, auth, escapeHtml) {
-  let enabled = true, revision = 0, opener = null, identity = '';
-  const toggle = document.getElementById('candidate-cards-toggle');
-  const setting = document.getElementById('candidate-cards-setting');
-  const settingStatus = document.getElementById('candidate-cards-status');
+  let revision = 0, opener = null, identity = '';
   const dialog = document.getElementById('candidate-dialog');
   const contents = document.getElementById('candidate-dialog-content');
   function close() { ++revision; if (dialog.open) dialog.close(); contents.replaceChildren(); opener?.focus(); }
@@ -12,25 +9,7 @@ window.createFeedsCandidates = function (client, auth, escapeHtml) {
   function refresh() {
     const nextIdentity = `${auth.user?.username || ''}:${auth.user?.rights || ''}`;
     if (identity !== nextIdentity) { identity = nextIdentity; close(); }
-    setting.hidden = !auth.canManageFeeds;
-    toggle.checked = enabled;
-    if (!enabled) close();
-    document.querySelectorAll('.candidate-name-button').forEach(button => { button.disabled = !enabled; });
   }
-  async function loadSetting() {
-    if (!client) return;
-    const { data, error } = await client.from('feed_display_settings').select('candidate_cards_enabled').eq('id', true).maybeSingle();
-    if (error) { settingStatus.textContent = 'Candidate card setting is unavailable: ' + error.message; toggle.disabled = true; }
-    else { enabled = data?.candidate_cards_enabled !== false; toggle.disabled = false; settingStatus.textContent = ''; }
-    refresh();
-  }
-  toggle.addEventListener('change', async () => {
-    const next = toggle.checked; toggle.disabled = true; settingStatus.textContent = 'Saving…';
-    try { await auth.setCandidateCardsEnabled(next); enabled = next; settingStatus.textContent = 'Saved.'; }
-    catch (error) { settingStatus.textContent = error.message || 'Could not save the setting.'; }
-    finally { toggle.disabled = false; refresh(); }
-  });
-  window.addEventListener('focus', loadSetting);
   function profileCard(profile) {
     const fields = [['name_or_handle', 'name_or_handle'], ['email', 'email'], ['location', 'location'], ['seniority', 'brief_background']];
     const cells = fields.map(([key, label]) => {
@@ -42,7 +21,7 @@ window.createFeedsCandidates = function (client, auth, escapeHtml) {
     return `<article class="candidate-card"><h3>${escapeHtml(profile.name_or_handle || 'Profile')}</h3><div class="candidate-field-grid">${cells}</div></article>`;
   }
   async function open(name, button) {
-    if (!enabled || !client) return;
+    if (button.dataset.showCard !== 'true' || !client) return;
     opener = button; const request = ++revision;
     contents.textContent = 'Loading candidate profiles…';
     dialog.showModal();
@@ -68,10 +47,10 @@ window.createFeedsCandidates = function (client, auth, escapeHtml) {
     }
   }
   return {
-    refresh, loadSetting,
-    attach(element, name) {
+    refresh,
+    attach(element, name, showCard = true) {
       const button = document.createElement('button'); button.type = 'button'; button.className = 'candidate-name-button';
-      button.textContent = name || ''; button.disabled = !enabled;
+      button.textContent = name || ''; button.dataset.showCard = String(showCard !== false); button.disabled = showCard === false;
       button.addEventListener('click', () => open(String(name || ''), button));
       element.replaceChildren(button);
     }

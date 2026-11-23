@@ -42,12 +42,17 @@ window.createFeedsAdmin = function (auth, reload) {
         if (key === 'date') { input.type = 'date'; input.required = true; }
         input.value = row[key] ?? ''; fields[key] = input; label.append(input); editor.append(label);
       }
+      const cardLabel = document.createElement('label'); cardLabel.className = 'feed-card-toggle';
+      const cardInput = document.createElement('input'); cardInput.type = 'checkbox';
+      cardInput.checked = row.show_name_card !== false; fields.show_name_card = cardInput;
+      cardLabel.append(cardInput, document.createTextNode(' Show name card'));
+      editor.append(cardLabel);
       const buttons = document.createElement('div'); buttons.className = 'feed-record-actions';
       const save = button('Save', () => {}); save.type = 'submit';
       buttons.append(save, button('Cancel', () => { cancel(); message.textContent = ''; message.hidden = true; })); editor.append(buttons);
       editor.addEventListener('submit', event => {
         event.preventDefault();
-        if (editor.reportValidity()) mutate('save', Object.fromEntries(Object.entries(fields).map(([key, input]) => [key, input.value])));
+        if (editor.reportValidity()) mutate('save', Object.fromEntries(Object.entries(fields).map(([key, input]) => [key, input.type === 'checkbox' ? input.checked : input.value])));
       });
       article.insertBefore(editor, message); edit.disabled = true; fields.name.focus();
     });
