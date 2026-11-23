@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Talent Search | AGI Talent</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script src="https://www.paypal.com/sdk/js?client-id=ATyMq6tHaEMTYvKmLXdrh-nesh9usI5XAf16TYeReTAQi2WSQfzBz9VyPEu4DDT1FnuH2-TUoSj6yURJ&currency=USD&intent=capture"></script>
     <style>
         @font-face {
@@ -1467,6 +1468,11 @@
                             <div class="admin-status" id="admin-add-user-status"></div>
                         </div>
                         <div class="status" id="status">Login is required to browse candidate records.</div>
+                        <div class="control-box" id="admin-feeds-panel" style="display:none;">
+                            <strong data-icon="▤">Feeds</strong>
+                            <div class="user-actions"><button class="button-secondary" id="admin-feeds-download" type="button">Download</button></div>
+                            <div class="admin-status" id="admin-feeds-status" role="status" aria-live="polite"></div>
+                        </div>
                         <div style="display:none;">
                             <input id="admin-username" type="text" autocomplete="username">
                             <input id="admin-password" type="password" autocomplete="current-password">
@@ -2127,6 +2133,37 @@
 
         const isLoggedIn = () => Boolean(adminUser?.username);
         const isAdminLoggedIn = () => Boolean(adminUser?.username && adminUser?.rights === 'admin');
+        document.getElementById('admin-feeds-download').addEventListener('click', async () => {
+            if (!isAdminLoggedIn()) return;
+            const button = document.getElementById('admin-feeds-download');
+            const status = document.getElementById('admin-feeds-status');
+            button.disabled = true;
+            status.textContent = 'Preparing download…';
+            try {
+                if (!window.XLSX) throw new Error('Spreadsheet library did not load. Refresh and try again.');
+                const rows = [];
+                let lastId = null;
+                while (true) {
+                    if (!isAdminLoggedIn()) throw new Error('Sign in as admin to download feeds.');
+                    let query = supabaseClient.from('feeds').select('id,name,title').order('id', { ascending: true }).limit(1000);
+                    if (lastId !== null) query = query.gt('id', lastId);
+                    const { data, error } = await query;
+                    if (error) throw error;
+                    if (!data?.length) break;
+                    rows.push(...data.map(row => [String(row.name ?? ''), String(row.title ?? '')]));
+                    lastId = data[data.length - 1].id;
+                }
+                if (!isAdminLoggedIn()) throw new Error('Sign in as admin to download feeds.');
+                const workbook = XLSX.utils.book_new();
+                const worksheet = XLSX.utils.aoa_to_sheet([['Name', 'Title'], ...rows]);
+                worksheet['!cols'] = [{ wch: 30 }, { wch: 80 }];
+                XLSX.utils.book_append_sheet(workbook, worksheet, 'Feeds');
+                XLSX.writeFile(workbook, 'feeds.xlsx');
+                status.textContent = `Downloaded ${rows.length.toLocaleString()} feed entries.`;
+            } catch (error) {
+                status.textContent = error.message || 'Download failed. Please try again.';
+            } finally { button.disabled = false; }
+        });
         const readSearchHistory = () => {
             try {
                 const parsed = JSON.parse(localStorage.getItem(SEARCH_HISTORY_STORAGE_KEY) || '[]');
@@ -2823,6 +2860,7 @@
             dashboardSectionEl.style.display = isLoggedIn() ? '' : 'none';
             signupPromoEl.style.display = isLoggedIn() ? 'none' : 'grid';
             adminAddUserPanel.style.display = isAdminLoggedIn() ? '' : 'none';
+            document.getElementById('admin-feeds-panel').style.display = isAdminLoggedIn() ? '' : 'none';
             if (dashboardPrimaryRangeEl) {
                 dashboardPrimaryRangeEl.style.display = isAdminLoggedIn() ? '' : 'none';
             }

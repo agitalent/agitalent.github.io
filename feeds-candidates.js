@@ -23,7 +23,8 @@ window.createFeedsCandidates = function (client, auth, escapeHtml) {
   async function open(name, button) {
     if (button.dataset.showCard !== 'true' || !client) return;
     opener = button; const request = ++revision;
-    contents.textContent = 'Loading candidate profiles…';
+    contents.innerHTML = '<div class="candidate-loading" role="status" aria-label="Loading"><svg aria-hidden="true" width="44" height="44" viewBox="0 0 44 44"><circle cx="22" cy="22" r="18" fill="none" stroke="currentColor" stroke-width="4" opacity=".2"/><path d="M22 4a18 18 0 0 1 18 18" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg></div>';
+    dialog.classList.add('loading');
     dialog.showModal();
     try {
       // Check the complete field as well as common separators used for multiple authors.
@@ -41,9 +42,10 @@ window.createFeedsCandidates = function (client, auth, escapeHtml) {
         }
       }
       if (request !== revision || !dialog.open) return;
+      dialog.classList.remove('loading');
       contents.innerHTML = profiles.size ? [...profiles.values()].map(profileCard).join('') : '<p>No matching candidate profiles found.</p>';
     } catch (error) {
-      if (request === revision && dialog.open) contents.textContent = 'Could not load candidate profiles: ' + (error.message || 'Please try again.');
+      if (request === revision && dialog.open) { dialog.classList.remove('loading'); contents.textContent = 'Could not load candidate profiles: ' + (error.message || 'Please try again.'); }
     }
   }
   return {
