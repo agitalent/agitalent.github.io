@@ -42,8 +42,9 @@ window.createFeedsCandidates = function (client, auth, escapeHtml) {
         }
       }
       if (request !== revision || !dialog.open) return;
+      if (!profiles.size) return;
       dialog.classList.remove('loading');
-      contents.innerHTML = profiles.size ? [...profiles.values()].map(profileCard).join('') : '<p>No matching candidate profiles found.</p>';
+      contents.innerHTML = [...profiles.values()].map(profileCard).join('');
     } catch (error) {
       if (request === revision && dialog.open) { dialog.classList.remove('loading'); contents.textContent = 'Could not load candidate profiles: ' + (error.message || 'Please try again.'); }
     }
