@@ -314,6 +314,7 @@
     .feed-record-actions{display:flex;gap:10px;margin-top:12px}.feed-record-actions button{padding:8px 14px;border:1px solid #47e5a580;border-radius:9px;background:#47e5a512;color:var(--accent);font:inherit;cursor:pointer}.feed-record-actions button:disabled{opacity:.4;cursor:default}.feed-record-actions .feed-delete{color:#ff8b8b;border-color:#ff8b8b60}.feed-editor{display:grid;gap:12px;margin-top:12px}.feed-editor label{display:grid;gap:5px;color:var(--muted)}.feed-editor input,.feed-editor textarea{width:100%;min-width:0;padding:10px;border:1px solid var(--line);border-radius:9px;background:#fff1;color:var(--text);font:inherit}.feed-editor textarea{min-height:160px;resize:vertical}.feed-edit-status{color:#ff8b8b;margin:8px 0 0}
     .candidate-name-button{border:0;padding:0;background:none;color:inherit;font:inherit;text-align:left;text-decoration:underline;text-underline-offset:3px;cursor:pointer}.candidate-name-button:disabled{cursor:default;text-decoration:none}.candidate-setting{color:var(--muted);margin:0 0 16px}.candidate-setting input{accent-color:var(--accent)}.candidate-dialog{width:min(700px,calc(100% - 32px));max-height:85vh;overflow:auto;border:1px solid var(--line);border-radius:24px;background:#0c1c17;color:var(--text);padding:24px}.candidate-dialog::backdrop{background:rgba(4,10,8,.72)}.candidate-dialog-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.candidate-dialog-head h2{margin:0 0 16px}.candidate-dialog-head button{border:1px solid var(--line);border-radius:9px;background:#47e5a512;color:var(--accent);font:inherit;cursor:pointer;padding:6px 12px}.candidate-card{border:1px solid rgba(255,255,255,.08);border-radius:24px;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.02)),rgba(255,255,255,.02);padding:20px;margin-bottom:12px}.candidate-card h3{margin:0 0 16px;font-size:1.1rem}.candidate-field-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.candidate-meta{padding:12px 14px;border-radius:16px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.03);min-width:0}.candidate-meta-key{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.58);margin-bottom:8px}.candidate-meta-value{line-height:1.65;white-space:pre-wrap;word-break:break-word}.candidate-meta-value a{color:#7fffd4}@media(max-width:480px){.candidate-field-grid{grid-template-columns:1fr}}
     .feed-editor .feed-card-toggle{display:flex;align-items:center;gap:8px}.feed-editor .feed-card-toggle input{width:auto;accent-color:var(--accent)}
+    .feed-bulk-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 18px;padding:14px;border:1px solid var(--line);border-radius:12px;background:#fff1}.feed-bulk-toolbar[hidden]{display:none}.feed-bulk-toolbar label{display:inline-flex;align-items:center;gap:7px;color:var(--muted)}.feed-bulk-toolbar input{accent-color:var(--accent)}.feed-bulk-toolbar button{padding:8px 14px;border:1px solid #47e5a580;border-radius:9px;background:#47e5a512;color:var(--accent);font:inherit;cursor:pointer}.feed-bulk-status{color:var(--muted)}.feed-select-row{display:none;align-items:center;gap:8px;margin-bottom:6px;color:var(--muted);font-size:.85rem}.feed-select-row.visible{display:flex}.feed-select-row input{accent-color:var(--accent)}
   </style>
 </head>
 <body>
@@ -345,6 +346,7 @@
             </div>
     </header>
     <section class="panel">
+      <div class="feed-bulk-toolbar" id="feed-bulk-toolbar" hidden><label><input type="checkbox" id="feed-bulk-show-card" checked> Show name card</label><button type="button" id="feed-bulk-apply">Apply to selected</button><span class="feed-bulk-status" id="feed-bulk-status" role="status" aria-live="polite"></span></div>
       <form class="search" id="feed-search"><input id="query" type="search" placeholder="Search keywords…" aria-label="Search keywords"><button type="submit">Search</button></form>
       <p class="status" id="status" role="status" aria-live="polite"></p>
       <div id="results"></div>
@@ -448,7 +450,7 @@
       let currentPage=1,total=0,searchTerm='';
       const byId=id=>document.getElementById(id);
       const auth=window.createFeedsAuth(supabase,()=>{updateControls();admin.refresh();candidates.refresh();if(!auth.user&&currentPage>1)loadPage(1);});
-      const admin=window.createFeedsAdmin(auth,()=>loadPage(currentPage));
+      const admin=window.createFeedsAdmin(auth,()=>loadPage(currentPage),(ids,enabled)=>auth.setFeedNameCards(ids,enabled));
       const candidates=window.createFeedsCandidates(supabase,auth,value=>escapeHtml(value));
       let loading=false,loadVersion=0;
       function updateControls(){
