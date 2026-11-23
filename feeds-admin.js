@@ -1,18 +1,7 @@
 window.createFeedsAdmin = function (auth, reload, bulkUpdate) {
   const entries = new Set();
-  const toolbar = document.getElementById('feed-bulk-toolbar');
-  const bulkToggle = document.getElementById('feed-bulk-show-card');
-  const bulkApply = document.getElementById('feed-bulk-apply');
-  const bulkStatus = document.getElementById('feed-bulk-status');
-  const selectedIds = () => [...document.querySelectorAll('.feed-select-record:checked')].map(input => Number(input.value));
-  bulkApply.addEventListener('click', async () => {
-    const ids = selectedIds();
-    if (!auth.canManageFeeds || !ids.length) return;
-    bulkApply.disabled = true; bulkStatus.textContent = 'Saving…';
-    try { await bulkUpdate(ids, bulkToggle.checked); await reload(); }
-    catch (error) { bulkStatus.textContent = error.message || 'Could not update selected records.'; }
-    finally { bulkApply.disabled = false; }
-  });
+  const rows = new Map();
+  const selectedRows = () => [...document.querySelectorAll('.feed-select-record:checked')].map(input => rows.get(String(input.value))).filter(Boolean);
   function button(text, action, className = '') {
     const element = document.createElement('button');
     element.type = 'button'; element.textContent = text; element.className = className;
@@ -23,14 +12,15 @@ window.createFeedsAdmin = function (auth, reload, bulkUpdate) {
     const select = document.createElement('input'); select.type = 'checkbox'; select.className = 'feed-select-record'; select.value = row.id;
     selectRow.append(select, document.createTextNode(' Select record'));
     article.insertBefore(selectRow, article.firstChild);
+    rows.set(String(row.id), row);
     const baseAttach = attachRecord(article, row, selectRow);
     entries.add(baseAttach);
     baseAttach();
   }
   return {
     attach,
-    refresh() { toolbar.hidden = !auth.canManageFeeds; entries.forEach(refresh => refresh()); },
-    clear() { entries.clear(); bulkStatus.textContent = ''; }
+    refresh() { entries.forEach(refresh => refresh()); },
+    clear() { entries.clear(); rows.clear(); }
   };
 
   function attachRecord(article, row, selectRow) {
@@ -44,12 +34,16 @@ window.createFeedsAdmin = function (auth, reload, bulkUpdate) {
       if (!auth.canManageFeeds) { cancel(); message.textContent = ''; message.hidden = true; }
     }
     function cancel() { editor?.remove(); editor = null; edit.disabled = busy; }
-    async function mutate(action, record = null) {
+    async function mutate(action, record = null, targets = [row]) {
       if (busy || !auth.canManageFeeds) return;
       if (action === 'delete' && !window.confirm(`Delete this feed record from ${row.name || 'this author'}? This cannot be undone.`)) return;
       busy = true; message.hidden = false; message.textContent = action === 'save' ? 'Saving...' : 'Deleting...';
       [...actions.querySelectorAll('button'), ...(editor?.querySelectorAll('button,input,textarea') || [])].forEach(control => { control.disabled = true; });
-      try { await auth.manageFeed(action, row, record); await reload(); }
+      try {
+        if (action === 'save' && targets.length > 1) await bulkUpdate(targets, record);
+        else await auth.manageFeed(action, row, record);
+        await reload();
+      }
       catch (error) { message.textContent = error.message || 'The record could not be updated. Please try again.'; }
       finally { busy = false; [...actions.querySelectorAll('button'), ...(editor?.querySelectorAll('button,input,textarea') || [])].forEach(control => { control.disabled = false; }); edit.disabled = Boolean(editor); }
     }
@@ -65,12 +59,22 @@ window.createFeedsAdmin = function (auth, reload, bulkUpdate) {
       const cardLabel = document.createElement('label'); cardLabel.className = 'feed-card-toggle';
       const cardInput = document.createElement('input'); cardInput.type = 'checkbox'; cardInput.checked = row.show_name_card !== false; fields.show_name_card = cardInput;
       cardLabel.append(cardInput, document.createTextNode(' Show name card')); editor.append(cardLabel);
+      const selected = selectedRows();
+      const targets = selectRow.querySelector('input').checked && selected.length > 1 ? selected : [row];
+      if (targets.length > 1) {
+        const note = document.createElement('p'); note.className = 'feed-bulk-note';
+        note.textContent = `Saving will apply these details to all ${targets.length} selected records.`;
+        editor.append(note);
+      }
       const buttons = document.createElement('div'); buttons.className = 'feed-record-actions';
       const save = button('Save', () => {}); save.type = 'submit';
       buttons.append(save, button('Cancel', () => { cancel(); message.textContent = ''; message.hidden = true; })); editor.append(buttons);
       editor.addEventListener('submit', event => {
         event.preventDefault();
-        if (editor.reportValidity()) mutate('save', Object.fromEntries(Object.entries(fields).map(([key, input]) => [key, input.type === 'checkbox' ? input.checked : input.value])));
+        if (editor.reportValidity()) {
+          const record = Object.fromEntries(Object.entries(fields).map(([key, input]) => [key, input.type === 'checkbox' ? input.checked : input.value]));
+          mutate('save', record, targets);
+        }
       });
       article.insertBefore(editor, message); edit.disabled = true; fields.name.focus();
     });

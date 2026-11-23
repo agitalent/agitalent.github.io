@@ -242,11 +242,16 @@ window.createFeedsAuth = function (client, onChange) {
       if (error) throw error;
       return data;
     },
-    async setFeedNameCards(ids, enabled) {
+    async updateFeedRecords(targets, record) {
       if (!this.canManageFeeds) throw new Error('Only owenheisenberg can manage feed records.');
-      const { error } = await client.rpc('admin_set_feed_name_cards', {
+      const updates = targets.map(row => ({
+        id: row.id,
+        original: { name: row.name, title: row.title, update: row.update, date: row.date, show_name_card: row.show_name_card !== false },
+        record
+      }));
+      const { error } = await client.rpc('admin_update_feed_records', {
         p_username: user.username, p_password: mode === 'google' ? null : password,
-        p_ids: ids, p_enabled: enabled
+        p_updates: updates
       });
       if (error) throw error;
     },
