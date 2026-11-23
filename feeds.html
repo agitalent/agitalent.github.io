@@ -312,6 +312,7 @@
             padding: 24px;
         }
     .feed-record-actions{display:flex;gap:10px;margin-top:12px}.feed-record-actions button{padding:8px 14px;border:1px solid #47e5a580;border-radius:9px;background:#47e5a512;color:var(--accent);font:inherit;cursor:pointer}.feed-record-actions button:disabled{opacity:.4;cursor:default}.feed-record-actions .feed-delete{color:#ff8b8b;border-color:#ff8b8b60}.feed-editor{display:grid;gap:12px;margin-top:12px}.feed-editor label{display:grid;gap:5px;color:var(--muted)}.feed-editor input,.feed-editor textarea{width:100%;min-width:0;padding:10px;border:1px solid var(--line);border-radius:9px;background:#fff1;color:var(--text);font:inherit}.feed-editor textarea{min-height:160px;resize:vertical}.feed-edit-status{color:#ff8b8b;margin:8px 0 0}
+    .candidate-name-button{border:0;padding:0;background:none;color:inherit;font:inherit;text-align:left;text-decoration:underline;text-underline-offset:3px;cursor:pointer}.candidate-name-button:disabled{cursor:default;text-decoration:none}.candidate-setting{color:var(--muted);margin:0 0 16px}.candidate-setting input{accent-color:var(--accent)}.candidate-dialog{width:min(700px,calc(100% - 32px));max-height:85vh;overflow:auto;border:1px solid var(--line);border-radius:24px;background:#0c1c17;color:var(--text);padding:24px}.candidate-dialog::backdrop{background:rgba(4,10,8,.72)}.candidate-dialog-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.candidate-dialog-head h2{margin:0 0 16px}.candidate-dialog-head button{border:1px solid var(--line);border-radius:9px;background:#47e5a512;color:var(--accent);font:inherit;cursor:pointer;padding:6px 12px}.candidate-card{border:1px solid rgba(255,255,255,.08);border-radius:24px;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.02)),rgba(255,255,255,.02);padding:20px;margin-bottom:12px}.candidate-card h3{margin:0 0 16px;font-size:1.1rem}.candidate-field-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.candidate-meta{padding:12px 14px;border-radius:16px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.03);min-width:0}.candidate-meta-key{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.58);margin-bottom:8px}.candidate-meta-value{line-height:1.65;white-space:pre-wrap;word-break:break-word}.candidate-meta-value a{color:#7fffd4}@media(max-width:480px){.candidate-field-grid{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
@@ -343,6 +344,7 @@
             </div>
     </header>
     <section class="panel">
+      <div class="candidate-setting" id="candidate-cards-setting" hidden><label><input type="checkbox" id="candidate-cards-toggle" checked> Enable candidate cards</label> <span id="candidate-cards-status" role="status"></span></div>
       <form class="search" id="feed-search"><input id="query" type="search" placeholder="Search keywords…" aria-label="Search keywords"><button type="submit">Search</button></form>
       <p class="status" id="status" role="status" aria-live="polite"></p>
       <div id="results"></div>
@@ -434,8 +436,10 @@
     </div>
 
 
+  <dialog class="candidate-dialog" id="candidate-dialog" aria-labelledby="candidate-dialog-title"><div class="candidate-dialog-head"><h2 id="candidate-dialog-title">Candidate profiles</h2><button type="button" aria-label="Close candidate profiles">Close</button></div><div id="candidate-dialog-content" aria-live="polite"></div></dialog>
   <script src="/feeds-auth.js"></script>
   <script src="/feeds-admin.js"></script>
+  <script src="/feeds-candidates.js"></script>
   <script>
     (()=>{
       const SUPABASE_URL='https://zocovvewzpqxspysanyy.supabase.co';
@@ -443,8 +447,9 @@
       const supabase=window.supabase?.createClient(SUPABASE_URL,SUPABASE_KEY),PAGE_SIZE=20;
       let currentPage=1,total=0,searchTerm='';
       const byId=id=>document.getElementById(id);
-      const auth=window.createFeedsAuth(supabase,()=>{updateControls();admin.refresh();if(!auth.user&&currentPage>1)loadPage(1);});
+      const auth=window.createFeedsAuth(supabase,()=>{updateControls();admin.refresh();candidates.refresh();if(!auth.user&&currentPage>1)loadPage(1);});
       const admin=window.createFeedsAdmin(auth,()=>loadPage(currentPage));
+      const candidates=window.createFeedsCandidates(supabase,auth,value=>escapeHtml(value));
       let loading=false,loadVersion=0;
       function updateControls(){
         byId('previous').disabled=!auth.user||loading||currentPage<=1;
@@ -469,7 +474,7 @@
         byId('status').textContent=total?`${total.toLocaleString()} record${total===1?'':'s'}${searchTerm?' found':''}`:'No matching feeds.';
         const results=byId('results');
         admin.clear();
-        if(data?.length)data.forEach(row=>{const item=document.createElement('article');item.className='record';item.innerHTML=`<div class="name">${escapeHtml(row.name)}</div><h2>${escapeHtml(row.title)}</h2><div class="update">${escapeHtml(row.update)}</div><time>${escapeHtml(row.date)}</time>`;results.append(item);admin.attach(item,row);});
+        if(data?.length)data.forEach(row=>{const item=document.createElement('article');item.className='record';item.innerHTML=`<div class="name"></div><h2>${escapeHtml(row.title)}</h2><div class="update">${escapeHtml(row.update)}</div><time>${escapeHtml(row.date)}</time>`;candidates.attach(item.querySelector('.name'),row.name);results.append(item);admin.attach(item,row);});
         else results.innerHTML='<div class="empty">Try another keyword.</div>';
         byId('page').textContent=total?`Page ${currentPage} of ${Math.max(1,Math.ceil(total/PAGE_SIZE))}`:'';
         byId('page-number').max=Math.max(1,Math.ceil(total/PAGE_SIZE));
@@ -481,7 +486,7 @@
       byId('next').addEventListener('click',()=>loadPage(currentPage+1));
       byId('go').addEventListener('click',()=>{if(!auth.user)return;const requested=Number.parseInt(byId('page-number').value,10),lastPage=Math.max(1,Math.ceil(total/PAGE_SIZE));if(Number.isInteger(requested)&&requested>=1&&requested<=lastPage)loadPage(requested);});
       byId('page-number').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();byId('go').click();}});
-      updateControls();auth.start();loadPage();
+      updateControls();auth.start();candidates.loadSetting();loadPage();
     })();
   </script>
 </body>

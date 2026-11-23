@@ -232,6 +232,13 @@ window.createFeedsAuth = function (client, onChange) {
   return {
     get user() { return user; },
     get canManageFeeds() { return user?.username === 'owenheisenberg' && user?.rights === 'admin'; },
+    async setCandidateCardsEnabled(enabled) {
+      if (!this.canManageFeeds) throw new Error('Only owenheisenberg can change this setting.');
+      const { error } = await client.rpc('admin_set_feed_candidate_cards', {
+        p_username: user.username, p_password: mode === 'google' ? null : password, p_enabled: enabled
+      });
+      if (error) throw error;
+    },
     async manageFeed(action, row, record = null) {
       if (!this.canManageFeeds) throw new Error('Only owenheisenberg can manage feed records.');
       const { id, name, title, update, date } = row;
