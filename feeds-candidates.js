@@ -26,6 +26,10 @@ window.createFeedsCandidates = function (client, auth, escapeHtml) {
     contents.innerHTML = '<div class="candidate-loading" role="status" aria-label="Loading"><svg aria-hidden="true" width="44" height="44" viewBox="0 0 44 44"><circle cx="22" cy="22" r="18" fill="none" stroke="currentColor" stroke-width="4" opacity=".2"/><path d="M22 4a18 18 0 0 1 18 18" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg></div>';
     dialog.classList.add('loading');
     dialog.showModal();
+    const active = () => request === revision && dialog.open;
+    const pause = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
+    let retryDelay = 1000;
+    while (active()) {
     try {
       // Check the complete field as well as common separators used for multiple authors.
       const names = [...new Set([name, ...name.split(/[,;\n\/]|\s+&\s+|\s+and\s+/i)].map(value => value.trim()).filter(Boolean))];
@@ -35,18 +39,35 @@ window.createFeedsCandidates = function (client, auth, escapeHtml) {
       for (const candidateName of names) {
         for (let offset = 0; ; offset += 1000) {
           const pattern = candidateName.replace(/[\\%_]/g, '\\$&');
-          const { data, error } = await client.from(source).select(columns).ilike('name_or_handle', pattern).range(offset, offset + 999);
-          if (error) throw error;
+          let data;
+          // Retry the same page indefinitely, preserving already retrieved matches.
+          while (active()) {
+            try {
+              const result = await client.from(source).select(columns).ilike('name_or_handle', pattern).range(offset, offset + 999);
+              if (result.error) throw result.error;
+              data = result.data;
+              retryDelay = 1000;
+              break;
+            } catch (_) {
+              if (!active()) return;
+              await pause(retryDelay);
+              retryDelay = Math.min(retryDelay * 2, 15000);
+            }
+          }
+          if (!active()) return;
           for (const profile of data || []) profiles.set(profile.id, profile);
           if (!data || data.length < 1000) break;
         }
       }
       if (request !== revision || !dialog.open) return;
-      if (!profiles.size) return;
+      if (!profiles.size) { await pause(15000); continue; }
       dialog.classList.remove('loading');
       contents.innerHTML = [...profiles.values()].map(profileCard).join('');
-    } catch (error) {
-      if (request === revision && dialog.open) { dialog.classList.remove('loading'); contents.textContent = 'Could not load candidate profiles: ' + (error.message || 'Please try again.'); }
+      return;
+    } catch (_) {
+      if (!active()) return;
+      await pause(15000);
+    }
     }
   }
   return {
